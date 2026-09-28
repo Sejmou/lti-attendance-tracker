@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
@@ -23,18 +24,18 @@
 	{/if}
 {/snippet}
 
-<svelte:head><title>Organizer</title></svelte:head>
+<svelte:head><title>{m.admin_title()}</title></svelte:head>
 
 <main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
-	<h1 class="text-2xl font-semibold">Organizer</h1>
+	<h1 class="text-2xl font-semibold">{m.admin_title()}</h1>
 	<a href={resolve('/admin/generate-checkin-qr')} class="text-blue-600 underline">
-		Show the check-in code
+		{m.show_checkin_code()}
 	</a>
-	<a href={resolve('/admin/checkins')} class="text-blue-600 underline">Check-in log</a>
+	<a href={resolve('/admin/checkins')} class="text-blue-600 underline">{m.checkin_log()}</a>
 
 	{#if data.admins}
 		<section class="flex flex-col gap-4 border-t border-gray-200 pt-6">
-			<h2 class="text-lg font-semibold">Organizers</h2>
+			<h2 class="text-lg font-semibold">{m.admin_organizers()}</h2>
 			<ul class="flex flex-col gap-1 text-sm">
 				{#each data.admins as admin (admin.email)}
 					<li>
@@ -42,18 +43,18 @@
 						{admin.lastName}
 						<span class="text-gray-500">{admin.email}</span>
 						{#if admin.role === 'superadmin'}
-							<span class="text-gray-500">· superadmin</span>
+							<span class="text-gray-500">· {m.admin_superadmin()}</span>
 						{:else if admin.mustChangePassword}
-							<span class="text-gray-500">· has a temporary password</span>
+							<span class="text-gray-500">· {m.admin_has_temporary_password()}</span>
 						{/if}
 					</li>
 				{/each}
 			</ul>
 
 			<form method="post" action="?/promote" use:enhance class="flex flex-col gap-4">
-				<h3 class="font-medium">Make a guest an organizer</h3>
+				<h3 class="font-medium">{m.admin_promote_heading()}</h3>
 				<label class="flex flex-col gap-1">
-					Guest's email
+					{m.admin_guest_email()}
 					<input
 						type="email"
 						name="email"
@@ -64,21 +65,21 @@
 					/>
 				</label>
 				<label class="flex flex-col gap-1">
-					Initial password
+					{m.admin_initial_password()}
 					<input type="text" name="password" autocomplete="off" required class={input} />
 					<span class="text-sm text-gray-500">
-						Pass it on to them. They have to replace it when they first sign in.
+						{m.admin_initial_password_hint()}
 					</span>
 				</label>
-				<button class={button}>Make organizer</button>
+				<button class={button}>{m.admin_promote_button()}</button>
 				{@render outcome('promote')}
 			</form>
 
 			{#if resettable.length}
 				<form method="post" action="?/resetPassword" use:enhance class="flex flex-col gap-4">
-					<h3 class="font-medium">Reset an organizer's password</h3>
+					<h3 class="font-medium">{m.admin_reset_heading()}</h3>
 					<label class="flex flex-col gap-1">
-						Organizer
+						{m.admin_organizer()}
 						<select name="email" required class={input}>
 							{#each resettable as admin (admin.email)}
 								<option value={admin.email}>
@@ -89,13 +90,13 @@
 						</select>
 					</label>
 					<label class="flex flex-col gap-1">
-						Temporary password
+						{m.admin_temporary_password()}
 						<input type="text" name="password" autocomplete="off" required class={input} />
 						<span class="text-sm text-gray-500">
-							Signs them out everywhere. They have to replace it when they next sign in.
+							{m.admin_reset_hint()}
 						</span>
 					</label>
-					<button class={button}>Reset password</button>
+					<button class={button}>{m.admin_reset_button()}</button>
 					{@render outcome('reset')}
 				</form>
 			{/if}
@@ -103,9 +104,9 @@
 	{/if}
 
 	<a href={resolve('/admin/change-password')} class="text-blue-600 underline">
-		Change your password
+		{m.admin_change_password()}
 	</a>
 	<form method="post" action="?/signOut" use:enhance>
-		<button class="text-gray-500 underline">Sign out</button>
+		<button class="text-gray-500 underline">{m.admin_sign_out()}</button>
 	</form>
 </main>

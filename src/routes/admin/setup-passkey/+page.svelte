@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { authClient } from '$lib/auth-client';
+	import { m } from '$lib/paraglide/messages';
 
 	let error = $state('');
 	let registering = $state(false);
@@ -13,19 +14,19 @@
 		registering = false;
 
 		if (result?.error) {
-			error = 'That did not work. You can skip for now and try again later.';
+			error = m.passkey_failed();
 			return;
 		}
 		await goto(resolve('/admin'), { invalidateAll: true });
 	}
 </script>
 
-<svelte:head><title>Add a passkey</title></svelte:head>
+<svelte:head><title>{m.passkey_title()}</title></svelte:head>
 
 <main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
-	<h1 class="text-2xl font-semibold">Add a passkey</h1>
+	<h1 class="text-2xl font-semibold">{m.passkey_title()}</h1>
 	<p class="text-gray-600">
-		Faster than your password, and it can't be phished. Your password keeps working either way.
+		{m.passkey_text()}
 	</p>
 
 	<button
@@ -34,11 +35,11 @@
 		disabled={registering}
 		class="rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
 	>
-		{registering ? 'Waiting for your device…' : 'Add a passkey'}
+		{registering ? m.waiting_for_device() : m.passkey_title()}
 	</button>
 
 	<form method="post" action="?/skip">
-		<button class="text-sm text-gray-500 underline">Skip for now</button>
+		<button class="text-sm text-gray-500 underline">{m.passkey_skip()}</button>
 	</form>
 
 	<p class="text-sm text-red-600" role="alert">{error}</p>

@@ -37,7 +37,10 @@ export default defineConfig(({ mode }) => ({
 		paraglideVitePlugin({
 			project: './project.inlang',
 			outdir: './src/lib/paraglide',
-			emitTsDeclarations: true
+			emitTsDeclarations: true,
+			// German unless the visitor picked English with the switcher in the
+			// layout. The browser's language is deliberately not consulted.
+			strategy: ['cookie', 'baseLocale']
 		})
 	],
 	test: {

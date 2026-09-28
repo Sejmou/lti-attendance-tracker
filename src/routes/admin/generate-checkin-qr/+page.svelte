@@ -2,6 +2,8 @@
 	import { resolve } from '$app/paths';
 	import { fly } from 'svelte/transition';
 	import QrScreen from '$lib/components/qr-screen.svelte';
+	import { m } from '$lib/paraglide/messages';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -37,22 +39,21 @@
 	});
 
 	const time = (at: Date) =>
-		at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+		at.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 </script>
 
-<svelte:head><title>Check in</title></svelte:head>
+<svelte:head><title>{m.page_check_in()}</title></svelte:head>
 
-<QrScreen title="Scan to check in" qr={data.qr} msUntilNextBucket={data.msUntilNextBucket}>
+<QrScreen title={m.qr_heading()} qr={data.qr} msUntilNextBucket={data.msUntilNextBucket}>
 	<p class="text-gray-600">
-		{data.present}
-		{data.present === 1 ? 'guest' : 'guests'} here. This code changes automatically — leave this page
-		open.
+		{m.qr_present({ count: data.present })}
+		{m.qr_keep_open()}
 	</p>
 
 	<section class="w-full max-w-md">
-		<h2 class="mb-2 text-sm font-medium text-gray-500">Last check-ins</h2>
+		<h2 class="mb-2 text-sm font-medium text-gray-500">{m.qr_last_checkins()}</h2>
 		{#if recent.length === 0}
-			<p class="text-gray-500">Nobody yet.</p>
+			<p class="text-gray-500">{m.qr_nobody_yet()}</p>
 		{:else}
 			<ol class="divide-y divide-gray-100 rounded-lg border border-gray-200">
 				{#each recent as arrival (arrival.id)}
@@ -66,8 +67,8 @@
 	</section>
 
 	<div class="flex gap-4">
-		<a href={resolve('/admin')} class="text-blue-600 underline">Organizer</a>
-		<a href={resolve('/admin/checkins')} class="text-blue-600 underline">Check-in log</a>
+		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
+		<a href={resolve('/admin/checkins')} class="text-blue-600 underline">{m.checkin_log()}</a>
 	</div>
 </QrScreen>
 
@@ -80,8 +81,7 @@
 			transition:fly={{ x: 80 }}
 			class="rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
 		>
-			✓ {toast.firstName}
-			{toast.lastName} checked in
+			✓ {m.qr_checked_in({ name: `${toast.firstName} ${toast.lastName}` })}
 		</div>
 	{/each}
 </div>

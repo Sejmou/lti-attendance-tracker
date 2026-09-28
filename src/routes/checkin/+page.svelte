@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { authClient } from '$lib/auth-client';
 	import { checkInMessage, loadDeviceKey, sign } from '$lib/device-key';
+	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
@@ -39,41 +40,39 @@
 		confirming = false;
 
 		if (error) {
-			passkeyError = 'That passkey did not work.';
+			passkeyError = m.checkin_passkey_failed();
 			return;
 		}
 		document.forms.namedItem('withPasskey')?.requestSubmit();
 	}
 </script>
 
-<svelte:head><title>Check in</title></svelte:head>
+<svelte:head><title>{m.page_check_in()}</title></svelte:head>
 
 <main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
 	{#if checkedIn}
-		<h1 class="text-2xl font-semibold">You're checked in</h1>
+		<h1 class="text-2xl font-semibold">{m.checkin_done_heading()}</h1>
 		<p class="text-gray-600">
-			Welcome, {checkedIn}. Enjoy the event.
+			{m.checkin_welcome({ name: checkedIn })}
 		</p>
 	{:else if !data.scanId}
-		<h1 class="text-2xl font-semibold">Scan the code at the door</h1>
+		<h1 class="text-2xl font-semibold">{m.checkin_scan_heading()}</h1>
 		<p class="text-gray-600">
-			This page opens when you scan the QR code on the check-in screen. The code changes every 30
-			seconds, so scan the one showing now.
+			{m.checkin_scan_text()}
 		</p>
 	{:else if hasDeviceKey !== false && !form}
-		<h1 class="text-2xl font-semibold">Checking you in…</h1>
+		<h1 class="text-2xl font-semibold">{m.checkin_in_progress()}</h1>
 		<form method="post" action="?/withDeviceKey" name="withDeviceKey" use:enhance>
 			<input type="hidden" name="keyId" value={keyId} />
 			<input type="hidden" name="signature" value={signature} />
 		</form>
 	{:else if hasDeviceKey}
 		<!-- The key was there and was turned down; the message below says why. -->
-		<h1 class="text-2xl font-semibold">That didn't work</h1>
+		<h1 class="text-2xl font-semibold">{m.checkin_failed_heading()}</h1>
 	{:else}
-		<h1 class="text-2xl font-semibold">Set up this phone first</h1>
+		<h1 class="text-2xl font-semibold">{m.checkin_set_up_heading()}</h1>
 		<p class="text-gray-600">
-			Open the check-in activity in your Moodle course on this phone and tap "Set up this phone".
-			Then scan the code again.
+			{m.checkin_set_up_text({ button: m.enroll_set_up() })}
 		</p>
 		<button
 			type="button"
@@ -81,7 +80,7 @@
 			disabled={confirming}
 			class="self-start text-sm text-gray-500 underline disabled:opacity-50"
 		>
-			{confirming ? 'Waiting for your device…' : 'Organizer? Check in with your passkey'}
+			{confirming ? m.waiting_for_device() : m.checkin_with_passkey()}
 		</button>
 
 		<form method="post" action="?/withPasskey" name="withPasskey" hidden use:enhance></form>
