@@ -7,7 +7,9 @@ services:
         BASE_PATH: ${BASE_PATH:-}
     ports:
       # HOST_PORT comes from .env via compose's own variable interpolation.
-      - '${HOST_PORT:-3000}:3000'
+      # BIND_IP defaults to 127.0.0.1 (localhost), but can be overriden via .env, too
+      # by specifying things this way we effectively disable Docker's (insecure!) default of publishing the service on all network interfacesirrespective of firewall settings
+      - '${BIND_IP:-127.0.0.1}:${HOST_PORT:-3000}:3000'
     env_file: .env
     environment:
       # Overrides whatever .env says: inside the container the DB lives on the volume.
