@@ -7,7 +7,9 @@ services:
         BASE_PATH: ${BASE_PATH:-}
     ports:
       # HOST_PORT comes from .env via compose's own variable interpolation.
-      - '${HOST_PORT:-3000}:3000'
+      # BIND_IP defaults to 127.0.0.1 (localhost), but can be overriden via .env, too
+      # by specifying things this way we effectively disable Docker's (insecure!) default of publishing the service on all network interfacesirrespective of firewall settings
+      - '${BIND_IP:-127.0.0.1}:${HOST_PORT:-3000}:3000'
     env_file: .env
     environment:
       # Overrides whatever .env says: inside the container the DB lives on the volume.
@@ -18,7 +20,8 @@ services:
 
   # Dev-dependency image for one-off schema and seed runs against the same volume:
   #   docker compose run --rm tools pnpm db:push
-  #   docker compose run --rm tools pnpm db:seed --admin ops@corp.com data/attendees.json
+  #   docker compose run --rm tools pnpm db:seed --admin ops@corp.com --first-name Ada --last-name Lovelace
+  #   docker compose run --rm tools pnpm lti:register-platform --url https://moodle.example.com --client-id <id>
   tools:
     build:
       context: .
@@ -36,8 +39,6 @@ services:
       DATABASE_URL: /data/app.db
     volumes:
       - db:/data
-      # The image has no data/ (.dockerignore), so the seed list comes from the host.
-      - ./data:/app/data:ro
 
 volumes:
   db:
