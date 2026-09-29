@@ -144,6 +144,8 @@
 	"qr_scanned_out": "{name} scanned out",
 	"qr_in": "in",
 	"qr_out": "out",
+	"scan_already_heading": "You're already scanned in",
+	"scan_already_text": "Since {time}: your first scan worked, no need to scan again.",
 	"scan_done_text": "Thanks, {name}.",
 	"scan_prompt_heading": "Scan the attendance QR code",
 	"scan_prompt_text": "This page opens when you scan the attendance QR code. The code changes every 30 seconds, so scan the one showing now.",

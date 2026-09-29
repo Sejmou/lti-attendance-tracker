@@ -27,6 +27,7 @@ import {
 	verifyAdminSession,
 	verifyEnrollment
 } from '../scan-token';
+import { SCAN_IN_GRACE_MS } from '../scan';
 import { httpHandler, provider } from './provider';
 
 // Plays Moodle: a platform key pair, and the forms Moodle's pages would post.
@@ -359,11 +360,34 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	const rows = db.select().from(scanRow).where(eq(scanRow.userId, id)).all();
 	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7', eventId: SCREEN.eventId }]);
 
-	// Another code is another scan, and a row of its own: for now, the scan-out.
+	const count = () => db.$count(scanRow, eq(scanRow.userId, id));
+	const backdate = (ms: number) =>
+		db
+			.update(scanRow)
+			.set({ scannedAt: new Date(Date.now() - ms) })
+			.where(eq(scanRow.userId, id))
+			.run();
+
+	// Scanning again right away, unsure the first one worked: they are told
+	// they're in, and nothing is written that would count as leaving.
 	expect(await scan(token, bucketToken(SCREEN, Date.now() - BUCKET_MS))).toMatchObject({
+		scanned: { firstName: 'Ada', alreadyInSince: rows[0].scannedAt }
+	});
+	expect(await count()).toBe(1);
+
+	// Past the grace period, a scan is a scan: for now, the scan-out.
+	backdate(SCAN_IN_GRACE_MS + 60_000);
+	expect(await scan(tokenFrom(await launch()), bucketToken(SCREEN))).toMatchObject({
 		scanned: { direction: 'out' }
 	});
-	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(2);
+	expect(await count()).toBe(2);
+
+	// And one right after a scan-out is written too: scanned out too early by
+	// accident, the later one is the real scan-out. The grace is the scan-in's alone.
+	expect(await scan(tokenFrom(await launch()), bucketToken(SCREEN))).toMatchObject({
+		scanned: { direction: 'out' }
+	});
+	expect(await count()).toBe(3);
 });
 
 test('two attendees scanning the same code get scans of their own', async () => {
