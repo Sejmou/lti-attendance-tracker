@@ -1,0 +1,56 @@
+import { error } from '@sveltejs/kit';
+import { countDistinct, desc, eq, sql } from 'drizzle-orm';
+import QRCode from 'qrcode';
+import { env } from '$env/dynamic/private';
+import { resolve } from '$app/paths';
+import { db } from '$lib/server/db';
+import { event as eventTable, scan, user } from '$lib/server/db/schema';
+import { bucketToken, msUntilNextBucket } from '$lib/server/scan-token';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals, params }) => {
+	const event = db
+		.select({ id: eventTable.id, title: eventTable.title })
+		.from(eventTable)
+		.where(eq(eventTable.id, params.id))
+		.get();
+	if (!event) error(404, 'No such event');
+
+	const scanUrl = new URL(resolve('/scan'), env.ORIGIN);
+	// The admin layout already turned away anyone who isn't one.
+	const screen = { hostId: locals.admin!.id, eventId: event.id };
+	scanUrl.searchParams.set('t', bucketToken(screen));
+
+	const [qr, [{ present }], recent] = await Promise.all([
+		// Rendered here rather than in the browser so the page needs no QR library.
+		QRCode.toString(scanUrl.toString(), { type: 'svg', margin: 1, width: 420 }),
+		// Distinct: re-entry writes another row, and the headline number is people.
+		db
+			.select({ present: countDistinct(scan.userId) })
+			.from(scan)
+			.where(eq(scan.eventId, event.id)),
+		db
+			.select({
+				id: scan.id,
+				at: scan.scannedAt,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				// As the live feed says it: out if they have an earlier scan here.
+				direction: sql<'in' | 'out'>`case when exists (
+					select 1 from ${scan} as earlier
+					where earlier.user_id = ${scan.userId}
+						and earlier.event_id = ${scan.eventId}
+						and earlier.scanned_at < ${scan.scannedAt}
+				) then 'out' else 'in' end`
+			})
+			.from(scan)
+			.innerJoin(user, eq(user.id, scan.userId))
+			.where(eq(scan.eventId, event.id))
+			.orderBy(desc(scan.scannedAt))
+			.limit(5)
+	]);
+
+	// No "of how many": there is no attendee list, only whoever has opened the
+	// Moodle activity so far, which says nothing about who is coming.
+	return { event, qr, present, recent, msUntilNextBucket: msUntilNextBucket() };
+};

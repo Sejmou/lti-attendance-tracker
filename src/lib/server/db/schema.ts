@@ -6,7 +6,7 @@ import type { PublicJwk } from '../device-key';
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
 /**
- * Everyone who has ever launched one of the tools from an LTI platform, guest
+ * Everyone who has ever launched one of the tools from an LTI platform, attendee
  * or organizer alike. Nobody signs up or has a password: the first launch
  * creates the row, from what the platform shares about them, and every later
  * one finds it by `ltiSubject`. Whether someone is an organizer isn't stored
@@ -31,17 +31,53 @@ export const user = sqliteTable('user', {
 });
 
 /**
- * One row per check-in. Re-entry is normal at an event, so a guest may have
- * several — the unique index only collapses a double submit riding the same
- * scan.
+ * Something people scan in and out of. Either synced from the public calendar
+ * (see calendar-sync) or created by an organizer; the sync only ever touches
+ * its own rows.
+ *
+ * Scans point at `id`, never at the calendar's own IDs, so a resync can't
+ * move or lose them. An event with scans is never deleted: one that has
+ * disappeared from the calendar is kept, with `removedAt` set.
+ */
+export const event = sqliteTable(
+	'event',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		source: text('source', { enum: ['calendar', 'manual'] }).notNull(),
+		/**
+		 * The calendar's `UID`, plus the occurrence's original start (its
+		 * `RECURRENCE-ID`, in UTC) for one occurrence of a recurring event. Stable
+		 * across edits and moves in the calendar. Null for manual events.
+		 */
+		calendarKey: text('calendar_key').unique(),
+		title: text('title').notNull(),
+		location: text('location'),
+		startsAt: integer('starts_at', { mode: 'timestamp_ms' }).notNull(),
+		endsAt: integer('ends_at', { mode: 'timestamp_ms' }).notNull(),
+		/** Whole days: `startsAt` and `endsAt` are midnights, `endsAt` exclusive. */
+		allDay: integer('all_day', { mode: 'boolean' }).notNull().default(false),
+		/** When the sync last found it missing from the calendar. */
+		removedAt: integer('removed_at', { mode: 'timestamp_ms' })
+	},
+	(table) => [index('event_startsAt_idx').on(table.startsAt)]
+);
+
+/**
+ * One row per scan of a displayed code. An attendee's first scan counts as their
+ * scan-in, their last one (if there are two or more) as their scan-out — both
+ * are worked out from these rows, never stored. Re-entry is normal, so an attendee
+ * may have several; the unique index only collapses a double submit riding the
+ * same code scan.
  *
  * The trailing columns exist to make abuse visible after the fact: a code
- * photographed and passed around shows up as check-ins from addresses that
+ * photographed and passed around shows up as scans from addresses that
  * aren't the venue's, and one device working through borrowed accounts shows up
- * as one userAgent and one scanId across many users.
+ * as one userAgent and one codeScanId across many users.
  */
-export const checkIn = sqliteTable(
-	'check_in',
+export const scan = sqliteTable(
+	'scan',
 	{
 		id: text('id')
 			.primaryKey()
@@ -49,41 +85,44 @@ export const checkIn = sqliteTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
-		checkedInAt: integer('checked_in_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+		// The event the displayed code was for. No cascade: an event with scans
+		// is never deleted (see event), and the database holds that line too.
+		eventId: text('event_id')
+			.notNull()
+			.references(() => event.id),
 		// How they proved they were there:
-		// - device:  a signature from the key their phone got when they opened the
-		//            Moodle activity (see deviceKey)
-		// - lti:     they opened the Moodle activity and scanned the code inside
-		//            the page it opened, within 15 minutes of the launch. The
-		//            platform vouched for them; no device was set up.
-		// - passkey: an organizer's passkey. No longer possible; organizers
-		//            sign in through the admin tool now, and kept like `link`.
-		// - host:    they are the admin showing the check-in code, and a guest just
-		//            checked in through it. Nobody confirmed it was them; the guest's
-		//            scan says their screen is at the door. See checkInHost.
-		// - link:    a ticket from the old /setup?email= link. No longer issued; kept
-		//            so rows written before it was removed still type-check.
-		method: text('method', { enum: ['device', 'lti', 'passkey', 'host', 'link'] }).notNull(),
+		// - device: a signature from the key their phone got when they opened the
+		//           Moodle activity (see deviceKey)
+		// - lti:    they opened the Moodle activity and scanned the code inside
+		//           the page it opened, within 15 minutes of the launch. The
+		//           platform vouched for them; no device was set up.
+		// - host:   they are the admin showing the code, and an attendee just scanned
+		//           it. Nobody confirmed it was them; the attendee's scan says their
+		//           screen is at the door. See hostScan.
+		method: text('method', { enum: ['device', 'lti', 'host'] }).notNull(),
 		ipAddress: text('ip_address'),
 		userAgent: text('user_agent'),
-		// Which scan of which displayed code this rode in on.
-		scanId: text('scan_id').notNull()
+		// Which scan of which displayed code this rode in on. A host row shares
+		// the attendee's.
+		codeScanId: text('code_scan_id').notNull()
 	},
 	(table) => [
-		index('check_in_userId_idx').on(table.userId),
-		index('check_in_checkedInAt_idx').on(table.checkedInAt),
-		unique('check_in_user_scan_unq').on(table.userId, table.scanId)
+		index('scan_userId_idx').on(table.userId),
+		index('scan_scannedAt_idx').on(table.scannedAt),
+		index('scan_eventId_idx').on(table.eventId),
+		unique('scan_user_code_scan_unq').on(table.userId, table.codeScanId)
 	]
 );
 
 /**
- * The public half of the key pair a guest's browser made when they opened the
+ * The public half of the key pair an attendee's browser made when they opened the
  * Moodle activity. The private half never leaves that browser (it is created
  * non-extractable), so a signature from it says "this is the browser that
- * guest set up".
+ * attendee set up".
  *
- * One per guest: setting up another browser replaces it. A second key would
- * be a second person able to check them in.
+ * One per attendee: setting up another browser replaces it. A second key would
+ * be a second person able to scan for them.
  */
 export const deviceKey = sqliteTable('device_key', {
 	/** What the browser sends along with a signature, to say which key made it. */

@@ -1,6 +1,6 @@
 /**
  * Cheap per-key attempt counter, so a scanned code can't be walked through a
- * guest list or a password list.
+ * attendee list or a password list.
  *
  * ponytail: per-process counter, so it resets on redeploy and doesn't add up
  * across instances. Fine for one box at one event; move to the DB if this ever

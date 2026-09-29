@@ -1,8 +1,9 @@
 <?php
 // Sets up the test Moodle the way the README tells an organizer to set up a
-// real one: a course with the check-in app's two LTI 1.3 tools, an activity
+// real one: a course with the attendance tool's two LTI 1.3 tools, an activity
 // for each, and people to launch them as. Safe to run again: it updates what
-// is already there, so a changed APP_URL reaches the tools on the next start.
+// is already there, so a changed APP_URL or TESTENV_LOCALE reaches the tools,
+// activities and course on the next start.
 
 define('CLI_SCRIPT', true);
 
@@ -19,6 +20,34 @@ require_once($CFG->dirroot . '/mod/lti/locallib.php');
 // ORIGIN plus BASE_PATH: where the app's /lti-link routes are.
 $appurl = rtrim(getenv('APP_URL'), '/');
 $password = getenv('TESTENV_USER_PASSWORD');
+
+// What the course, tools and activities are called. Only these names: Moodle's
+// own interface stays in the language it was installed with.
+$names = [
+    'de' => [
+        'course' => 'Anwesenheit (Test)',
+        'admin_tool' => 'Anwesenheitstool (Admin)',
+        'admin_activity' => 'Anwesenheitstool Admin (QR-Code anzeigen)',
+        'admin_intro' => 'Zeigt den Anwesenheits-QR-Code und das Scan-Protokoll. Für Studierende verborgen.',
+        'attendee_tool' => 'Anwesenheitstool',
+        'attendee_activity' => 'Anwesenheits-QR-Code scannen',
+        'attendee_intro' => 'Öffne das auf dem Handy, das du zur Veranstaltung mitbringst.',
+    ],
+    'en' => [
+        'course' => 'Attendance (test)',
+        'admin_tool' => 'Attendance tool (admin)',
+        'admin_activity' => 'Attendance tool admin (show QR code)',
+        'admin_intro' => 'Shows the attendance QR code and the scan log. Hidden from students.',
+        'attendee_tool' => 'Attendance tool',
+        'attendee_activity' => 'Scan attendance QR code',
+        'attendee_intro' => 'Open this on the phone you will bring to the event.',
+    ],
+];
+$locale = getenv('TESTENV_LOCALE') ?: 'de';
+if (!isset($names[$locale])) {
+    cli_error("testenv: TESTENV_LOCALE must be one of " . implode(', ', array_keys($names)) . ", not '{$locale}'");
+}
+$name = $names[$locale];
 
 // Username => first name, last name, course role.
 $people = [
@@ -50,11 +79,15 @@ foreach ($people as $username => [$firstname, $lastname]) {
     $userids[$username] = $user->id;
 }
 
-$course = $DB->get_record('course', ['shortname' => 'CHECKIN']);
-if (!$course) {
+// Found by its short name, which is the same in every locale, so switching
+// TESTENV_LOCALE renames the course instead of making a second one.
+$course = $DB->get_record('course', ['shortname' => 'ATTENDANCE']);
+if ($course) {
+    $DB->set_field('course', 'fullname', $name['course'], ['id' => $course->id]);
+} else {
     $course = create_course((object) [
-        'fullname' => 'Event check-in (test)',
-        'shortname' => 'CHECKIN',
+        'fullname' => $name['course'],
+        'shortname' => 'ATTENDANCE',
         'category' => core_course_category::get_default()->id,
         'format' => 'topics',
         'numsections' => 1,
@@ -74,16 +107,16 @@ foreach ($people as $username => [, , $role]) {
 $tools = [
     [
         'clientid' => getenv('ADMIN_CLIENT_ID'),
-        'name' => 'Event check-in (organizers)',
-        'activity' => 'Event check-in: organizer screen',
-        'intro' => 'Opens the check-in screen and log. Hidden from students.',
+        'name' => $name['admin_tool'],
+        'activity' => $name['admin_activity'],
+        'intro' => $name['admin_intro'],
         'visible' => 0,
     ],
     [
         'clientid' => getenv('ATTENDEE_CLIENT_ID'),
-        'name' => 'Event check-in',
-        'activity' => 'Event check-in: set up your phone',
-        'intro' => 'Open this on the phone you will bring to the event.',
+        'name' => $name['attendee_tool'],
+        'activity' => $name['attendee_activity'],
+        'intro' => $name['attendee_intro'],
         'visible' => 1,
     ],
 ];
@@ -121,7 +154,14 @@ foreach ($tools as $tool) {
         );
     }
 
-    if (!$DB->record_exists('lti', ['course' => $course->id, 'typeid' => $typeid])) {
+    $existing = $DB->get_record('lti', ['course' => $course->id, 'typeid' => $typeid]);
+    if ($existing) {
+        $DB->update_record('lti', (object) [
+            'id' => $existing->id,
+            'name' => $tool['activity'],
+            'intro' => $tool['intro'],
+        ]);
+    } else {
         create_module((object) [
             'modulename' => 'lti',
             'course' => $course->id,
@@ -146,4 +186,6 @@ foreach ($tools as $tool) {
     }
 }
 
-cli_writeln("testenv: course CHECKIN ready at {$CFG->wwwroot}/course/view.php?id={$course->id}");
+rebuild_course_cache($course->id, true);
+
+cli_writeln("testenv: course ATTENDANCE ready at {$CFG->wwwroot}/course/view.php?id={$course->id}");

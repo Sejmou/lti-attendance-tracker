@@ -8,7 +8,7 @@ import {
 	issueAdminSession,
 	issueEnrollment,
 	issuePresence,
-	scanId,
+	codeScanId,
 	verifyAdminLaunch,
 	verifyAdminSession,
 	verifyBucketToken,
@@ -16,62 +16,67 @@ import {
 	verifyPresence
 } from './scan-token';
 
-test('a code is accepted for its own window and the one before it, and names its host', () => {
-	const now = Date.now();
-	const token = bucketToken('ops', now);
+const OPS = { hostId: 'ops', eventId: 'party' };
 
-	expect(verifyBucketToken(token, now)).toBe('ops');
+test('a code is accepted for its own window and the one before it, and names its screen', () => {
+	const now = Date.now();
+	const token = bucketToken(OPS, now);
+
+	expect(verifyBucketToken(token, now)).toEqual(OPS);
 	// Scanned just before a rotation, submitted just after.
-	expect(verifyBucketToken(token, now + BUCKET_MS)).toBe('ops');
+	expect(verifyBucketToken(token, now + BUCKET_MS)).toEqual(OPS);
 });
 
 test('a code is rejected two windows later', () => {
 	const now = Date.now();
-	expect(verifyBucketToken(bucketToken('ops', now), now + 2 * BUCKET_MS)).toBeNull();
+	expect(verifyBucketToken(bucketToken(OPS, now), now + 2 * BUCKET_MS)).toBeNull();
 });
 
 test('a made-up code is rejected', () => {
 	expect(verifyBucketToken('not-a-real-token')).toBeNull();
 	expect(verifyBucketToken('')).toBeNull();
+	expect(verifyBucketToken('ops.x')).toBeNull();
 });
 
-test('a code cannot be moved to another host', () => {
+test('a code cannot be moved to another host or another event', () => {
 	const now = Date.now();
-	const [, signature] = bucketToken('ops', now).split('.');
-	expect(verifyBucketToken(`grace.${signature}`, now)).toBeNull();
+	const [, signature] = bucketToken(OPS, now).split('.');
+	expect(verifyBucketToken(`grace:party.${signature}`, now)).toBeNull();
+	expect(verifyBucketToken(`ops:lecture.${signature}`, now)).toBeNull();
 });
 
 test('the code changes when the window rolls over', () => {
 	const now = Date.now();
-	expect(bucketToken('ops', now)).not.toBe(bucketToken('ops', now + BUCKET_MS));
+	expect(bucketToken(OPS, now)).not.toBe(bucketToken(OPS, now + BUCKET_MS));
 });
 
 test('presence outlives several rotations but not its own expiry', () => {
 	const now = Date.now();
-	const presence = issuePresence('ops', now);
+	const presence = issuePresence(OPS, now);
 
-	expect(verifyPresence(presence, now + 5 * BUCKET_MS)).toBe('ops');
+	expect(verifyPresence(presence, now + 5 * BUCKET_MS)).toEqual(OPS);
 	expect(verifyPresence(presence, now + 11 * 60_000)).toBeNull();
 });
 
-test('presence cannot be forged, tampered with or moved to another host', () => {
-	const [, expiresAt, signature] = issuePresence('ops').split('.');
+test('presence cannot be forged, tampered with or moved to another host or event', () => {
+	const [, expiresAt, signature] = issuePresence(OPS).split('.');
 
 	// Push the expiry out, keep the signature.
-	expect(verifyPresence(`ops.${Number(expiresAt) + 60_000}.${signature}`)).toBeNull();
-	expect(verifyPresence(`ops.${expiresAt}.deadbeef`)).toBeNull();
-	expect(verifyPresence(`grace.${expiresAt}.${signature}`)).toBeNull();
+	expect(verifyPresence(`ops:party.${Number(expiresAt) + 60_000}.${signature}`)).toBeNull();
+	expect(verifyPresence(`ops:party.${expiresAt}.deadbeef`)).toBeNull();
+	expect(verifyPresence(`grace:party.${expiresAt}.${signature}`)).toBeNull();
+	expect(verifyPresence(`ops:lecture.${expiresAt}.${signature}`)).toBeNull();
 	expect(verifyPresence(undefined)).toBeNull();
 	expect(verifyPresence('garbage')).toBeNull();
 });
 
 test('a scan gets a handle that is not the token', () => {
 	const now = Date.now();
-	const presence = issuePresence('ops', now);
+	const presence = issuePresence(OPS, now);
 
 	// Two scans of the same displayed code still get their own handle.
-	expect(scanId(presence)).not.toBe(scanId(issuePresence('ops', now + 1)));
-	expect(verifyPresence(scanId(presence), now)).toBeNull();
+	expect(codeScanId(presence)).not.toBe(codeScanId(issuePresence(OPS, now + 1)));
+	expect(verifyPresence(codeScanId(presence), now)).toBeNull();
 });
 
 const ada = { userId: 'ada', firstName: 'Ada' };
@@ -84,7 +89,7 @@ test('an enrollment says who launched, for 15 minutes and no longer', () => {
 	expect(verifyEnrollment(token, now + ENROLLMENT_MS + 1)).toBeNull();
 });
 
-test('an enrollment cannot be moved to another guest or stretched', () => {
+test('an enrollment cannot be moved to another attendee or stretched', () => {
 	const now = Date.now();
 	const [, signature] = issueEnrollment(ada, now).split('.');
 	const forge = (fields: object) =>
@@ -99,7 +104,7 @@ test('an enrollment cannot be moved to another guest or stretched', () => {
 test('an enrollment and a presence never pass for each other', () => {
 	const now = Date.now();
 	expect(verifyPresence(issueEnrollment(ada, now), now)).toBeNull();
-	expect(verifyEnrollment(issuePresence('ada', now), now)).toBeNull();
+	expect(verifyEnrollment(issuePresence({ hostId: 'ada', eventId: 'party' }, now), now)).toBeNull();
 });
 
 test('an admin launch is good for a few minutes, then turned into nothing', () => {
@@ -125,10 +130,10 @@ test('an admin session cannot be moved to someone else, or stretched', () => {
 
 test('presence, admin launches and admin sessions never pass for one another', () => {
 	const now = Date.now();
-	const presence = issuePresence('ops', now);
+	const presence = issuePresence(OPS, now);
 	const launch = issueAdminLaunch('ops', now);
 
-	// Same shape, different purpose: a guest's presence cookie is no admin session.
+	// Same shape, different purpose: an attendee's presence cookie is no admin session.
 	expect(verifyAdminSession(presence, now)).toBeNull();
 	expect(verifyAdminLaunch(presence, now)).toBeNull();
 	expect(verifyAdminSession(launch, now)).toBeNull();

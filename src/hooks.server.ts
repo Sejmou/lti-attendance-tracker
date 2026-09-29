@@ -60,7 +60,7 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 	});
 
 /**
- * The organizer signed in by launching the admin tool, if any. Guests never
+ * The organizer signed in by launching the admin tool, if any. Attendees never
  * have a session: their phone's device key is all they need.
  */
 const handleAdminSession: Handle = ({ event, resolve }) => {

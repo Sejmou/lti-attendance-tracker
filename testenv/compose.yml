@@ -1,4 +1,4 @@
-# A throwaway Moodle (the version TUWEL runs) with the check-in app registered
+# A throwaway Moodle (the version TUWEL runs) with the attendance tool registered
 # in it as both LTI tools. See testenv/README.md.
 #
 #   cp testenv/.env.example testenv/.env    # set MOODLE_HOST and APP_HOST
@@ -7,12 +7,12 @@
 # Both hostnames have to reach the published ports over HTTPS through a
 # reverse proxy of your own, which passes the Host header through unchanged.
 
-name: event-checkin-testenv
+name: attendance-testenv
 
 x-shared: &shared
   MOODLE_URL: https://${MOODLE_HOST:?set MOODLE_HOST in testenv/.env}
-  ADMIN_CLIENT_ID: ${ADMIN_CLIENT_ID:-checkin-admin}
-  ATTENDEE_CLIENT_ID: ${ATTENDEE_CLIENT_ID:-checkin-attendee}
+  ADMIN_CLIENT_ID: ${ADMIN_CLIENT_ID:-attendance-admin}
+  ATTENDEE_CLIENT_ID: ${ATTENDEE_CLIENT_ID:-attendance-attendee}
 
 services:
   db:
@@ -35,6 +35,7 @@ services:
       MOODLE_DB_PASSWORD: ${MOODLE_DB_PASSWORD:-moodle}
       MOODLE_ADMIN_PASSWORD: ${MOODLE_ADMIN_PASSWORD:-Admin-Test-1}
       TESTENV_USER_PASSWORD: ${TESTENV_USER_PASSWORD:-Moodle-Test-1}
+      TESTENV_LOCALE: ${TESTENV_LOCALE:-de}
       APP_URL: https://${APP_HOST:?set APP_HOST in testenv/.env}${BASE_PATH:-}
     ports:
       - '${MOODLE_BIND_IP:-127.0.0.1}:${MOODLE_HOST_PORT:-8080}:80'

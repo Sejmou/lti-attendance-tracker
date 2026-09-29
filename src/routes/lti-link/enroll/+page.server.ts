@@ -2,11 +2,11 @@ import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { enrollMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { recordCheckIn } from '$lib/server/check-in';
+import { recordScan } from '$lib/server/scan';
 import { db } from '$lib/server/db';
 import { deviceKey, user } from '$lib/server/db/schema';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
-import { launchScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
+import { launchCodeScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
 
 // Functions, not strings: the wording depends on the locale of each request.
@@ -18,7 +18,8 @@ const PROBLEMS = {
 const EXPIRED = m.enroll_expired;
 const BAD_KEY = m.enroll_bad_key;
 const SCAN_EXPIRED = m.enroll_scan_expired;
-const CODE_EXPIRED = m.checkin_expired;
+const CODE_EXPIRED = m.scan_expired;
+const EVENT_GONE = m.scan_event_gone;
 
 export const load: PageServerLoad = ({ url }) => {
 	const problem = url.searchParams.get('problem');
@@ -29,7 +30,7 @@ export const load: PageServerLoad = ({ url }) => {
 
 export const actions: Actions = {
 	/**
-	 * A code scanned with the camera inside this page, for a guest who didn't
+	 * A code scanned with the camera inside this page, for an attendee who didn't
 	 * set up a device — or whose camera app opens another browser than the one
 	 * they set up. The launch that opened the page is the proof of who they
 	 * are, so it only works for as long as the enrollment token does; the code
@@ -37,7 +38,7 @@ export const actions: Actions = {
 	 *
 	 * The token is not spent: it is only good for 15 minutes anyway, and a
 	 * second scan with it is either a double submit, collapsed by the unique
-	 * index, or the same guest coming back in.
+	 * index, or the same attendee coming back in.
 	 */
 	scan: async (event) => {
 		const form = await event.request.formData();
@@ -50,21 +51,23 @@ export const actions: Actions = {
 		const enrollment = verifyEnrollment(token);
 		if (!enrollment) return fail(403, { message: SCAN_EXPIRED() });
 
-		const hostId = verifyBucketToken(code);
-		if (!hostId) return fail(403, { message: CODE_EXPIRED() });
+		const screen = verifyBucketToken(code);
+		if (!screen) return fail(403, { message: CODE_EXPIRED() });
 
-		const checkedIn = await recordCheckIn(event, {
+		const outcome = recordScan(event, {
 			userId: enrollment.userId,
 			method: 'lti',
-			scanId: launchScanId(token, code),
-			hostId
+			codeScanId: launchCodeScanId(token, code),
+			screen
 		});
-		if (!checkedIn) return fail(403, { message: SCAN_EXPIRED() });
-		return { checkedIn };
+		if ('gone' in outcome) {
+			return fail(403, { message: outcome.gone === 'event' ? EVENT_GONE() : SCAN_EXPIRED() });
+		}
+		return { scanned: outcome };
 	},
 
 	/**
-	 * Stores the public key this browser just made, for the guest a Moodle
+	 * Stores the public key this browser just made, for the attendee a Moodle
 	 * launch vouched for. The signature over the enrollment token shows the
 	 * browser posting it holds the matching private key.
 	 */
@@ -86,17 +89,17 @@ export const actions: Actions = {
 
 		// One transaction: two tabs racing with the same link can't both find it unspent.
 		const outcome = db.transaction((tx) => {
-			const guest = tx
+			const attendee = tx
 				.select({ id: user.id })
 				.from(user)
 				.where(eq(user.id, enrollment.userId))
 				.get();
-			if (!guest) return EXPIRED();
+			if (!attendee) return EXPIRED();
 
 			const existing = tx
 				.select({ createdAt: deviceKey.createdAt })
 				.from(deviceKey)
-				.where(eq(deviceKey.userId, guest.id))
+				.where(eq(deviceKey.userId, attendee.id))
 				.get();
 			// A key set up since this link was issued spent it.
 			if (existing && existing.createdAt.getTime() >= enrollment.issuedAt) return EXPIRED();
@@ -111,7 +114,7 @@ export const actions: Actions = {
 			};
 			return tx
 				.insert(deviceKey)
-				.values({ ...values, userId: guest.id })
+				.values({ ...values, userId: attendee.id })
 				.onConflictDoUpdate({ target: deviceKey.userId, set: values })
 				.returning({ keyId: deviceKey.id })
 				.get();
