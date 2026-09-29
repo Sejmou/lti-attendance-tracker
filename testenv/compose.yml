@@ -65,7 +65,7 @@ services:
       MOODLE_HOST: ${MOODLE_HOST}
       DATABASE_URL: /data/app.db
       ORIGIN: https://${APP_HOST}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-testenv-secret-not-for-production}
+      SIGNING_SECRET: ${SIGNING_SECRET:-testenv-secret-not-for-production}
       ADDRESS_HEADER: x-forwarded-for
       PORT: '3000'
     ports:

@@ -13,7 +13,7 @@ Fill in `.env`:
 
 - `DATABASE_URL` — SQLite file path, e.g. `local.db`
 - `ORIGIN` — public origin, e.g. `http://localhost:5173` — no path, even under a sub-path (see [Serving under a sub-path](#serving-under-a-sub-path))
-- `BETTER_AUTH_SECRET` — `openssl rand -base64 32`
+- `SIGNING_SECRET` — `openssl rand -base64 32`
 
 Create the tables, then register the LMS's two tools (see [LTI platforms](#lti-platforms)):
 
@@ -98,15 +98,15 @@ Docker that means `docker compose up -d`, which recreates the container with the
 compiled into the **build**, so changing it means `pnpm build` or
 `docker compose build` first. `HOST_PORT` is compose's own and never reaches the app.
 
-| Variable             | Required | Read at      | Notes                                                                                                                                                                                                                                                                            |
-| -------------------- | -------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`       | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                         |
-| `ORIGIN`             | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the check-in QR code points at it, and guests' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone))    |
-| `BETTER_AUTH_SECRET` | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones. Named after better-auth, which the app no longer uses, so existing `.env` files keep working |
-| `BASE_PATH`          | no       | **build**    | Sub-path the app is served under, e.g. `/check-in`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
-| `ADDRESS_HEADER`     | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `check_in.ip_address` records the proxy for everyone                                                                                                                                                                         |
-| `PORT`               | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                |
-| `HOST_PORT`          | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                         |
+| Variable         | Required | Read at      | Notes                                                                                                                                                                                                                                                                         |
+| ---------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                      |
+| `ORIGIN`         | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the check-in QR code points at it, and guests' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
+| `SIGNING_SECRET` | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                            |
+| `BASE_PATH`      | no       | **build**    | Sub-path the app is served under, e.g. `/check-in`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                    |
+| `ADDRESS_HEADER` | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `check_in.ip_address` records the proxy for everyone                                                                                                                                                                      |
+| `PORT`           | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                             |
+| `HOST_PORT`      | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                      |
 
 Behind a reverse proxy, `ORIGIN` is the public HTTPS URL — not the container's.
 
@@ -180,7 +180,7 @@ top-level, that page trades it for the session straight away; in a frame, it off
 The session is a signed cookie (`admin_session`) naming the organizer, good for **24
 hours** and not renewed by use — a check-in screen left running overnight needs a fresh
 launch in the morning. Nothing about it is stored, so the only way to end one early is
-**Sign out** on that browser, or changing `BETTER_AUTH_SECRET`, which ends all of them.
+**Sign out** on that browser, or changing `SIGNING_SECRET`, which ends all of them.
 Someone the LMS stops letting open the admin tool drops out when their current session
 runs out.
 

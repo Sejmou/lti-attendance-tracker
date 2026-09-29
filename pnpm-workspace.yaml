@@ -2,13 +2,3 @@ allowBuilds:
   # Prebuilt .node binaries ship in the tarball; node-gyp would need a C toolchain.
   better-sqlite3: false
   esbuild: true
-minimumReleaseAgeExclude:
-  - '@better-auth/core@1.7.4'
-  - '@better-auth/drizzle-adapter@1.7.4'
-  - '@better-auth/kysely-adapter@1.7.4'
-  - '@better-auth/memory-adapter@1.7.4'
-  - '@better-auth/mongo-adapter@1.7.4'
-  - '@better-auth/prisma-adapter@1.7.4'
-  - '@better-auth/telemetry@1.7.4'
-  - better-auth@1.7.4
-  - '@better-auth/passkey@1.7.4'
