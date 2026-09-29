@@ -155,12 +155,35 @@ test('times are read in the zone they were written in, across a DST change', () 
 	expect(find('series@sync.test|2026-10-26T09:00:00.000Z')?.startsAt).toEqual(
 		new Date('2026-10-26T09:00:00Z')
 	);
-	// A whole day starts at midnight in the calendar's zone, not the server's.
+	// A whole day starts at midnight in TIMEZONE, not the server's zone.
 	expect(find('open-day@sync.test')).toMatchObject({
 		startsAt: new Date('2026-10-09T22:00:00Z'),
 		endsAt: new Date('2026-10-10T22:00:00Z'),
 		allDay: true
 	});
+});
+
+test('a whole day is that day in TIMEZONE, even in a calendar that says UTC', () => {
+	const utc = feed(ALL_DAY).replace('X-WR-TIMEZONE:Europe/Vienna', 'X-WR-TIMEZONE:UTC');
+	const { occurrences } = parseFeed(
+		utc,
+		new Date('2026-09-01T00:00:00Z'),
+		new Date('2027-03-30T00:00:00Z')
+	);
+	expect(occurrences[0]).toMatchObject({
+		startsAt: new Date('2026-10-09T22:00:00Z'),
+		endsAt: new Date('2026-10-10T22:00:00Z')
+	});
+});
+
+test('without a zone of its own, a feed is read in TIMEZONE', () => {
+	const bare = ['BEGIN:VCALENDAR', 'VERSION:2.0', ALL_DAY, 'END:VCALENDAR'].join('\r\n');
+	const { occurrences } = parseFeed(
+		bare,
+		new Date('2026-09-01T00:00:00Z'),
+		new Date('2027-03-30T00:00:00Z')
+	);
+	expect(occurrences[0].startsAt).toEqual(new Date('2026-10-09T22:00:00Z'));
 });
 
 test('a series is expanded without its excluded and cancelled dates, a moved one keeps its key', () => {

@@ -3,6 +3,7 @@ import { and, eq, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { event, scan } from '$lib/server/db/schema';
+import { fromWallClock } from '$lib/time';
 
 /**
  * How far back and ahead recurring events are expanded, and the range in
@@ -119,18 +120,28 @@ export function parseFeed(ics: string, from: Date, to: Date) {
 	for (const zone of calendar.getAllSubcomponents('vtimezone')) {
 		ICAL.TimezoneService.register(zone);
 	}
-	// Floating times and whole days are in the calendar's own zone, not the
-	// server's (which in a container is UTC).
+	// A whole day is a date, not a stretch of time: 10 October is that day in
+	// TIMEZONE, whatever zone the calendar says it is in (Google's holiday
+	// calendars say UTC, which would make it 02:00 to 02:00 in Vienna).
+	// Floating times are in the calendar's zone, or failing that TIMEZONE —
+	// never the server's, which in a container is UTC.
 	const tzid = calendar.getFirstPropertyValue('x-wr-timezone');
 	const calendarZone = typeof tzid === 'string' ? ICAL.TimezoneService.get(tzid) : undefined;
+	const pad = (n: number) => String(n).padStart(2, '0');
 	const instant = (time: ICAL.Time) => {
-		const floating = !time.zone || time.zone === ICAL.Timezone.localTimezone;
-		if (!floating || !calendarZone) return time.toJSDate();
 		const { year, month, day, hour, minute, second } = time;
-		return ICAL.Time.fromData(
-			{ year, month, day, hour, minute, second, isDate: false },
-			calendarZone
-		).toJSDate();
+		const date = `${year}-${pad(month)}-${pad(day)}`;
+		if (time.isDate) return fromWallClock(date)!;
+		const floating = !time.zone || time.zone === ICAL.Timezone.localTimezone;
+		if (!floating) return time.toJSDate();
+		if (calendarZone) {
+			return ICAL.Time.fromData(
+				{ year, month, day, hour, minute, second, isDate: false },
+				calendarZone
+			).toJSDate();
+		}
+		const at = fromWallClock(date, `${pad(hour)}:${pad(minute)}`)!;
+		return new Date(at.getTime() + second * 1000);
 	};
 
 	const vevents = calendar.getAllSubcomponents('vevent');

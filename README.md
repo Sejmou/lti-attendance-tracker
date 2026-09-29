@@ -102,6 +102,7 @@ compiled into the **build**, so changing it means `pnpm build` or
 | `SIGNING_SECRET`   | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                                 |
 | `BASE_PATH`        | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
 | `CALENDAR_ICS_URL` | no       | start        | A public Google Calendar's iCal address, whose events are synced in. See [Events](#events)                                                                                                                                                                                         |
+| `PUBLIC_TIMEZONE`  | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                |
 | `ADDRESS_HEADER`   | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_address` records the proxy for everyone                                                                                                                                                                               |
 | `PORT`             | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                  |
 | `HOST_PORT`        | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                           |
@@ -414,8 +415,10 @@ reappears. So a changed key costs at most a second row next to the old one; noth
 recorded is lost. Only rows in the window are checked, so events older than 30 days are
 never touched.
 
-Times with a zone are read in it (Google includes a `VTIMEZONE` for each), and all-day
-events start at midnight in the calendar's own zone (`X-WR-TIMEZONE`), not the server's.
+Times with a zone are read in it (Google includes a `VTIMEZONE` for each); floating ones
+in the calendar's zone (`X-WR-TIMEZONE`), or `PUBLIC_TIMEZONE`. An all-day event is that
+calendar day in `PUBLIC_TIMEZONE`, whatever zone the calendar declares — Google's holiday
+calendars say UTC, which would otherwise make a holiday run from 02:00 to 02:00 in Vienna.
 Google may serve a change to the calendar some time after it was made.
 
 ## LTI platforms

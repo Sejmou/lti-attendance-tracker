@@ -4,6 +4,7 @@
 	import QrScreen from '$lib/components/qr-screen.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
+	import { formatDateTime } from '$lib/time';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -39,7 +40,7 @@
 	});
 
 	const time = (at: Date) =>
-		at.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
+		formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
 </script>
 
 <svelte:head><title>{m.show_code()}</title></svelte:head>

@@ -2,12 +2,13 @@
 	import { resolve } from '$app/paths';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
+	import { formatDateTime } from '$lib/time';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
 
 	const when = (at: Date) =>
-		new Date(at).toLocaleString(getLocale(), {
+		formatDateTime(at, getLocale(), {
 			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
