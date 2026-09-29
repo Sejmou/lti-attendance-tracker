@@ -5,7 +5,7 @@ import { resolve } from '$app/paths';
 
 // Everything below is signed with it, the admin session included. Checked at
 // startup, like DATABASE_URL, rather than on the first sign-in.
-if (!building && !env.BETTER_AUTH_SECRET) throw new Error('BETTER_AUTH_SECRET is not set');
+if (!building && !env.SIGNING_SECRET) throw new Error('SIGNING_SECRET is not set');
 
 /** How long one QR code stays on screen before it rotates. */
 export const BUCKET_MS = 30_000;
@@ -25,8 +25,8 @@ export const ENROLLMENT_MS = 15 * 60_000;
 function hmac(message: string) {
 	// Checked at startup, so this only fires in `vite build`'s analysis pass —
 	// signing a QR token with nothing is not a fallback.
-	const secret = env.BETTER_AUTH_SECRET;
-	if (!secret) throw new Error('BETTER_AUTH_SECRET is not set');
+	const secret = env.SIGNING_SECRET;
+	if (!secret) throw new Error('SIGNING_SECRET is not set');
 
 	return createHmac('sha256', secret).update(message).digest('base64url');
 }
