@@ -2,7 +2,7 @@ type Row = { userId: string; ipAddress: string | null };
 
 /**
  * Marks the two things worth seeing at a glance in the log. Neither is wrong on
- * its own — guests step out for air, and a whole table shares one hotspot — but
+ * its own — attendees step out for air, and a whole table shares one hotspot — but
  * a code that leaked shows up as one of them.
  *
  * Rows go in newest first and come back in the same order.
@@ -32,5 +32,5 @@ export function annotate<T extends Row>(rows: T[]) {
 		})
 		.reverse();
 
-	return { rows: marked, guests: arrived.size, addresses: usersPerIp.size };
+	return { rows: marked, attendees: arrived.size, addresses: usersPerIp.size };
 }

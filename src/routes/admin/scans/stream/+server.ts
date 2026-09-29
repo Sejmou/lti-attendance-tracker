@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { onCheckIn } from '$lib/server/check-in-events';
+import { onScan } from '$lib/server/scan-feed';
 import type { RequestHandler } from './$types';
 
 /**
- * Server-sent events, one per new check-in, for the check-in screen's live
+ * Server-sent events, one per new scan, for the code screen's live
  * audit. Guarded here rather than by the admin layout, which only runs for pages.
  */
 export const GET: RequestHandler = ({ locals, request }) => {
@@ -15,7 +15,7 @@ export const GET: RequestHandler = ({ locals, request }) => {
 	const stream = new ReadableStream({
 		start(controller) {
 			const send = (chunk: string) => controller.enqueue(encoder.encode(chunk));
-			const unsubscribe = onCheckIn((event) => send(`data: ${JSON.stringify(event)}\n\n`));
+			const unsubscribe = onScan((scan) => send(`data: ${JSON.stringify(scan)}\n\n`));
 			// Proxies close connections that stay silent; a comment line keeps it open.
 			const heartbeat = setInterval(() => send(': ping\n\n'), 25_000);
 

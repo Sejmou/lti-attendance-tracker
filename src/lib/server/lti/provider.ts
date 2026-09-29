@@ -10,8 +10,8 @@ import { SvelteKitHttpHandler } from './http-handler';
 export const httpHandler = new SvelteKitHttpHandler();
 
 /**
- * The LTI 1.3 tools a platform launches: the attendee tool when a guest opens
- * the check-in activity, the admin tool when an organizer opens theirs. Both
+ * The LTI 1.3 tools a platform launches: the attendee tool when an attendee opens
+ * the attendance activity, the admin tool when an organizer opens theirs. Both
  * are this one provider, told apart by client ID (see `ltiRegistration`).
  * Mounted at /lti-link by `src/routes/lti-link/[...path]`; see "LTI platforms"
  * in the README for the URLs to give the platform.
@@ -32,7 +32,7 @@ export const provider = new Provider({
  * proof in the URL fragment: to the admin pages if they launched the admin
  * tool, to set up this browser if they launched the attendee tool.
  *
- * There is no guest list and no list of organizers: whoever the platform lets
+ * There is no attendee list and no list of organizers: whoever the platform lets
  * open a tool is let in as what that tool is for. The roles claim is ignored —
  * the tool they opened already says it, in a way every platform agrees on.
  */
@@ -47,7 +47,7 @@ provider.onResourceLink(async (context, _request, response) => {
 	// unique within one platform, hence the issuer alongside it.
 	const ltiSubject = JSON.stringify([platform.url, launcher.id]);
 
-	// One transaction: two launches racing for a new guest can't both create them.
+	// One transaction: two launches racing for a new attendee can't both create them.
 	const found = db.transaction((tx) => {
 		const existing = tx
 			.select({ id: user.id, firstName: user.firstName })

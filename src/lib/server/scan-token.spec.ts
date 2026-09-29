@@ -8,7 +8,7 @@ import {
 	issueAdminSession,
 	issueEnrollment,
 	issuePresence,
-	scanId,
+	codeScanId,
 	verifyAdminLaunch,
 	verifyAdminSession,
 	verifyBucketToken,
@@ -70,8 +70,8 @@ test('a scan gets a handle that is not the token', () => {
 	const presence = issuePresence('ops', now);
 
 	// Two scans of the same displayed code still get their own handle.
-	expect(scanId(presence)).not.toBe(scanId(issuePresence('ops', now + 1)));
-	expect(verifyPresence(scanId(presence), now)).toBeNull();
+	expect(codeScanId(presence)).not.toBe(codeScanId(issuePresence('ops', now + 1)));
+	expect(verifyPresence(codeScanId(presence), now)).toBeNull();
 });
 
 const ada = { userId: 'ada', firstName: 'Ada' };
@@ -84,7 +84,7 @@ test('an enrollment says who launched, for 15 minutes and no longer', () => {
 	expect(verifyEnrollment(token, now + ENROLLMENT_MS + 1)).toBeNull();
 });
 
-test('an enrollment cannot be moved to another guest or stretched', () => {
+test('an enrollment cannot be moved to another attendee or stretched', () => {
 	const now = Date.now();
 	const [, signature] = issueEnrollment(ada, now).split('.');
 	const forge = (fields: object) =>
@@ -128,7 +128,7 @@ test('presence, admin launches and admin sessions never pass for one another', (
 	const presence = issuePresence('ops', now);
 	const launch = issueAdminLaunch('ops', now);
 
-	// Same shape, different purpose: a guest's presence cookie is no admin session.
+	// Same shape, different purpose: an attendee's presence cookie is no admin session.
 	expect(verifyAdminSession(presence, now)).toBeNull();
 	expect(verifyAdminLaunch(presence, now)).toBeNull();
 	expect(verifyAdminSession(launch, now)).toBeNull();

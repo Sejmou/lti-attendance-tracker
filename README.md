@@ -1,4 +1,7 @@
-# event-checkin
+# Anwesenheitstool
+
+An attendance tool: attendees scan a rotating QR code, and the first and last scan of
+each event count as their scan-in and scan-out.
 
 SvelteKit + Drizzle (SQLite) + ltijs.
 
@@ -23,9 +26,9 @@ pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <i
 pnpm dev            # or: pnpm dev:tailscale  (needs the tailscale CLI)
 ```
 
-There are no accounts to create here. Organizers and guests alike come from the LMS:
+There are no accounts to create here. Organizers and attendees alike come from the LMS:
 whoever it lets open the admin tool is an organizer, and whoever it lets open the
-attendee tool is a guest.
+attendee tool is an attendee.
 
 ## Docker
 
@@ -80,13 +83,7 @@ behind a compose profile, so `docker compose up` never starts it.
 
 It runs as `node`, the same user the app runs as. Left as root it would create an
 `app.db` the app can read but not write, and the only symptom is "Something went
-wrong" on the first launch. On a volume created before that was fixed, repair the
-ownership once:
-
-```sh
-docker compose run --rm --user root tools chown -R node:node /data
-docker compose restart app
-```
+wrong" on the first launch.
 
 ### Environment
 
@@ -98,30 +95,30 @@ Docker that means `docker compose up -d`, which recreates the container with the
 compiled into the **build**, so changing it means `pnpm build` or
 `docker compose build` first. `HOST_PORT` is compose's own and never reaches the app.
 
-| Variable         | Required | Read at      | Notes                                                                                                                                                                                                                                                                         |
-| ---------------- | -------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`   | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                      |
-| `ORIGIN`         | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the check-in QR code points at it, and guests' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
-| `SIGNING_SECRET` | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                            |
-| `BASE_PATH`      | no       | **build**    | Sub-path the app is served under, e.g. `/check-in`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                    |
-| `ADDRESS_HEADER` | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `check_in.ip_address` records the proxy for everyone                                                                                                                                                                      |
-| `PORT`           | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                             |
-| `HOST_PORT`      | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                      |
+| Variable         | Required | Read at      | Notes                                                                                                                                                                                                                                                                              |
+| ---------------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                           |
+| `ORIGIN`         | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
+| `SIGNING_SECRET` | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                                 |
+| `BASE_PATH`      | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
+| `ADDRESS_HEADER` | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_address` records the proxy for everyone                                                                                                                                                                               |
+| `PORT`           | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                  |
+| `HOST_PORT`      | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                           |
 
 Behind a reverse proxy, `ORIGIN` is the public HTTPS URL — not the container's.
 
 ### Serving under a sub-path
 
-To serve the app at `https://example.com/check-in` while `/` is something else:
+To serve the app at `https://example.com/attendance` while `/` is something else:
 
 ```sh
-ORIGIN=https://example.com   # not https://example.com/check-in
-BASE_PATH=/check-in
+ORIGIN=https://example.com   # not https://example.com/attendance
+BASE_PATH=/attendance
 ```
 
 It's tempting to put the whole URL in `ORIGIN`. Don't: it is an _origin_, and the
 path would be lost or break things, depending on who reads it. adapter-node quietly
-drops it, so pages would still load and hide the mistake, while the check-in QR code
+drops it, so pages would still load and hide the mistake, while the attendance QR code
 would point somewhere else. The app builds full URLs (the QR code) from `ORIGIN` plus
 `BASE_PATH`.
 
@@ -132,18 +129,18 @@ starts. With Docker, compose passes it as a build arg, so change it and
 to try a sub-path locally.
 
 The reverse proxy has to forward requests **with the prefix intact** —
-`/check-in/admin` reaches the app as `/check-in/admin`, not `/admin`. Links, redirects,
+`/attendance/admin` reaches the app as `/attendance/admin`, not `/admin`. Links, redirects,
 cookie paths and the QR code all include it. The tool URLs become
-`https://example.com/check-in/lti-link/…`.
+`https://example.com/attendance/lti-link/…`.
 
-## How guests get in
+## How attendees get in
 
-Guests have no password and never sign in, and there is no guest list. The course has a
-check-in activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
-who someone is, through the LMS, and makes them a guest on the spot — anyone who can open
+Attendees have no password and never sign in, and there is no attendee list. The course has an
+attendance activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
+who someone is, through the LMS, and makes them an attendee on the spot — anyone who can open
 the activity can come in. The page it opens then offers two ways in:
 
-- **Scan here:** at the door, they open the activity and scan the code with the camera
+- **Scan here:** at the event, they open the activity and scan the code with the camera
   inside that page. Nothing is stored on the phone, so it works in any browser, but
   they need Moodle every time (see [Scanning from the launched page](#scanning-from-the-launched-page)).
 - **Link this phone:** they set the phone up once, and from then on scanning the code
@@ -153,8 +150,8 @@ the activity can come in. The page it opens then offers two ways in:
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
 2. An organizer opens the admin tool's activity, which signs them in (see
    [Organizers](#organizers)).
-3. They open **Show the check-in code** and leave it on a screen at the door. The QR
-   code **rotates every 30 seconds** and stays up indefinitely.
+3. They open **Show the attendance QR code** and leave it on a screen where attendees can
+   scan it. The QR code **rotates every 30 seconds** and stays up indefinitely.
 
 Everyone is created on their first launch of either tool, with the name and email the
 LMS shares, and found again on every later one by their LMS account: `user.lti_subject`,
@@ -165,7 +162,7 @@ accounts sharing one are two people here.
 ### Organizers
 
 There is no list of organizers, and nothing to sign in with. An organizer is whoever the
-LMS lets open the **admin tool**: its launch creates or finds them like any guest, then
+LMS lets open the **admin tool**: its launch creates or finds them like any attendee, then
 signs them in to the admin pages instead of setting up a phone. The LTI roles claim is
 ignored — which tool someone opened already says it, the same way on every platform.
 So who is an organizer is managed entirely in the LMS: put the admin tool's activity
@@ -178,49 +175,49 @@ top-level, that page trades it for the session straight away; in a frame, it off
 **Continue in a new tab** first, like the phone setup does.
 
 The session is a signed cookie (`admin_session`) naming the organizer, good for **24
-hours** and not renewed by use — a check-in screen left running overnight needs a fresh
+hours** and not renewed by use — a code screen left running overnight needs a fresh
 launch in the morning. Nothing about it is stored, so the only way to end one early is
 **Sign out** on that browser, or changing `SIGNING_SECRET`, which ends all of them.
 Someone the LMS stops letting open the admin tool drops out when their current session
 runs out.
 
 The same person can be both: opening the admin tool signs them in as an organizer, and
-opening the attendee tool on their phone sets that phone up for them as a guest.
+opening the attendee tool on their phone sets that phone up for them as an attendee.
 
 ## Setting up a phone
 
-The guest opens the check-in activity in Moodle **on the phone they'll bring**. Moodle
-launches the tool, vouching for who they are, and the tool finds or creates the guest
-(see [How guests get in](#how-guests-get-in)) and sends them to `/lti-link/enroll`. There,
+The attendee opens the attendance activity in Moodle **on the phone they'll bring**. Moodle
+launches the tool, vouching for who they are, and the tool finds or creates the attendee
+(see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There,
 under **Link this phone**, they tap **Set up this phone**:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
    out, not even this app. It is kept in IndexedDB.
 2. It sends the public half, signed with the private half, and the proof of the launch.
-3. The server stores the public key against the guest (`device_key`), replacing any
+3. The server stores the public key against the attendee (`device_key`), replacing any
    earlier one.
 
-The proof of the launch is an enrollment token: HMAC-signed, naming the guest, and good
+The proof of the launch is an enrollment token: HMAC-signed, naming the attendee, and good
 for 15 minutes. It travels in the URL **fragment**, which
 browsers never send to a server, so it can't end up in a log or a `Referer`, and the page
 takes it out of the address bar as soon as it loads. Setting up a key spends it: a token
-issued before the guest's current key was set up is turned down.
+issued before the attendee's current key was set up is turned down.
 
 ### Things that undo it
 
-The key lives in one browser on one phone. The guest has to open Moodle again if:
+The key lives in one browser on one phone. The attendee has to open Moodle again if:
 
 - they clear that browser's website data, or used a private window
-- they set up another phone or browser — there is one key per guest, and the old one stops
+- they set up another phone or browser — there is one key per attendee, and the old one stops
   working
 - **Safari deletes it.** WebKit clears script-writable storage, IndexedDB included, for a
   site the user hasn't visited in seven days. Setting up more than a week before the event
   may not survive on an iPhone. The setup page asks for persistent storage, but that does
-  not switch this rule off. Ask guests to set up in the last few days, or plan for them
+  not switch this rule off. Ask attendees to set up in the last few days, or plan for them
   redoing it.
 
-The check-in page says so when it finds no key, and points to scanning from Moodle
+The scan page says so when it finds no key, and points to scanning from Moodle
 instead. Redoing the setup takes a minute.
 
 ### Which browser
@@ -235,9 +232,9 @@ exists: it needs no particular browser. For linking, two things get in the way:
   so a key saved there is invisible to the tab a scan opens. The setup page detects the
   frame and offers a **Continue in a new tab** button, which sets the phone up in a tab
   of its own. Embedding works that way; opening the activity in a new window (see
-  [LTI platforms](#lti-platforms)) just saves guests that one tap.
+  [LTI platforms](#lti-platforms)) just saves attendees that one tap.
 - **The Moodle app.** It opens external tools in its own browser view, whose storage
-  isn't the phone's browser's. Guests should use Moodle in the phone's browser for this.
+  isn't the phone's browser's. Attendees should use Moodle in the phone's browser for this.
 
 A laptop set up this way works, but nobody scans a QR code with one.
 
@@ -247,50 +244,51 @@ The key needs a **secure context**: `crypto.subtle` doesn't exist outside HTTPS,
 
 ### Why device keys, not passkeys
 
-Guests could set up a passkey at one point. That was removed:
+Attendees could set up a passkey at one point. That was removed:
 
 - **Phone passkeys are synced.** A passkey made on an iPhone goes into iCloud Keychain,
   and on Android into Google Password Manager. Both always sync, and so do third-party
   managers like 1Password. There is no setting to keep one on the device only.
 - **The site can't ask for a device-bound passkey.** WebAuthn has no option to require
   a passkey that isn't synced. The server only learns whether it is synced (the
-  backup-eligible flag) after the guest has already used their face or fingerprint.
+  backup-eligible flag) after the attendee has already used their face or fingerprint.
 - **The flag can't be trusted anyway.** The authenticator reports it, and proving it
   would take attestation, which this app doesn't collect.
 
 The device key does what a passkey was meant to: it stays in one browser. It is no more
 provable than a passkey's flag (see [What stops abuse](#what-stops-abuse)), but it
-doesn't sync, needs no biometric prompt at the door, and can't be copied off by accident.
+doesn't sync, needs no biometric prompt when scanning, and can't be copied off by accident.
 
-## Checking in
+## Scanning
 
-The guest scans the code at the door. `/checkin` records that they saw a live code (the
-presence cookie), then the page signs that scan with the device key and posts it straight
-back — no tapping. The server checks the signature against the stored public key and
-writes the check-in with `method = 'device'`.
+The attendee scans the attendance QR code. `/scan` records that they saw a live code (the
+presence cookie), then the page signs that code scan with the device key and posts it
+straight back — no tapping. The server checks the signature against the stored public key
+and writes the scan with `method = 'device'`.
 
-What gets signed is `checkin:<scan id>`, the scan's own handle, so a signature is only good
-for the scan it was made for, and the unique index collapses any replay of it. The
+What gets signed is `scan:<code scan id>`, the code scan's own handle, so a signature is
+only good for the code scan it was made for, and the unique index collapses any replay of
+it. The
 enrollment signs `enroll:<token>` — the prefixes keep a signature made for one from
 passing for the other.
 
-Organizers check in the same way, with a phone they set up through the attendee tool —
-or not at all, and let the screen do it (below).
+Organizers scan the same way, with a phone they set up through the attendee tool — or not
+at all, and let the screen do it (below).
 
 ### Scanning from the launched page
 
-A guest who didn't link a phone, or whose camera app opens a different browser than the
-one they linked, opens the check-in activity at the door and taps **Scan the check-in
-code**. The page opens the camera itself (`getUserMedia`, decoded with
+An attendee who didn't link a phone, or whose camera app opens a different browser than the
+one they linked, opens the attendance activity at the event and taps **Scan the attendance
+QR code**. The page opens the camera itself (`getUserMedia`, decoded with
 [jsQR](https://www.npmjs.com/package/jsqr), loaded only then) and reads the code on the
 screen. It takes the code out of the URL the QR code holds, without going there, and
 posts it to the page's `scan` action together with the enrollment token from the launch.
 
 The server checks both: the token says who Moodle vouched for in the last 15 minutes,
-the code that they saw a live one. The check-in is written with `method = 'lti'`. The
+the code that they saw a live one. The scan is written with `method = 'lti'`. The
 token is not spent, since it expires on its own and a second scan with it is the same
-guest either submitting twice or coming back in. Its `scan_id` is an HMAC of token and
-code, so a double submit gets the same one and is collapsed, while two guests scanning
+attendee either submitting twice or coming back in. Its `code_scan_id` is an HMAC of token and
+code, so a double submit gets the same one and is collapsed, while two attendees scanning
 the same code get different ones.
 
 Nothing is stored in the browser, so none of [Things that undo it](#things-that-undo-it)
@@ -299,65 +297,72 @@ device key, a secure context. If Moodle embeds the tool in a frame and its page 
 allow the camera, the page says so and offers **Continue in a new tab**.
 
 The one catch is the 15 minutes: a page opened at home has expired by the time the
-guest reaches the door, and the page tells them to open the activity again.
+attendee gets to the code, and the page tells them to open the activity again.
 
-Every check-in puts a row in `check_in`. Re-entry is normal, so a guest may have several
-rows. A double submit is not: the unique index on `(user_id, scan_id)` collapses
-everything riding one scan into one row, while a later scan gets a row of its own.
+### Scan-in and scan-out
 
-The organizer showing the code gets checked in too. The first time a guest checks in
+Every scan puts a row in `scan`. Re-entry is normal, so an attendee may have several
+rows. A double submit is not: the unique index on `(user_id, code_scan_id)` collapses
+everything riding one code scan into one row, while a later code scan gets a row of its
+own.
+
+Nobody says whether a scan is coming or going. An attendee's **first** scan counts as
+their scan-in, their **last** one as their scan-out — if they have two or more. Scans in
+between don't count for either, and an attendee who scans once is scanned in with no
+scan-out. Both are worked out from the rows when they are shown, never stored.
+
+The organizer showing the code gets a scan too. The first time an attendee scans
 through their screen, a second row goes in for the admin, with `method = 'host'` and
-the guest's `scan_id`, so the log shows the two side by side. It happens only if the
-admin has no check-in yet. If they checked in themselves first, or an earlier guest
-already did it for them, nothing is added.
+the attendee's `code_scan_id`, so the log shows the two side by side. It happens only if
+the admin has no scan yet — a second one would count as their scan-out. If they scanned
+themselves first, or an earlier attendee already did it for them, nothing is added.
 
-The check-in screen shows how many are present, and not "of how many": with no guest
+The code screen shows how many have scanned, and not "of how many": with no attendee
 list, the app only knows who has opened the Moodle activity so far, which says nothing
 about who is coming.
 
-`host` means "this admin was signed in on the screen showing the code a guest just
-scanned". It is weaker than `device`: nobody confirmed who was standing at
-that screen, only that one signed in as the admin was showing the code at the door. A
-screen left running, or signed in on someone else's laptop, checks the admin in all
-the same.
+`host` means "this admin was signed in on the screen showing the code an attendee just
+scanned". It is weaker than `device`: nobody confirmed who was standing at that screen,
+only that one signed in as the admin was showing the code. A screen left running, or
+signed in on someone else's laptop, files a scan for the admin all the same.
 
 ### What stops abuse
 
-Checking a guest in takes their phone — or rather, the key its browser made — or a
-Moodle launch in the last 15 minutes, plus a code seen at the door in the last
-half-minute. Setting up the key takes their Moodle login too, and a guest is their
-Moodle account, not an email address: nobody can take a guest over by putting their
+A scan for an attendee takes their phone — or rather, the key its browser made — or a
+Moodle launch in the last 15 minutes, plus a code seen on the screen in the last
+half-minute. Setting up the key takes their Moodle login too, and an attendee is their
+Moodle account, not an email address: nobody can take an attendee over by putting their
 address on another Moodle profile.
 
 What it does **not** stop:
 
-- **A guest handing over their own check-in.** The server can't tell that a key was made
-  non-extractable: WebCrypto has no attestation, so a guest who calls the enrollment
+- **An attendee handing over their own scan.** The server can't tell that a key was made
+  non-extractable: WebCrypto has no attestation, so an attendee who calls the enrollment
   endpoint by hand can register a key they generated themselves and pass it on. It takes
-  deliberate effort, and there is still one key per guest, but it can't be prevented —
-  the same is true of lending someone the phone. Likewise, a guest can copy the
+  deliberate effort, and there is still one key per attendee, but it can't be prevented —
+  the same is true of lending someone the phone. Likewise, an attendee can copy the
   enrollment token out of the launched page and hand it on for its 15 minutes.
-- **Checking in from elsewhere.** A photo of the code, sent to an absent guest within its
-  30 seconds, checks them in from wherever they are. The address and user agent columns
-  and the door screen are what catch this.
+- **Scanning from elsewhere.** A photo of the code, sent to an absent attendee within its
+  30 seconds, files a scan for them from wherever they are. The address and user agent
+  columns and the code screen are what catch this.
 - **Anyone who can open the activity.** There is no list to be on: everyone in the
-  course becomes a guest by opening it. So does anyone in a course the tool is added to,
+  course becomes an attendee by opening it. So does anyone in a course the tool is added to,
   if it is added site-wide (see [Courses](#courses)).
 - **Anyone who can open the admin tool.** The same goes for organizers, and they see
-  every check-in there is (see [Courses](#courses)).
+  every scan there is (see [Courses](#courses)).
 
-What catches the rest is the screen at the door. Every check-in shows up there as it
-happens, as a toast with the guest's name, and the last five stay listed under the code.
+What catches the rest is the code screen. Every scan shows up there as it
+happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
-visible to everyone in the queue. The toasts come over server-sent events from
-`/admin/checkins/stream`, fanned out in-process, so they reach screens on the same
+visible to everyone around it. The toasts come over server-sent events from
+`/admin/scans/stream`, fanned out in-process, so they reach screens on the same
 server only.
 
-`/admin/checkins` is the full log afterwards, newest first, with the two things worth
-seeing at a glance flagged. `again` is a guest who had already checked in earlier;
-`shared` is an address more than one guest checked in from. Neither is wrong on its own
-— people step out for air, and a whole table shares one hotspot — but a code that leaked
-looks like several guests on one address who never passed the door.
+`/admin/scans` is the full log afterwards, newest first, with the two things worth
+seeing at a glance flagged. `again` is an attendee who had already scanned earlier;
+`shared` is an address more than one attendee scanned from. Neither is wrong on its own
+— people step out for air, and many share one hotspot — but a code that leaked
+looks like several attendees on one address who were never there in person.
 
 ### What the QR code actually proves
 
@@ -366,10 +371,10 @@ it, derived from the clock rather than stored. The route recomputes it and accep
 one, so a scan that crosses a rotation still works.
 
 It is deliberately **multi-use**: everyone who scans during its window gets in, which is
-the point of leaving it on screen. What it proves is that the scanner saw the check-in
-screen within the last half-minute, nothing more. On a successful scan the guest gets a
+the point of leaving it on screen. What it proves is that the scanner saw the code
+screen within the last half-minute, nothing more. On a successful scan the attendee gets a
 signed presence cookie good for 10 minutes, so the code rotating while they confirm
-costs them nothing. The cookie carries the admin's ID along, signed, so the check-in
+costs them nothing. The cookie carries the admin's ID along, signed, so the scan
 knows whose screen it came through, and neither token can be moved to another admin.
 
 The enrollment token from a Moodle launch is signed with the same secret but has a
@@ -383,7 +388,7 @@ The app is two LTI 1.3 tools, run inside it by
 platform (LMS) it works with gets **both**, set up identically, each with a client ID of
 its own:
 
-- the **attendee tool**, whose launch sets up the guest's phone
+- the **attendee tool**, whose launch sets up the attendee's phone
   ([Setting up a phone](#setting-up-a-phone)), and
 - the **admin tool**, whose launch signs an organizer in ([Organizers](#organizers)).
 
@@ -403,7 +408,7 @@ The routes live under `/lti-link`, the same for both tools:
 With a `BASE_PATH`, it goes between `ORIGIN` and `/lti-link`.
 
 Do the following **twice**, once for each tool, with a name that says which is which
-(say "Event check-in" and "Event check-in (organizers)"):
+(say "Anwesenheitstool" and "Anwesenheitstool (Admin)"):
 
 1. In the course, go to **More → LTI External tools → Add tool**
    (`/mod/lti/coursetools.php?id=<course id>`). If there's no button, the Moodle site's
@@ -426,8 +431,8 @@ pnpm lti:register-platform --url https://moodle.example.com \
 
 Finally, add each tool to the course as an activity:
 
-- The attendee tool, visible to everyone. Something like **"Event check-in: set up your
-  phone"** tells guests what it's for — to them it is just a link that opens a page with
+- The attendee tool, visible to everyone. Something like **"Anwesenheits-QR-Code
+  scannen"** tells attendees what it's for — to them it is just a link that opens a page with
   one button.
 - The admin tool, **visible only to organizers.** This is the whole of access control:
   anyone who can open it is an organizer. Hiding the activity from students leaves it to
@@ -441,23 +446,23 @@ network, say), `--internal-url` says where. Only the keyset and token endpoints 
 fetched from there; browsers are still sent to `--url`.
 Re-running it for a pair already registered does nothing; it refuses a client ID that is
 already part of a different pair, and a pair whose two client IDs are the same — that
-would make every guest an organizer.
+would make every attendee an organizer.
 
 ### Courses
 
 For now, the tools ignore which course a launch comes from. Everyone who opens the
 attendee tool can set up a phone, and everyone who opens the admin tool is an organizer
-for **everything**: every check-in code checks anyone in, and every organizer sees the
-whole log. That is fine while the tools are in one course, and not beyond it:
+for **everything**: every attendance QR code files a scan for anyone, and every organizer
+sees the whole log. That is fine while the tools are in one course, and not beyond it:
 
 - Added site-wide, or registered once and reused in several courses, the admin tool
   makes every teacher who can add it to their own course an organizer of every event.
-- Two events in two courses share one log, one count and one set of door screens.
+- Two events in two courses share one log, one count and one set of code screens.
 
 Every launch does say which course it came from: the `context` claim in the `id_token`,
 whose `id` is Moodle's course ID (unique only together with `iss`). Scoping by course
-would mean carrying it in the organizer's session and in the check-in code, and filing
-each check-in under it.
+would mean carrying it in the organizer's session and in the attendance QR code, and filing
+each scan under it.
 
 ### How it fits into SvelteKit
 
@@ -467,7 +472,7 @@ ltijs normally starts its own Express server. Here it gets an `HttpHandler` of o
 and `provider.listen()` is never called. Its storage is `DrizzleDatabaseManager`, on the
 app's own better-sqlite3 connection and in the same database file: better-sqlite3 is
 synchronous, so no two writes in the process can interleave, and other processes (the
-seed and register scripts) wait on SQLite's lock as they already did. It shares the
+register script) wait on SQLite's lock as they already did. It shares the
 backups and `db:push`. Its tables are the four `lti_*` ones; `lti_platform` holds the
 tool's private RSA key for each platform, so treat backups accordingly.
 
@@ -526,69 +531,30 @@ Deliberately absent:
 - No role on `user`, and no password, passkey or session tables — being an organizer is
   a matter of which tool someone opened, and their session a signed cookie that says so
   (see [Organizers](#organizers)).
-- No summary or attendance table — the log page derives its counts from `check_in` on
-  each load, and a stored total can only drift from the rows it claims to count.
-- No guest list or invite table — a guest's `user` row is created by their first
+- No summary or attendance table — scan-ins, scan-outs and counts are derived from `scan`
+  on each load, and a stored total can only drift from the rows it claims to count.
+- No attendee list or invite table — an attendee's `user` row is created by their first
   launch, and the `UNIQUE` constraint on `lti_subject` is the dedupe.
 - No QR or enrollment-token table — both are signed and carry their own expiry (see
   above). An enrollment is spent by the key it sets up, through `device_key.created_at`.
 
-### `check_in`
+### `scan`
 
-The one table that is ours. One row per check-in:
+The one table that is ours. One row per scan:
 
-| Column                     | Why it's there                                                                                                                                                                                                             |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user_id`, `checked_in_at` | who and when                                                                                                                                                                                                               |
-| `method`                   | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side at that moment. `link` and `passkey` are from the removed `/setup` link and organizer passkeys |
-| `ip_address`, `user_agent` | a code photographed and passed around shows up as check-ins from addresses that aren't the venue's                                                                                                                         |
-| `scan_id`                  | a non-secret handle for one scan; one device working through borrowed accounts shows up as one `scan_id` across many users                                                                                                 |
+| Column                     | Why it's there                                                                                                                   |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`, `scanned_at`    | who and when                                                                                                                     |
+| `method`                   | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
+| `ip_address`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's                                   |
+| `code_scan_id`             | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
 
-`method = 'host'` marks the organizer who was signed in on the check-in screen, checked in
-automatically when the first guest got in through their code. It has no `ip_address`
-or `user_agent`, because the request that wrote it came from the guest's phone, and
-it shares that guest's `scan_id`. See [Checking in](#checking-in) for what it does and
-doesn't prove.
+`method = 'host'` marks the organizer who was signed in on the code screen, filed
+automatically when the first attendee got in through their code. It has no `ip_address`
+or `user_agent`, because the request that wrote it came from the attendee's phone, and
+it shares that attendee's `code_scan_id`. See [Scan-in and scan-out](#scan-in-and-scan-out)
+for what it does and doesn't prove.
 
 `ip_address` comes from `event.getClientAddress()`. Behind a reverse proxy that is the
 proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-for` (and
 `XFF_DEPTH`) or the column records one address for the whole event.
-
-## Upgrading from organizer passwords
-
-Before the admin tool, organizers were a superadmin created by `pnpm db:seed` and the
-guests it promoted, signing in with passwords and passkeys. None of that is left. To
-move an existing database over (take a [backup](#backups) first):
-
-1. Add the admin tool to Moodle and register it together with the existing tool, which
-   becomes the attendee tool — the script leaves an already-registered client ID alone:
-
-   ```sh
-   pnpm lti:register-platform --url https://moodle.example.com \
-     --admin-client-id <new tool's client id> --attendee-client-id <existing client id>
-   ```
-
-   Until then, launches of the existing tool are turned away: it is in no pair yet.
-
-2. Remove what `pnpm db:push` can't decide for itself. Accounts with no LMS account
-   linked — the superadmin, and guests seeded from a list before launches created them —
-   can't exist any more; their check-ins go with them. Dropping the old auth tables here
-   also keeps `db:push` from asking whether `lti_registration` is one of them renamed.
-
-   ```sql
-   -- Off by default in the sqlite3 CLI; without it the check-ins and keys stay behind.
-   pragma foreign_keys = on;
-   delete from user where lti_subject is null;
-   drop table passkey;
-   drop table account;
-   drop table session;
-   drop table verification;
-   ```
-
-3. `pnpm db:push`. It drops the old columns from `user`, which it confirms first.
-   drizzle-kit 0.31 may then stop with `index user_lti_subject_unique already exists`
-   after rebuilding the table: the rebuild is done, and running `pnpm db:push` once
-   more finds nothing left to change.
-
-Organizers then open the admin tool; their old accounts, if they ever launched the
-check-in activity, are the ones they get.

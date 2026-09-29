@@ -1,15 +1,15 @@
 # Test environment
 
-A throwaway Moodle with the check-in app registered in it as both LTI tools,
+A throwaway Moodle with the attendance tool registered in it as both LTI tools,
 all in one compose project. Nothing to click through in Moodle: on its first
 start it installs itself and sets up a course the way the main README tells an
 organizer to.
 
-| Service  | What it is                                                                                                                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `moodle` | Moodle **5.2**, the release TUWEL runs, on `moodlehq/moodle-php-apache:8.3`                                                                            |
-| `db`     | PostgreSQL 16 for Moodle                                                                                                                               |
-| `app`    | The check-in app, built from this repository. Pushes its schema and registers the test Moodle's tools with `pnpm lti:register-platform` on every start |
+| Service  | What it is                                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `moodle` | Moodle **5.2**, the release TUWEL runs, on `moodlehq/moodle-php-apache:8.3`                                                                               |
+| `db`     | PostgreSQL 16 for Moodle                                                                                                                                  |
+| `app`    | The attendance tool, built from this repository. Pushes its schema and registers the test Moodle's tools with `pnpm lti:register-platform` on every start |
 
 TUWEL's version was matched by its `admin/environment.xml`, which is identical
 to the one on Moodle's `MOODLE_502_STABLE` branch. If TUWEL moves on, change
@@ -29,13 +29,13 @@ terminates TLS for two hostnames and forwards to the ports the stack publishes:
 
 The proxy has to **pass the `Host` header through unchanged** (Moodle turns
 away any other hostname than its own) and should set `X-Forwarded-For` (the
-check-in log records addresses from it). Caddy does both by default:
+scan log records addresses from it). Caddy does both by default:
 
 ```caddy
 moodle.example.com {
 	reverse_proxy 127.0.0.1:8080
 }
-checkin.example.com {
+attendance.example.com {
 	reverse_proxy 127.0.0.1:3000
 }
 ```
@@ -61,27 +61,34 @@ takes a minute or so (plus the image builds); later starts only reapply the setu
 
 ## What you get
 
-A course **Event check-in (test)** (`CHECKIN`) with:
+A course (`ATTENDANCE`) with an activity for each tool. Their names follow
+`TESTENV_LOCALE` (`de` unless `.env` says otherwise):
 
-- **Event check-in: set up your phone**, launching the attendee tool, visible to everyone.
-- **Event check-in: organizer screen**, launching the admin tool, hidden from students.
+|                                               | `de`                                      | `en`                                 |
+| --------------------------------------------- | ----------------------------------------- | ------------------------------------ |
+| Course                                        | Anwesenheit (Test)                        | Attendance (test)                    |
+| Attendee tool's activity, visible to everyone | Anwesenheits-QR-Code scannen              | Scan attendance QR code              |
+| Admin tool's activity, hidden from students   | Anwesenheitstool Admin (QR-Code anzeigen) | Attendance tool admin (show QR code) |
+
+Changing `TESTENV_LOCALE` renames them on the next start of `moodle`. Only these
+names: Moodle's own interface stays English.
 
 Both tools are course tools with the privacy settings the app needs, opening
-in a new window. Their client IDs are fixed (`checkin-admin`,
-`checkin-attendee`), so the app registers them without reading anything back.
+in a new window. Their client IDs are fixed (`attendance-admin`,
+`attendance-attendee`), so the app registers them without reading anything back.
 
 | Moodle user    | Role in the course | In the app                                     |
 | -------------- | ------------------ | ---------------------------------------------- |
 | `organizer`    | Teacher            | Organizer (sees the hidden organizer activity) |
-| `student1`–`3` | Student            | Guests                                         |
+| `student1`–`3` | Student            | Attendees                                      |
 | `admin`        | Site admin         | Not enrolled; Moodle's own administration      |
 
 The test users' password is `Moodle-Test-1`, `admin`'s is `Admin-Test-1`, unless
 `.env` says otherwise.
 
 To try it: sign in to Moodle as `organizer`, open the organizer activity and
-**Show the check-in code**. Then, on a phone, sign in as a student and open the
-set-up activity. Either tap **Scan the check-in code** and scan the screen from
+**Show the attendance QR code**. Then, on a phone, sign in as a student and open the
+attendee activity. Either tap **Scan the attendance QR code** and scan the screen from
 that page, or set the phone up and scan the code with the camera app.
 
 Scanning from the page stores nothing, so trying several students on one phone

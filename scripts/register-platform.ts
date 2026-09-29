@@ -1,7 +1,7 @@
 /**
  * Registers an LTI platform's pair of tools, so launches from it are accepted:
  * the admin tool, whose launches open the admin pages, and the attendee tool,
- * whose launches set up a guest's phone. Both are set up in the platform the
+ * whose launches set up an attendee's phone. Both are set up in the platform the
  * same way, and each gets a client ID of its own there.
  *
  *   pnpm lti:register-platform --url https://moodle.example.com \
@@ -46,7 +46,7 @@ if (values.help) {
 	throw new Error(`--url, --admin-client-id and --attendee-client-id are required.\n\n${USAGE}`);
 } else if (adminClientId === attendeeClientId) {
 	throw new Error(
-		'The admin and attendee client IDs are the same. They have to be two tools on the platform, or every guest would be an organizer.'
+		'The admin and attendee client IDs are the same. They have to be two tools on the platform, or every attendee would be an organizer.'
 	);
 } else {
 	// Moodle puts its URL without a trailing slash in `iss`, and ltijs matches it exactly.

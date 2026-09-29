@@ -1,5 +1,5 @@
 /**
- * The key pair that stands in for a guest on the phone they set up. Made with
+ * The key pair that stands in for an attendee on the phone they set up. Made with
  * WebCrypto, private half non-extractable: page scripts, this one included,
  * can sign with it but can never read it out. It lives in IndexedDB, which can
  * store a CryptoKey as is.
@@ -9,10 +9,10 @@
  */
 
 export const enrollMessage = (token: string) => `enroll:${token}`;
-export const checkInMessage = (scanId: string) => `checkin:${scanId}`;
+export const scanMessage = (codeScanId: string) => `scan:${codeScanId}`;
 
 const ALGORITHM = { name: 'ECDSA', namedCurve: 'P-256' } as const;
-const DB_NAME = 'event-checkin';
+const DB_NAME = 'attendance';
 const STORE = 'device-key';
 const RECORD = 'current';
 

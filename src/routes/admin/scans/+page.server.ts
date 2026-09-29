@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { checkIn, user } from '$lib/server/db/schema';
-import { annotate } from '$lib/server/check-in-log';
+import { scan, user } from '$lib/server/db/schema';
+import { annotate } from '$lib/server/scan-log';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -9,19 +9,19 @@ export const load: PageServerLoad = async () => {
 	// rows; add paging when a venue makes that untrue.
 	const rows = await db
 		.select({
-			at: checkIn.checkedInAt,
-			method: checkIn.method,
-			ipAddress: checkIn.ipAddress,
-			userAgent: checkIn.userAgent,
-			scanId: checkIn.scanId,
-			userId: checkIn.userId,
+			at: scan.scannedAt,
+			method: scan.method,
+			ipAddress: scan.ipAddress,
+			userAgent: scan.userAgent,
+			codeScanId: scan.codeScanId,
+			userId: scan.userId,
 			firstName: user.firstName,
 			lastName: user.lastName,
 			email: user.email
 		})
-		.from(checkIn)
-		.innerJoin(user, eq(user.id, checkIn.userId))
-		.orderBy(desc(checkIn.checkedInAt));
+		.from(scan)
+		.innerJoin(user, eq(user.id, scan.userId))
+		.orderBy(desc(scan.scannedAt));
 
 	return annotate(rows);
 };

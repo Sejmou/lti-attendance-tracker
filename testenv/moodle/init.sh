@@ -19,7 +19,7 @@ installed=$(php -r '
 if [ "$installed" = "0" ]; then
 	echo "testenv: installing Moodle (a minute or so)..."
 	as_www php admin/cli/install_database.php --agree-license \
-		--fullname="Event check-in test Moodle" --shortname="checkin-test" \
+		--fullname="Attendance tool test Moodle" --shortname="attendance-test" \
 		--adminuser=admin --adminpass="$MOODLE_ADMIN_PASSWORD" --adminemail=admin@example.com
 else
 	as_www php admin/cli/upgrade.php --non-interactive

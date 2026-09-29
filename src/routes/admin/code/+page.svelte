@@ -23,10 +23,10 @@
 			.slice(0, 5)
 	);
 
-	// Every check-in, as it happens, on the screen people are standing in front
+	// Every scan, as it happens, on the screen people are standing in front
 	// of. A link used by the wrong person shows a name that isn't theirs.
 	$effect(() => {
-		const source = new EventSource(resolve('/admin/checkins/stream'));
+		const source = new EventSource(resolve('/admin/scans/stream'));
 		source.onmessage = (message) => {
 			const event = JSON.parse(message.data);
 			const arrival: Arrival = { ...event, at: new Date(event.at) };
@@ -42,7 +42,7 @@
 		at.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' });
 </script>
 
-<svelte:head><title>{m.page_check_in()}</title></svelte:head>
+<svelte:head><title>{m.show_code()}</title></svelte:head>
 
 <QrScreen title={m.qr_heading()} qr={data.qr} msUntilNextBucket={data.msUntilNextBucket}>
 	<p class="text-gray-600">
@@ -51,7 +51,7 @@
 	</p>
 
 	<section class="w-full max-w-md">
-		<h2 class="mb-2 text-sm font-medium text-gray-500">{m.qr_last_checkins()}</h2>
+		<h2 class="mb-2 text-sm font-medium text-gray-500">{m.qr_last_scans()}</h2>
 		{#if recent.length === 0}
 			<p class="text-gray-500">{m.qr_nobody_yet()}</p>
 		{:else}
@@ -68,7 +68,7 @@
 
 	<div class="flex gap-4">
 		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
-		<a href={resolve('/admin/checkins')} class="text-blue-600 underline">{m.checkin_log()}</a>
+		<a href={resolve('/admin/scans')} class="text-blue-600 underline">{m.scan_log()}</a>
 	</div>
 </QrScreen>
 
@@ -81,7 +81,7 @@
 			transition:fly={{ x: 80 }}
 			class="rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
 		>
-			✓ {m.qr_checked_in({ name: `${toast.firstName} ${toast.lastName}` })}
+			✓ {m.qr_scanned({ name: `${toast.firstName} ${toast.lastName}` })}
 		</div>
 	{/each}
 </div>

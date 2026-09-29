@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { annotate } from './check-in-log';
+import { annotate } from './scan-log';
 
 // Newest first, the order the page shows them in.
 const rows = [
@@ -10,13 +10,13 @@ const rows = [
 ];
 
 test('the first arrival is not a repeat and a later one is', () => {
-	const { rows: marked, guests } = annotate(rows);
+	const { rows: marked, attendees } = annotate(rows);
 
 	expect(marked.map((r) => r.repeat)).toEqual([true, false, false, false]);
-	expect(guests).toBe(3);
+	expect(attendees).toBe(3);
 });
 
-test('an address covering two guests is flagged on both of their rows', () => {
+test('an address covering two attendees is flagged on both of their rows', () => {
 	const { rows: marked, addresses } = annotate(rows);
 
 	expect(marked.map((r) => r.sharedAddress)).toEqual([false, true, true, false]);

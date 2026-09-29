@@ -33,12 +33,12 @@
 	let pendingKey: CryptoKey | undefined;
 
 	// Scanning with this page instead: the launch that opened it vouches for
-	// the guest, the code for their being at the door.
+	// the attendee, the code for their being at the door.
 	let scanning = $state(false);
 	let code = $state('');
 	let scanForm = $state<HTMLFormElement>();
 
-	const checkedIn = $derived(form && 'checkedIn' in form ? form.checkedIn : null);
+	const scanned = $derived(form && 'scanned' in form ? form.scanned : null);
 
 	onMount(async () => {
 		// The launch hands the token over in the fragment, which no server sees.
@@ -84,20 +84,20 @@
 	}
 
 	/**
-	 * Only the check-in screen's own code, which points at /checkin with the
+	 * Only the code screen's own code, which points at /scan with the
 	 * code in `t`. The origin isn't compared: the server checks the code itself,
 	 * and a proxy or tailnet name may make ORIGIN differ from what this page is.
 	 */
 	function codeFrom(text: string) {
 		try {
 			const url = new URL(text);
-			return url.pathname === resolve('/checkin') ? url.searchParams.get('t') : null;
+			return url.pathname === resolve('/scan') ? url.searchParams.get('t') : null;
 		} catch {
 			return null;
 		}
 	}
 
-	async function scanned(text: string) {
+	async function codeRead(text: string) {
 		if (busy) return;
 		const found = codeFrom(text);
 		if (!found) {
@@ -150,9 +150,9 @@
 		<p class="text-gray-600">
 			{m.enroll_open_from_moodle_text()}
 		</p>
-	{:else if checkedIn}
-		<h1 class="text-2xl font-semibold">{m.checkin_done_heading()}</h1>
-		<p class="text-gray-600">{m.checkin_welcome({ name: checkedIn })}</p>
+	{:else if scanned}
+		<h1 class="text-2xl font-semibold">{m.scan_done_heading()}</h1>
+		<p class="text-gray-600">{m.scan_done_text({ name: scanned })}</p>
 	{:else if done}
 		<h1 class="text-2xl font-semibold">{m.enroll_done_heading()}</h1>
 		<p class="text-gray-600">
@@ -162,9 +162,9 @@
 			{m.enroll_done_note()}
 		</p>
 	{:else if scanning}
-		<p class="text-gray-600">{busy ? m.checkin_in_progress() : m.enroll_scan_prompt()}</p>
+		<p class="text-gray-600">{busy ? m.scan_in_progress() : m.enroll_scan_prompt()}</p>
 		<QrScanner
-			onscan={scanned}
+			onscan={codeRead}
 			onerror={() => {
 				scanning = false;
 				problem = embedded ? m.enroll_camera_failed_embedded() : m.enroll_camera_failed();

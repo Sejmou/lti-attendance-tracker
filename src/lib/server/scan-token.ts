@@ -11,7 +11,7 @@ if (!building && !env.SIGNING_SECRET) throw new Error('SIGNING_SECRET is not set
 export const BUCKET_MS = 30_000;
 
 /**
- * How long a guest has to finish after scanning. Decoupled from BUCKET_MS on
+ * How long an attendee has to finish after scanning. Decoupled from BUCKET_MS on
  * purpose: the code may rotate while they're still confirming.
  */
 const PRESENCE_MS = 10 * 60_000;
@@ -42,11 +42,11 @@ function equals(a: string, b: string) {
  * itself, needs no cleanup, and — the point of a kiosk code — is usable by
  * everyone who scans it during its window.
  *
- * Names the admin showing it (`hostId`), so the first guest through checks
- * them in too — see `checkInHost`.
+ * Names the admin showing it (`hostId`), so the first attendee through files a
+ * scan for them too — see `hostScan`.
  */
 export function bucketToken(hostId: string, at = Date.now()) {
-	return `${hostId}.${hmac(`checkin:${hostId}:${Math.floor(at / BUCKET_MS)}`)}`;
+	return `${hostId}.${hmac(`code:${hostId}:${Math.floor(at / BUCKET_MS)}`)}`;
 }
 
 /** Milliseconds until the on-screen code changes. */
@@ -79,10 +79,10 @@ export function verifyPresence(value: string | undefined, at = Date.now()) {
 }
 
 /**
- * A stable, non-secret handle for one scan, safe to store next to a check-in.
+ * A stable, non-secret handle for one code scan, safe to store with the scan.
  * Truncated so the row can never be replayed as the presence token itself.
  */
-export function scanId(value: string) {
+export function codeScanId(value: string) {
 	return value.split('.')[2].slice(0, 16);
 }
 
@@ -91,10 +91,10 @@ export function scanId(value: string) {
  * than with a set-up phone (see `scan` in `/lti-link/enroll`). There is no
  * presence cookie to take it from, so it is derived from the launch and the
  * code: the same scan submitted twice gets the same handle, and the unique
- * index collapses it, while two guests scanning the same code get different
- * ones. Truncated, like `scanId`, so it is no use as either token.
+ * index collapses it, while two attendees scanning the same code get different
+ * ones. Truncated, like `codeScanId`, so it is no use as either token.
  */
-export function launchScanId(enrollment: string, code: string) {
+export function launchCodeScanId(enrollment: string, code: string) {
 	return hmac(`launch-scan:${enrollment}:${code}`).slice(0, 16);
 }
 
@@ -194,12 +194,12 @@ export const adminSessionCookieOptions = {
 	maxAge: ADMIN_SESSION_MS / 1000
 } as const;
 
-export const PRESENCE_COOKIE = 'checkin_presence';
+export const PRESENCE_COOKIE = 'scan_presence';
 
 // Lax, not strict: the scan arrives as a top-level navigation from the camera
 // app, and strict would leave the cookie behind.
 export const presenceCookieOptions = {
-	path: resolve('/checkin'),
+	path: resolve('/scan'),
 	httpOnly: true,
 	sameSite: 'lax',
 	maxAge: PRESENCE_MS / 1000

@@ -1,9 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
-import { checkInMessage } from '$lib/device-key';
+import { scanMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { recordCheckIn } from '$lib/server/check-in';
+import { recordScan } from '$lib/server/scan';
 import { db } from '$lib/server/db';
 import { deviceKey } from '$lib/server/db/schema';
 import { verifySignature } from '$lib/server/device-key';
@@ -11,30 +11,30 @@ import {
 	issuePresence,
 	PRESENCE_COOKIE,
 	presenceCookieOptions,
-	scanId,
+	codeScanId,
 	verifyBucketToken,
 	verifyPresence
 } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
 
 // Functions, not strings: the wording depends on the locale of each request.
-const NO_PRESENCE = m.checkin_expired;
-const NOT_FRESH = m.checkin_not_confirmed;
-const NOT_SET_UP = m.checkin_not_set_up;
+const NO_PRESENCE = m.scan_expired;
+const NOT_FRESH = m.scan_not_confirmed;
+const NOT_SET_UP = m.scan_not_set_up;
 
 export const load: PageServerLoad = async (event) => {
 	const token = event.url.searchParams.get('t');
 	const hostId = token && verifyBucketToken(token);
 	if (hostId) {
 		event.cookies.set(PRESENCE_COOKIE, issuePresence(hostId), presenceCookieOptions);
-		redirect(302, resolve('/checkin'));
+		redirect(302, resolve('/scan'));
 	}
 
 	const presence = event.cookies.get(PRESENCE_COOKIE);
 	return {
-		// What the device key signs. Not a secret (it is stored with the check-in),
+		// What the device key signs. Not a secret (it is stored with the scan),
 		// but it only exists once this browser has scanned a live code.
-		scanId: verifyPresence(presence) ? scanId(presence!) : null
+		codeScanId: verifyPresence(presence) ? codeScanId(presence!) : null
 	};
 };
 
@@ -42,7 +42,7 @@ export const actions: Actions = {
 	/**
 	 * A signature over this scan from the key the browser got when its owner
 	 * opened the Moodle activity. The setup page makes that key so it can't be
-	 * copied out of the browser, so it stands in for the guest — though the
+	 * copied out of the browser, so it stands in for the attendee — though the
 	 * server has no way to check it was made that way (see "What stops abuse").
 	 */
 	withDeviceKey: async (event) => {
@@ -65,17 +65,17 @@ export const actions: Actions = {
 			.where(eq(deviceKey.id, keyId))
 			.get();
 		if (!key) return fail(403, { message: NOT_SET_UP() });
-		if (!verifySignature(key.publicKey, checkInMessage(scanId(presence!)), signature)) {
+		if (!verifySignature(key.publicKey, scanMessage(codeScanId(presence!)), signature)) {
 			return fail(403, { message: NOT_FRESH() });
 		}
 
-		const checkedIn = await recordCheckIn(event, {
+		const scanned = await recordScan(event, {
 			userId: key.userId,
 			method: 'device',
-			scanId: scanId(presence!),
+			codeScanId: codeScanId(presence!),
 			hostId
 		});
-		if (!checkedIn) return fail(403, { message: NOT_FRESH() });
-		return { checkedIn };
+		if (!scanned) return fail(403, { message: NOT_FRESH() });
+		return { scanned };
 	}
 };
