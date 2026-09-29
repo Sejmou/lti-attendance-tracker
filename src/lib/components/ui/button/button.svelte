@@ -61,7 +61,15 @@
 </script>
 
 {#if href}
-	<!-- eslint-disable svelte/no-navigation-without-resolve -- passed through; callers resolve it -->
+	<!--
+		The rule wants every href visibly wrapped in resolve(), so links keep
+		BASE_PATH. This one is the caller's `href` prop, passed through as is:
+		the component can't resolve it, not knowing whether it is an app route
+		or an external URL, and the rule can't follow a value through a prop.
+		Nor does it check `<Button href>` itself, only plain `<a>`: a caller
+		linking to an app route has to resolve() it without the rule's help.
+	-->
+	<!-- eslint-disable svelte/no-navigation-without-resolve -->
 	<a
 		bind:this={ref}
 		data-slot="button"
