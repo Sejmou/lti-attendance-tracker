@@ -85,7 +85,8 @@
 	<section class="flex flex-col gap-3">
 		<h2 class="text-lg font-semibold">{m.attendance_title()}</h2>
 		<p class="text-sm text-muted-foreground">
-			{m.attendance_summary({ attendees: data.attendance.length, scannedOut })}
+			{m.attendance_scanned_in({ count: data.attendance.length })} ·
+			{m.attendance_scanned_out({ count: scannedOut })}
 		</p>
 		{#if data.attendance.length === 0}
 			<p class="text-muted-foreground">{m.scans_none()}</p>
@@ -123,11 +124,9 @@
 		<section class="flex flex-col gap-3">
 			<h2 class="text-lg font-semibold">{m.scan_log()}</h2>
 			<p class="text-sm text-muted-foreground">
-				{m.scans_summary({
-					scans: data.log.rows.length,
-					attendees: data.log.attendees,
-					addresses: data.log.addresses
-				})}
+				{m.scans_count({ count: data.log.rows.length })} ·
+				{m.attendees_count({ count: data.log.attendees })} ·
+				{m.addresses_count({ count: data.log.addresses })}
 			</p>
 			<Table.Root>
 				<Table.Header>

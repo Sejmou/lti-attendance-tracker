@@ -16,7 +16,38 @@
 	"admin_open_from_lms_heading": "Open this from Moodle",
 	"admin_sign_out": "Sign out",
 
-	"scans_summary": "{scans} scans · {attendees} attendees · {addresses} addresses",
+	"scans_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": { "countPlural=one": "{count} scan", "countPlural=*": "{count} scans" }
+		}
+	],
+	"attendees_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": { "countPlural=one": "{count} attendee", "countPlural=*": "{count} attendees" }
+		}
+	],
+	"addresses_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": { "countPlural=one": "{count} address", "countPlural=*": "{count} addresses" }
+		}
+	],
+	"attendance_scanned_in": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} attendee scanned in",
+				"countPlural=*": "{count} attendees scanned in"
+			}
+		}
+	],
+	"attendance_scanned_out": "{count} of them scanned out",
 	"scans_none": "Nobody has scanned yet.",
 	"scans_col_when": "When",
 	"scans_col_attendee": "Attendee",
@@ -86,7 +117,6 @@
 	"code_other_event": "Other event",
 	"events_show_code": "QR code",
 	"attendance_title": "Attendance",
-	"attendance_summary": "{attendees} attendees scanned in · {scannedOut} of them scanned out",
 	"attendance_col_in": "Scanned in",
 	"attendance_col_out": "Scanned out",
 	"attendance_footnote": "A person's first scan counts as scanning in, their last as scanning out — if there are at least two. Scans in between count as neither.",

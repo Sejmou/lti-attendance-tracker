@@ -16,7 +16,41 @@
 	"admin_open_from_lms_heading": "Bitte über Moodle öffnen",
 	"admin_sign_out": "Abmelden",
 
-	"scans_summary": "{scans} Scans · {attendees} Teilnehmende · {addresses} Adressen",
+	"scans_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": { "countPlural=one": "{count} Scan", "countPlural=*": "{count} Scans" }
+		}
+	],
+	"attendees_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Teilnehmer:in",
+				"countPlural=*": "{count} Teilnehmende"
+			}
+		}
+	],
+	"addresses_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": { "countPlural=one": "{count} Adresse", "countPlural=*": "{count} Adressen" }
+		}
+	],
+	"attendance_scanned_in": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Person eingescannt",
+				"countPlural=*": "{count} Personen eingescannt"
+			}
+		}
+	],
+	"attendance_scanned_out": "{count} davon ausgescannt",
 	"scans_none": "Noch hat niemand gescannt.",
 	"scans_col_when": "Zeitpunkt",
 	"scans_col_attendee": "Teilnehmer:in",
@@ -86,7 +120,6 @@
 	"code_other_event": "Andere Veranstaltung",
 	"events_show_code": "QR-Code",
 	"attendance_title": "Anwesenheit",
-	"attendance_summary": "{attendees} Teilnehmende eingescannt · {scannedOut} davon ausgescannt",
 	"attendance_col_in": "Eingescannt",
 	"attendance_col_out": "Ausgescannt",
 	"attendance_footnote": "Der erste Scan einer Person zählt als Einscannen, ihr letzter als Ausscannen – sofern es mindestens zwei sind. Scans dazwischen zählen für keins von beiden.",
