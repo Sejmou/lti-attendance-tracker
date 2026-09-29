@@ -1,6 +1,5 @@
 import { error } from '@sveltejs/kit';
 import { onCheckIn } from '$lib/server/check-in-events';
-import { isAdmin } from '$lib/server/roles';
 import type { RequestHandler } from './$types';
 
 /**
@@ -8,7 +7,7 @@ import type { RequestHandler } from './$types';
  * audit. Guarded here rather than by the admin layout, which only runs for pages.
  */
 export const GET: RequestHandler = ({ locals, request }) => {
-	if (!isAdmin(locals.user) || locals.user?.mustChangePassword) error(403, 'Forbidden');
+	if (!locals.admin) error(403, 'Forbidden');
 
 	const encoder = new TextEncoder();
 	let stop = () => {};

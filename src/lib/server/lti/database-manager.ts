@@ -22,8 +22,7 @@ const ID_TOKEN_TTL_MS = 24 * 60 * 60_000;
  * No write here can interleave with another in this process: better-sqlite3 is
  * synchronous, so each method runs start to finish without yielding, and a
  * read-then-write (updatePlatformById) sits in a transaction for good measure.
- * Another process on the same file (`pnpm lti:register-platform`, the seed
- * script) waits on SQLite's lock like it already does.
+ * Another process on the same file (`pnpm lti:register-platform`) waits on SQLite's lock like it already does.
  *
  * Mongo's TTL indexes are emulated by filtering on createdAt, and pruning
  * whenever a new row goes in.

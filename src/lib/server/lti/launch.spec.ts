@@ -1,24 +1,31 @@
 import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createSign, generateKeyPairSync } from 'node:crypto';
-import { eq, inArray, like } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { IdTokenValidationMethod } from 'ltijs';
 import { env } from '$env/dynamic/private';
 import { checkInMessage, enrollMessage } from '$lib/device-key';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
+import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
-import { deviceKey, ltiPlatform, user } from '../db/schema';
+import { deviceKey, ltiPlatform, ltiRegistration, user } from '../db/schema';
 import { verifySignature } from '../device-key';
-import { verifyEnrollment } from '../scan-token';
+import {
+	ADMIN_SESSION_COOKIE,
+	verifyAdminLaunch,
+	verifyAdminSession,
+	verifyEnrollment
+} from '../scan-token';
 import { httpHandler, provider } from './provider';
 
 // Plays Moodle: a platform key pair, and the forms Moodle's pages would post.
 const MOODLE = 'https://moodle.test';
 const CLIENT_ID = 'check-in-tool';
+const ADMIN_CLIENT_ID = 'check-in-admin-tool';
+/** Registered with ltijs, the way sites were before pairs, but in no pair. */
+const LONE_CLIENT_ID = 'check-in-lone-tool';
 const TOOL = 'http://localhost:5173/lti-link';
 const GUEST = 'lti-guest@example.com';
-/** Held by an account that never launched, like the seeded superadmin. */
-const TAKEN = 'lti-taken@example.com';
 const ADA = JSON.stringify([MOODLE, '42']);
 const platformKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
@@ -29,34 +36,27 @@ beforeAll(async () => {
 		env: { ...process.env, DATABASE_URL: env.DATABASE_URL }
 	});
 	db.delete(ltiPlatform).where(eq(ltiPlatform.url, MOODLE)).run();
+	db.delete(ltiRegistration).where(eq(ltiRegistration.url, MOODLE)).run();
 	db.delete(user)
 		.where(like(user.ltiSubject, `["${MOODLE}"%`))
 		.run();
-	db.delete(user)
-		.where(inArray(user.email, [GUEST, TAKEN]))
-		.run();
 
-	db.insert(user)
-		.values({
-			id: crypto.randomUUID(),
-			email: TAKEN,
-			firstName: 'Olga',
-			lastName: 'Ops',
-			role: 'superadmin'
-		})
+	for (const clientId of [CLIENT_ID, ADMIN_CLIENT_ID, LONE_CLIENT_ID]) {
+		await provider.platformManager.registerPlatform({
+			name: 'Moodle',
+			url: MOODLE,
+			clientId,
+			authenticationEndpoint: `${MOODLE}/mod/lti/auth.php`,
+			accessTokenEndpoint: `${MOODLE}/mod/lti/token.php`,
+			idTokenValidation: {
+				method: IdTokenValidationMethod.RsaKey,
+				key: platformKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString()
+			}
+		});
+	}
+	db.insert(ltiRegistration)
+		.values({ url: MOODLE, adminClientId: ADMIN_CLIENT_ID, attendeeClientId: CLIENT_ID })
 		.run();
-
-	await provider.platformManager.registerPlatform({
-		name: 'Moodle',
-		url: MOODLE,
-		clientId: CLIENT_ID,
-		authenticationEndpoint: `${MOODLE}/mod/lti/auth.php`,
-		accessTokenEndpoint: `${MOODLE}/mod/lti/token.php`,
-		idTokenValidation: {
-			method: IdTokenValidationMethod.RsaKey,
-			key: platformKeys.publicKey.export({ type: 'spki', format: 'pem' }).toString()
-		}
-	});
 });
 
 function post(path: string, fields: Record<string, string>, headers: Record<string, string> = {}) {
@@ -69,10 +69,10 @@ function post(path: string, fields: Record<string, string>, headers: Record<stri
 }
 
 /** Moodle's login initiation, then the state ltijs hands the browser to keep. */
-async function login() {
+async function login(clientId: string) {
 	const response = await post('/login', {
 		iss: MOODLE,
-		client_id: CLIENT_ID,
+		client_id: clientId,
 		login_hint: '42',
 		target_link_uri: `${TOOL}/launch`
 	});
@@ -112,9 +112,13 @@ function idToken(nonce: string, claims: Record<string, unknown> = {}) {
 	return `${body}.${signature.toString('base64url')}`;
 }
 
-/** The whole launch, as Moodle and ltijs's own pages would drive it. */
+/**
+ * The whole launch, as Moodle and ltijs's own pages would drive it — of the
+ * attendee tool unless the claims say another (`aud`).
+ */
 async function launch(claims: Record<string, unknown> = {}) {
-	const { state, recoveryToken, nonce } = await login();
+	const clientId = (claims.aud as string | undefined) ?? CLIENT_ID;
+	const { state, recoveryToken, nonce } = await login(clientId);
 	const id_token = idToken(nonce, claims);
 
 	// Moodle's cross-origin post: ltijs answers with a page that fetches the
@@ -166,8 +170,7 @@ test('a first launch creates the guest from what Moodle says about them', async 
 	expect(guest()).toMatchObject({
 		email: GUEST,
 		firstName: 'Ada',
-		lastName: 'Lovelace',
-		role: 'attendee'
+		lastName: 'Lovelace'
 	});
 	expect(enrollment).toMatchObject({ userId: guest()!.id, firstName: 'Ada' });
 });
@@ -181,7 +184,7 @@ test('later launches find the same guest by Moodle account, whatever the email s
 });
 
 test('an id_token is good for one launch', async () => {
-	const { state, recoveryToken, nonce } = await login();
+	const { state, recoveryToken, nonce } = await login(CLIENT_ID);
 	const fields = { id_token: idToken(nonce), state, ltijs_recovered_state: recoveryToken };
 
 	expect((await post('/launch', fields, { 'sec-fetch-site': 'same-origin' }))?.status).toBe(303);
@@ -189,7 +192,7 @@ test('an id_token is good for one launch', async () => {
 });
 
 test('an id_token not signed by the platform is turned down', async () => {
-	const { state, recoveryToken, nonce } = await login();
+	const { state, recoveryToken, nonce } = await login(CLIENT_ID);
 	const [header, payload] = idToken(nonce).split('.');
 	const forged = `${header}.${payload}.${Buffer.from('nope').toString('base64url')}`;
 
@@ -212,14 +215,47 @@ test('a new guest Moodle shares no email or name for is told so, and not created
 	expect(await db.$count(user, eq(user.ltiSubject, JSON.stringify([MOODLE, 'private'])))).toBe(0);
 });
 
-test("an email some other account already has isn't linked to it", async () => {
-	// A newcomer, and Ada's Moodle account under a second ID alike.
-	for (const sub of ['olga-in-moodle', '666']) {
-		const response = await launch({ sub, email: TAKEN });
-		expect(response?.headers.get('location')).toBe('/lti-link/enroll?problem=email-taken');
-	}
-	const olga = db.select().from(user).where(eq(user.email, TAKEN)).get();
-	expect(olga?.ltiSubject).toBeNull();
+test('an email some other account already has is no reason to turn anyone away', async () => {
+	// Ada's address, on a second Moodle account: a person of its own, not Ada.
+	const response = await launch({ sub: '666' });
+	expect(verifyEnrollment(tokenFrom(response))?.userId).not.toBe(guest()!.id);
+	expect(await db.$count(user, eq(user.email, GUEST))).toBe(2);
+});
+
+test("a launch of a tool that is in no registered pair isn't let in as anything", async () => {
+	const response = await launch({ aud: LONE_CLIENT_ID });
+	expect(response?.headers.get('location')).toBe('/lti-link/enroll?problem=unknown-tool');
+});
+
+test('the admin tool signs the same person in as an organizer, not a guest to set up', async () => {
+	const response = await launch({ aud: ADMIN_CLIENT_ID });
+	expect(response?.status).toBe(303);
+	const location = new URL(response!.headers.get('location')!, TOOL);
+	expect(location.pathname).toBe('/lti-link/admin');
+
+	const token = location.hash.slice(1);
+	expect(verifyAdminLaunch(token)).toBe(guest()!.id);
+	// Only the attendee tool's token sets up a phone, and only the admin tool's signs in.
+	expect(verifyEnrollment(token)).toBeNull();
+	expect(verifyAdminLaunch(tokenFrom(await launch()))).toBeNull();
+
+	const set = new Map<string, string>();
+	const cookies = { set: (name: string, value: string) => set.set(name, value) };
+	const signIn = (value: string) =>
+		adminActions.signIn({
+			cookies,
+			request: new Request(`${TOOL}/admin?/signIn`, {
+				method: 'POST',
+				body: new URLSearchParams({ token: value })
+			})
+		} as never);
+
+	expect(await signIn('forged')).toMatchObject({ status: 403 });
+	expect(set.size).toBe(0);
+
+	// Signing in answers with a redirect to /admin, which SvelteKit throws.
+	await expect(signIn(token)).rejects.toMatchObject({ status: 303, location: '/admin' });
+	expect(verifyAdminSession(set.get(ADMIN_SESSION_COOKIE))).toBe(guest()!.id);
 });
 
 test('setting up stores a key that then checks the guest in, once per launch', async () => {

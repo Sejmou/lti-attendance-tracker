@@ -1,12 +1,16 @@
 import { expect, test } from 'vitest';
 import {
+	ADMIN_SESSION_MS,
 	BUCKET_MS,
 	ENROLLMENT_MS,
 	bucketToken,
+	issueAdminLaunch,
+	issueAdminSession,
 	issueEnrollment,
 	issuePresence,
-	presenceIssuedAt,
 	scanId,
+	verifyAdminLaunch,
+	verifyAdminSession,
 	verifyBucketToken,
 	verifyEnrollment,
 	verifyPresence
@@ -61,11 +65,10 @@ test('presence cannot be forged, tampered with or moved to another host', () => 
 	expect(verifyPresence('garbage')).toBeNull();
 });
 
-test('a scan reports when it happened and gets a handle that is not the token', () => {
+test('a scan gets a handle that is not the token', () => {
 	const now = Date.now();
 	const presence = issuePresence('ops', now);
 
-	expect(presenceIssuedAt(presence)).toBe(now);
 	// Two scans of the same displayed code still get their own handle.
 	expect(scanId(presence)).not.toBe(scanId(issuePresence('ops', now + 1)));
 	expect(verifyPresence(scanId(presence), now)).toBeNull();
@@ -97,4 +100,37 @@ test('an enrollment and a presence never pass for each other', () => {
 	const now = Date.now();
 	expect(verifyPresence(issueEnrollment(ada, now), now)).toBeNull();
 	expect(verifyEnrollment(issuePresence('ada', now), now)).toBeNull();
+});
+
+test('an admin launch is good for a few minutes, then turned into nothing', () => {
+	const now = Date.now();
+	const launch = issueAdminLaunch('ops', now);
+	expect(verifyAdminLaunch(launch, now + 60_000)).toBe('ops');
+	expect(verifyAdminLaunch(launch, now + 10 * 60_000)).toBeNull();
+});
+
+test('an admin session lasts a day, and is not renewed by anything', () => {
+	const now = Date.now();
+	const session = issueAdminSession('ops', now);
+	expect(verifyAdminSession(session, now + ADMIN_SESSION_MS - 1)).toBe('ops');
+	expect(verifyAdminSession(session, now + ADMIN_SESSION_MS + 1)).toBeNull();
+});
+
+test('an admin session cannot be moved to someone else, or stretched', () => {
+	const now = Date.now();
+	const [, expiresAt, signature] = issueAdminSession('ops', now).split('.');
+	expect(verifyAdminSession(`grace.${expiresAt}.${signature}`, now)).toBeNull();
+	expect(verifyAdminSession(`ops.${Number(expiresAt) + 1}.${signature}`, now)).toBeNull();
+});
+
+test('presence, admin launches and admin sessions never pass for one another', () => {
+	const now = Date.now();
+	const presence = issuePresence('ops', now);
+	const launch = issueAdminLaunch('ops', now);
+
+	// Same shape, different purpose: a guest's presence cookie is no admin session.
+	expect(verifyAdminSession(presence, now)).toBeNull();
+	expect(verifyAdminLaunch(presence, now)).toBeNull();
+	expect(verifyAdminSession(launch, now)).toBeNull();
+	expect(verifyPresence(issueAdminSession('ops', now), now)).toBeNull();
 });
