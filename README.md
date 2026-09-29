@@ -95,15 +95,16 @@ Docker that means `docker compose up -d`, which recreates the container with the
 compiled into the **build**, so changing it means `pnpm build` or
 `docker compose build` first. `HOST_PORT` is compose's own and never reaches the app.
 
-| Variable         | Required | Read at      | Notes                                                                                                                                                                                                                                                                              |
-| ---------------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`   | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                           |
-| `ORIGIN`         | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
-| `SIGNING_SECRET` | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                                 |
-| `BASE_PATH`      | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
-| `ADDRESS_HEADER` | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_address` records the proxy for everyone                                                                                                                                                                               |
-| `PORT`           | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                  |
-| `HOST_PORT`      | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                           |
+| Variable           | Required | Read at      | Notes                                                                                                                                                                                                                                                                              |
+| ------------------ | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`     | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                           |
+| `ORIGIN`           | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
+| `SIGNING_SECRET`   | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                                 |
+| `BASE_PATH`        | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
+| `CALENDAR_ICS_URL` | no       | start        | A public Google Calendar's iCal address, whose events are synced in. See [Events](#events)                                                                                                                                                                                         |
+| `ADDRESS_HEADER`   | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_address` records the proxy for everyone                                                                                                                                                                               |
+| `PORT`             | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                  |
+| `HOST_PORT`        | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                           |
 
 Behind a reverse proxy, `ORIGIN` is the public HTTPS URL — not the container's.
 
@@ -381,6 +382,42 @@ The enrollment token from a Moodle launch is signed with the same secret but has
 prefix of its own, so neither token passes for the other —
 `src/lib/server/scan-token.spec.ts` pins that down.
 
+## Events
+
+Every scan belongs to an event, and an attendee's first and last scan of it are their
+scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events come
+from a public Google Calendar, or are created by hand; the two live side by side in
+`event`, told apart by `source`.
+
+### Calendar sync
+
+`CALENDAR_ICS_URL` is the calendar's **Public address in iCal format** (Google
+Calendar → Settings → the calendar → **Integrate calendar**). The calendar has to be
+public; no Google Cloud project or API key is involved. The sync fetches that file,
+parses it with [ical.js](https://www.npmjs.com/package/ical.js) and upserts every event
+starting from 30 days ago to 180 days ahead. Recurring events are expanded into one row
+per occurrence, less excluded and cancelled ones.
+
+Rows are matched by `calendar_key`: the event's iCal `UID`, plus for an occurrence of a
+recurring event its `RECURRENCE-ID` — the start it originally had, which stays the same
+when the occurrence is moved. Google keeps both through edits, so a resync updates the
+rows it already has. Scans point at the app's own `event.id`, never at these keys, so no
+resync can move them. A few things in Google Calendar do make new keys:
+
+- editing a series with "this and following events", which splits it in two
+- changing a whole series' start time, which changes every occurrence's `RECURRENCE-ID`
+- deleting an event and creating it again
+
+An event missing from the feed is deleted — unless someone has scanned for it, in which
+case it stays, marked as removed (`removed_at`), and comes back to normal if it
+reappears. So a changed key costs at most a second row next to the old one; nothing
+recorded is lost. Only rows in the window are checked, so events older than 30 days are
+never touched.
+
+Times with a zone are read in it (Google includes a `VTIMEZONE` for each), and all-day
+events start at midnight in the calendar's own zone (`X-WR-TIMEZONE`), not the server's.
+Google may serve a change to the calendar some time after it was made.
+
 ## LTI platforms
 
 The app is two LTI 1.3 tools, run inside it by
@@ -521,7 +558,7 @@ Vite loaded — so overriding `process.env` from inside a spec does **not** work
 
 ## Schema notes
 
-Besides the log, `device_key` (see [Setting up a phone](#setting-up-a-phone)), the tool
+Besides the log and `event` (see [Events](#events)), `device_key` (see [Setting up a phone](#setting-up-a-phone)), the tool
 pairs in `lti_registration` and ltijs's `lti_*` tables (see [LTI platforms](#lti-platforms)),
 there is `user`: everyone who has launched either tool. Its `lti_subject` — the LMS
 account, `["<iss>","<sub>"]`, unique — is how every launch finds them.
@@ -540,7 +577,7 @@ Deliberately absent:
 
 ### `scan`
 
-The one table that is ours. One row per scan:
+One row per scan, filed under an `event` (`event_id`):
 
 | Column                     | Why it's there                                                                                                                   |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |

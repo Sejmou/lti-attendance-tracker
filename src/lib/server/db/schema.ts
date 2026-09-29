@@ -31,6 +31,40 @@ export const user = sqliteTable('user', {
 });
 
 /**
+ * Something people scan in and out of. Either synced from the public calendar
+ * (see calendar-sync) or created by an organizer; the sync only ever touches
+ * its own rows.
+ *
+ * Scans point at `id`, never at the calendar's own IDs, so a resync can't
+ * move or lose them. An event with scans is never deleted: one that has
+ * disappeared from the calendar is kept, with `removedAt` set.
+ */
+export const event = sqliteTable(
+	'event',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		source: text('source', { enum: ['calendar', 'manual'] }).notNull(),
+		/**
+		 * The calendar's `UID`, plus the occurrence's original start (its
+		 * `RECURRENCE-ID`, in UTC) for one occurrence of a recurring event. Stable
+		 * across edits and moves in the calendar. Null for manual events.
+		 */
+		calendarKey: text('calendar_key').unique(),
+		title: text('title').notNull(),
+		location: text('location'),
+		startsAt: integer('starts_at', { mode: 'timestamp_ms' }).notNull(),
+		endsAt: integer('ends_at', { mode: 'timestamp_ms' }).notNull(),
+		/** Whole days: `startsAt` and `endsAt` are midnights, `endsAt` exclusive. */
+		allDay: integer('all_day', { mode: 'boolean' }).notNull().default(false),
+		/** When the sync last found it missing from the calendar. */
+		removedAt: integer('removed_at', { mode: 'timestamp_ms' })
+	},
+	(table) => [index('event_startsAt_idx').on(table.startsAt)]
+);
+
+/**
  * One row per scan of a displayed code. An attendee's first scan counts as their
  * scan-in, their last one (if there are two or more) as their scan-out — both
  * are worked out from these rows, never stored. Re-entry is normal, so an attendee
@@ -52,6 +86,8 @@ export const scan = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+		// ponytail: nullable until the displayed code says which event it is for.
+		eventId: text('event_id').references(() => event.id),
 		// How they proved they were there:
 		// - device: a signature from the key their phone got when they opened the
 		//           Moodle activity (see deviceKey)
@@ -71,6 +107,7 @@ export const scan = sqliteTable(
 	(table) => [
 		index('scan_userId_idx').on(table.userId),
 		index('scan_scannedAt_idx').on(table.scannedAt),
+		index('scan_eventId_idx').on(table.eventId),
 		unique('scan_user_code_scan_unq').on(table.userId, table.codeScanId)
 	]
 );
