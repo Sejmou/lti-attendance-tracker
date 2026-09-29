@@ -11,6 +11,7 @@
 		saveDeviceKey,
 		sign
 	} from '$lib/device-key';
+	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
@@ -61,8 +62,7 @@
 		} catch {
 			busy = false;
 			// crypto.subtle only exists over HTTPS; private windows may refuse storage.
-			problem =
-				"This browser couldn't create a key. Make sure you're not in a private window, and try again.";
+			problem = m.enroll_key_create_failed();
 			return;
 		}
 		await tick();
@@ -77,8 +77,7 @@
 					await saveDeviceKey({ keyId: result.data.keyId, privateKey: pendingKey });
 					done = true;
 				} catch {
-					problem =
-						"This browser wouldn't save the key. Make sure you're not in a private window, and try again.";
+					problem = m.enroll_key_save_failed();
 				}
 			}
 			pendingKey = undefined;
@@ -88,53 +87,52 @@
 	};
 </script>
 
-<svelte:head><title>Set up check-in</title></svelte:head>
+<svelte:head><title>{m.enroll_title()}</title></svelte:head>
 
 <main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
 	{#if data.problem}
-		<h1 class="text-2xl font-semibold">We couldn't set you up</h1>
+		<h1 class="text-2xl font-semibold">{m.enroll_problem_heading()}</h1>
 		<p class="text-gray-600">{data.problem}</p>
 	{:else if !mounted}
-		<p class="text-gray-600">Loading…</p>
+		<p class="text-gray-600">{m.loading()}</p>
 	{:else if !token}
-		<h1 class="text-2xl font-semibold">Open this from Moodle</h1>
+		<h1 class="text-2xl font-semibold">{m.enroll_open_from_moodle_heading()}</h1>
 		<p class="text-gray-600">
-			Open the check-in activity in your Moodle course. It sends you here, ready to set up this
-			phone.
+			{m.enroll_open_from_moodle_text()}
 		</p>
 	{:else if done}
-		<h1 class="text-2xl font-semibold">This phone is set up</h1>
+		<h1 class="text-2xl font-semibold">{m.enroll_done_heading()}</h1>
 		<p class="text-gray-600">
-			At the event, scan the code at the door with this phone's camera and you're checked in. You
-			won't need Moodle again.
+			{m.enroll_done_text()}
 		</p>
 		<p class="text-sm text-gray-500">
-			It only works in this browser. Clearing its website data, or setting up another phone, undoes
-			it — then open the Moodle activity again.
+			{m.enroll_done_note()}
 		</p>
 	{:else if embedded}
-		<h1 class="text-2xl font-semibold">{firstName ? `Hi, ${firstName}!` : 'Hi!'}</h1>
+		<h1 class="text-2xl font-semibold">
+			{firstName ? m.enroll_greeting_name({ name: firstName }) : m.enroll_greeting()}
+		</h1>
 		<p class="text-gray-600">
-			Moodle opened this inside its own page, where your browser won't keep what check-in needs.
-			Continue in a tab of its own.
+			{m.enroll_embedded_text()}
 		</p>
 		<button
 			type="button"
 			onclick={() => window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
 			class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
 		>
-			Continue in a new tab
+			{m.enroll_continue_new_tab()}
 		</button>
 	{:else}
-		<h1 class="text-2xl font-semibold">{firstName ? `Hi, ${firstName}!` : 'Hi!'}</h1>
+		<h1 class="text-2xl font-semibold">
+			{firstName ? m.enroll_greeting_name({ name: firstName }) : m.enroll_greeting()}
+		</h1>
 		<p class="text-gray-600">
-			Set up <strong>the phone you'll bring to the event</strong>, in the browser that opens when
-			you scan a QR code (usually Safari on an iPhone, Chrome on Android). After that, scanning the
-			code at the door is all it takes.
+			<strong>{m.enroll_intro_phone()}</strong>
+			{m.enroll_intro_browser()}
 		</p>
 		{#if alreadySetUp}
 			<p class="text-sm text-gray-500">
-				This browser is already set up. Doing it again is harmless and replaces the old key.
+				{m.enroll_already_set_up()}
 			</p>
 		{/if}
 		<button
@@ -143,7 +141,7 @@
 			disabled={busy}
 			class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
 		>
-			{busy ? 'Setting up…' : 'Set up this phone'}
+			{busy ? m.enroll_setting_up() : m.enroll_set_up()}
 		</button>
 
 		<form method="post" action="?/enroll" hidden bind:this={enrollForm} use:enhance={saveOnSuccess}>

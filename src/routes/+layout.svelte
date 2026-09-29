@@ -1,23 +1,27 @@
 <script lang="ts">
-	import type { Pathname } from '$app/types';
-	import { resolve } from '$app/paths';
-	import { page } from '$app/state';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { getLocale, locales, setLocale } from '$lib/paraglide/runtime';
+	import { m } from '$lib/paraglide/messages';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
 
-	// resolve() adds the base path back, so take it off first: resolve('/') is the
-	// base plus its trailing slash.
-	const path = $derived(page.url.pathname.slice(resolve('/').length - 1) as Pathname);
+	const names: Record<(typeof locales)[number], string> = { de: 'Deutsch', en: 'English' };
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 {@render children()}
 
-<div style="display:none">
+<nav aria-label={m.language()} class="fixed right-4 bottom-4 flex gap-3 text-sm text-gray-500">
 	{#each locales as locale (locale)}
-		<a href={resolve(localizeHref(path, { locale }) as Pathname)}>{locale}</a>
+		<button
+			type="button"
+			lang={locale}
+			aria-current={locale === getLocale() ? 'true' : undefined}
+			onclick={() => setLocale(locale)}
+			class="underline aria-[current]:font-semibold aria-[current]:no-underline"
+		>
+			{names[locale]}
+		</button>
 	{/each}
-</div>
+</nav>

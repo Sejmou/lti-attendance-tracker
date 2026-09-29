@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { APIError } from 'better-auth/api';
+import { m } from '$lib/paraglide/messages';
 import { auth } from '$lib/server/auth';
 import { MIN_PASSWORD_LENGTH, replaceTemporaryPassword } from '$lib/server/admins';
 import { isAdmin } from '$lib/server/roles';
@@ -17,7 +18,7 @@ export const load: PageServerLoad = ({ locals }) => {
 export const actions: Actions = {
 	default: async ({ locals, request }) => {
 		const current = locals.user;
-		if (!current || !isAdmin(current)) error(403, 'Forbidden');
+		if (!current || !isAdmin(current)) error(403, m.forbidden());
 
 		const formData = await request.formData();
 		const currentPassword = formData.get('currentPassword')?.toString() ?? '';
@@ -25,15 +26,15 @@ export const actions: Actions = {
 		const confirm = formData.get('confirm')?.toString() ?? '';
 
 		if (password.length < MIN_PASSWORD_LENGTH) {
-			return fail(400, { message: `At least ${MIN_PASSWORD_LENGTH} characters.` });
+			return fail(400, { message: m.change_password_too_short({ min: MIN_PASSWORD_LENGTH }) });
 		}
-		if (password !== confirm) return fail(400, { message: 'The passwords did not match.' });
+		if (password !== confirm) return fail(400, { message: m.change_password_mismatch() });
 
 		// A temporary password was just used to sign in, and the admin may not have it
 		// any more: a reset can be signed into with a passkey. So it isn't asked for.
 		if (current.mustChangePassword) {
 			if ((await replaceTemporaryPassword(current.id, password)) === 'unchanged') {
-				return fail(400, { message: 'Choose a password other than the one you were given.' });
+				return fail(400, { message: m.change_password_same_as_temporary() });
 			}
 			redirect(302, resolve('/admin'));
 		}
@@ -45,10 +46,10 @@ export const actions: Actions = {
 			});
 		} catch (e) {
 			if (e instanceof APIError) {
-				return fail(400, { message: 'Your current password is wrong.' });
+				return fail(400, { message: m.change_password_wrong_current() });
 			}
 			console.error('password change failed:', e);
-			return fail(500, { message: 'Something went wrong. Try again.' });
+			return fail(500, { message: m.something_went_wrong() });
 		}
 		return { changed: true };
 	}

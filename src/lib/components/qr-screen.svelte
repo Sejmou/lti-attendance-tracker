@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import type { Snippet } from 'svelte';
+	import { m } from '$lib/paraglide/messages';
 
 	let {
 		title,
@@ -26,7 +27,7 @@
 	<div
 		class="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-gray-200"
 		role="progressbar"
-		aria-label="Time until this code changes"
+		aria-label={m.qr_time_until_change()}
 	>
 		{#key msUntilNextBucket}
 			<div

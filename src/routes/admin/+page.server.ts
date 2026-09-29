@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
+import { m } from '$lib/paraglide/messages';
 import { auth } from '$lib/server/auth';
 import {
 	listAdmins,
@@ -20,16 +21,16 @@ export const load: PageServerLoad = async ({ locals }) => {
  */
 async function superadminForm({ locals, request }: RequestEvent) {
 	const current = locals.user;
-	if (current?.role !== 'superadmin' || current.mustChangePassword) error(403, 'Forbidden');
+	if (current?.role !== 'superadmin' || current.mustChangePassword) error(403, m.forbidden());
 
 	const formData = await request.formData();
 	const email = formData.get('email')?.toString().trim().toLowerCase() ?? '';
 	const password = formData.get('password')?.toString() ?? '';
 
 	let message = '';
-	if (!email) message = 'Enter an email.';
+	if (!email) message = m.admin_enter_email();
 	else if (password.length < MIN_PASSWORD_LENGTH) {
-		message = `The temporary password needs at least ${MIN_PASSWORD_LENGTH} characters.`;
+		message = m.admin_temporary_password_too_short({ min: MIN_PASSWORD_LENGTH });
 	}
 	return { email, password, message };
 }
@@ -47,13 +48,11 @@ export const actions: Actions = {
 
 		switch (await promoteToAdmin(email, password)) {
 			case 'not-found':
-				return failure(
-					`No guest has ${email} yet. They have to open the check-in activity in Moodle once first.`
-				);
+				return failure(m.admin_promote_not_found({ email }));
 			case 'already-admin':
-				return failure(`${email} is already an organizer.`);
+				return failure(m.admin_already_organizer({ email }));
 			case 'promoted':
-				return { action: 'promote', done: `${email} is now an organizer.` };
+				return { action: 'promote', done: m.admin_promoted({ email }) };
 		}
 	},
 
@@ -63,11 +62,8 @@ export const actions: Actions = {
 		if (message) return failure(message);
 
 		if ((await resetAdminPassword(email, password)) === 'not-admin') {
-			return failure(`${email} is not an organizer whose password you can reset.`);
+			return failure(m.admin_reset_not_organizer({ email }));
 		}
-		return {
-			action: 'reset',
-			done: `${email} is signed out and has to replace that password on their next sign-in.`
-		};
+		return { action: 'reset', done: m.admin_reset_done({ email }) };
 	}
 };
