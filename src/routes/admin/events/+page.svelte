@@ -11,6 +11,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
+	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
 	import EventDialog from './event-dialog.svelte';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -144,6 +145,7 @@
 			<span class="block text-destructive" role="alert">{m.events_missing()}</span>
 		{/if}
 	</p>
+	<CalendarSyncStatus sync={data.sync} />
 
 	{#if data.events.length === 0}
 		<p class="text-muted-foreground">{m.events_none()}</p>

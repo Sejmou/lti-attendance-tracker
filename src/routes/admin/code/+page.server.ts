@@ -1,4 +1,4 @@
-import { syncCalendarIfStale } from '$lib/server/calendar-sync';
+import { calendarStale, syncCalendarInBackground } from '$lib/server/calendar-sync';
 import { listEvents, suggestEvent } from '$lib/server/events';
 import type { PageServerLoad } from './$types';
 
@@ -10,7 +10,6 @@ const DAY = 24 * 60 * 60_000;
  * day back to a month ahead; the events page reaches everything else.
  */
 export const load: PageServerLoad = async () => {
-	await syncCalendarIfStale();
 	const now = new Date();
 	const events = listEvents(now).filter(
 		(e) =>
@@ -18,5 +17,11 @@ export const load: PageServerLoad = async () => {
 			e.endsAt.getTime() > now.getTime() - DAY &&
 			e.startsAt.getTime() < now.getTime() + 30 * DAY
 	);
-	return { events, suggested: suggestEvent(events, now)?.id ?? null, now };
+	return {
+		// Streamed, not awaited: see the events page.
+		sync: calendarStale() ? syncCalendarInBackground() : null,
+		events,
+		suggested: suggestEvent(events, now)?.id ?? null,
+		now
+	};
 };

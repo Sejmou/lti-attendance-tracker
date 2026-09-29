@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import {
 	calendarConfigured,
 	lastCalendarSync,
-	syncCalendarIfStale,
+	calendarStale,
+	syncCalendarInBackground,
 	syncCalendarNow
 } from '$lib/server/calendar-sync';
 import { db } from '$lib/server/db';
@@ -12,9 +13,11 @@ import { hasScans, listEvents, manualEvent, parseEventForm } from '$lib/server/e
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-	// Opening the page is what keeps the calendar fresh; no timer runs otherwise.
-	await syncCalendarIfStale();
 	return {
+		// Opening the page is what keeps the calendar fresh; no timer runs
+		// otherwise. Not awaited: the page shows what it has and streams this
+		// in, then reloads once it says `synced`.
+		sync: calendarStale() ? syncCalendarInBackground() : null,
 		events: listEvents(),
 		now: new Date(),
 		calendar: calendarConfigured() ? { lastSync: lastCalendarSync() } : null

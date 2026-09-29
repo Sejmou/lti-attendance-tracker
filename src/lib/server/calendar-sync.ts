@@ -257,9 +257,23 @@ export function syncCalendarNow() {
 	return running;
 }
 
-/** Syncs if the last sync is older than 15 minutes; a failure only shows up in the log. */
-export async function syncCalendarIfStale() {
-	if (!calendarConfigured()) return;
-	if (lastSync && Date.now() - lastSync.at < STALE_MS) return;
-	await syncCalendarNow().catch((error) => console.error('Calendar sync failed:', error));
+/** Whether a page opened now should sync: the last sync is older than 15 minutes. */
+export function calendarStale() {
+	return calendarConfigured() && (!lastSync || Date.now() - lastSync.at >= STALE_MS);
+}
+
+/**
+ * A sync for a page to start without waiting on it: it streams the promise,
+ * and reloads its data once this says `synced`. Never rejects; a failure is
+ * logged and reported as `failed`, which a page must not reload on — the
+ * reload would find the calendar still stale and try again, and again.
+ */
+export async function syncCalendarInBackground(): Promise<'synced' | 'failed'> {
+	try {
+		await syncCalendarNow();
+		return 'synced';
+	} catch (error) {
+		console.error('Calendar sync failed:', error);
+		return 'failed';
+	}
 }

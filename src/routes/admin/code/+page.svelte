@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import { Badge } from '$lib/components/ui/badge';
+	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -34,6 +35,7 @@
 
 <main class="mx-auto flex min-h-svh max-w-2xl flex-col gap-6 p-6">
 	<h1 class="text-2xl font-semibold">{m.code_pick_heading()}</h1>
+	<CalendarSyncStatus sync={data.sync} />
 
 	{#if !suggested}
 		<p class="text-muted-foreground">{m.code_pick_none()}</p>

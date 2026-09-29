@@ -71,6 +71,7 @@
 	"events_sync": "Sync now",
 	"events_last_sync": "Calendar last synced: {when}",
 	"events_never_synced": "The calendar hasn't been synced yet.",
+	"events_syncing": "Syncing the calendar…",
 	"events_sync_result": "{added} new · {updated} updated · {deleted} deleted · {kept} kept",
 	"events_sync_failed": "The calendar couldn't be fetched. The server log has the details.",
 	"events_no_calendar": "No calendar connected (CALENDAR_ICS_URL is not set). Events can be created here by hand.",

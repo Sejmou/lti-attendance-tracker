@@ -74,6 +74,7 @@
 	"events_sync": "Jetzt synchronisieren",
 	"events_last_sync": "Kalender zuletzt synchronisiert: {when}",
 	"events_never_synced": "Der Kalender wurde noch nicht synchronisiert.",
+	"events_syncing": "Kalender wird synchronisiert…",
 	"events_sync_result": "{added} neu · {updated} aktualisiert · {deleted} gelöscht · {kept} behalten",
 	"events_sync_failed": "Der Kalender konnte nicht abgerufen werden. Details stehen im Server-Log.",
 	"events_no_calendar": "Kein Kalender verbunden (CALENDAR_ICS_URL ist nicht gesetzt). Veranstaltungen lassen sich hier von Hand anlegen.",

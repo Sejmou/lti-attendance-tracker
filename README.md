@@ -426,6 +426,14 @@ parses it with [ical.js](https://www.npmjs.com/package/ical.js) and upserts ever
 starting from 30 days ago to 180 days ahead. Recurring events are expanded into one row
 per occurrence, less excluded and cancelled ones.
 
+There is no timer. Opening the events page or the event picker (`/admin/code`) syncs if
+the last successful sync is more than 15 minutes old, and **Sync now** on the events page
+syncs right away. The pages don't wait for it: they show the events they have, stream the
+sync's outcome in and reload their data once it has synced, so new events appear in place.
+A failed sync is logged and shown on the page, and the page does not reload on it; the next
+page opened tries again. The time of the last sync is kept in memory, so the first page
+opened after a restart syncs.
+
 Rows are matched by `calendar_key`: the event's iCal `UID`, plus for an occurrence of a
 recurring event its `RECURRENCE-ID` — the start it originally had, which stays the same
 when the occurrence is moved. Google keeps both through edits, so a resync updates the
