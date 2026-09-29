@@ -80,8 +80,14 @@ The test users' password is `Moodle-Test-1`, `admin`'s is `Admin-Test-1`, unless
 `.env` says otherwise.
 
 To try it: sign in to Moodle as `organizer`, open the organizer activity and
-**Show the check-in code**. Then, on a phone, sign in as a student, open the
-set-up activity, set the phone up, and scan the code.
+**Show the check-in code**. Then, on a phone, sign in as a student and open the
+set-up activity. Either tap **Scan the check-in code** and scan the screen from
+that page, or set the phone up and scan the code with the camera app.
+
+Scanning from the page stores nothing, so trying several students on one phone
+only takes a private tab per student (or signing out of Moodle in between). A
+linked phone belongs to one student at a time: linking it again for another
+takes it over.
 
 ## Changing things
 

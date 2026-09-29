@@ -141,9 +141,14 @@ cookie paths and the QR code all include it. The tool URLs become
 Guests have no password and never sign in, and there is no guest list. The course has a
 check-in activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
 who someone is, through the LMS, and makes them a guest on the spot — anyone who can open
-the activity can come in. Opening it on their phone also sets that phone up. From then
-on, scanning the code at the door is all it takes, for as long as the browser keeps what
-the setup stored.
+the activity can come in. The page it opens then offers two ways in:
+
+- **Scan here:** at the door, they open the activity and scan the code with the camera
+  inside that page. Nothing is stored on the phone, so it works in any browser, but
+  they need Moodle every time (see [Scanning from the launched page](#scanning-from-the-launched-page)).
+- **Link this phone:** they set the phone up once, and from then on scanning the code
+  with the camera app is all it takes, for as long as the browser keeps what the setup
+  stored (see [Setting up a phone](#setting-up-a-phone)).
 
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
 2. An organizer opens the admin tool's activity, which signs them in (see
@@ -186,8 +191,8 @@ opening the attendee tool on their phone sets that phone up for them as a guest.
 
 The guest opens the check-in activity in Moodle **on the phone they'll bring**. Moodle
 launches the tool, vouching for who they are, and the tool finds or creates the guest
-(see [How guests get in](#how-guests-get-in)) and sends them to `/lti-link/enroll`. There
-they tap **Set up this phone**:
+(see [How guests get in](#how-guests-get-in)) and sends them to `/lti-link/enroll`. There,
+under **Link this phone**, they tap **Set up this phone**:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
@@ -215,12 +220,15 @@ The key lives in one browser on one phone. The guest has to open Moodle again if
   not switch this rule off. Ask guests to set up in the last few days, or plan for them
   redoing it.
 
-The check-in page says so when it finds no key, and redoing it takes a minute.
+The check-in page says so when it finds no key, and points to scanning from Moodle
+instead. Redoing the setup takes a minute.
 
 ### Which browser
 
 The key has to be in the browser that opens when the phone's camera reads a QR code —
-usually Safari on an iPhone and Chrome on Android. Two things get in the way:
+usually Safari on an iPhone and Chrome on Android. That is often not the browser someone
+uses Moodle in, which is why [scanning from the launched page](#scanning-from-the-launched-page)
+exists: it needs no particular browser. For linking, two things get in the way:
 
 - **Moodle embedding the tool.** Opened in a frame on Moodle's page, the tool's storage is
   partitioned under Moodle's site (all current browsers do this for third-party frames),
@@ -269,6 +277,30 @@ passing for the other.
 Organizers check in the same way, with a phone they set up through the attendee tool —
 or not at all, and let the screen do it (below).
 
+### Scanning from the launched page
+
+A guest who didn't link a phone, or whose camera app opens a different browser than the
+one they linked, opens the check-in activity at the door and taps **Scan the check-in
+code**. The page opens the camera itself (`getUserMedia`, decoded with
+[jsQR](https://www.npmjs.com/package/jsqr), loaded only then) and reads the code on the
+screen. It takes the code out of the URL the QR code holds, without going there, and
+posts it to the page's `scan` action together with the enrollment token from the launch.
+
+The server checks both: the token says who Moodle vouched for in the last 15 minutes,
+the code that they saw a live one. The check-in is written with `method = 'lti'`. The
+token is not spent, since it expires on its own and a second scan with it is the same
+guest either submitting twice or coming back in. Its `scan_id` is an HMAC of token and
+code, so a double submit gets the same one and is collapsed, while two guests scanning
+the same code get different ones.
+
+Nothing is stored in the browser, so none of [Things that undo it](#things-that-undo-it)
+applies, and a private window works. The page needs camera permission, and like a
+device key, a secure context. If Moodle embeds the tool in a frame and its page doesn't
+allow the camera, the page says so and offers **Continue in a new tab**.
+
+The one catch is the 15 minutes: a page opened at home has expired by the time the
+guest reaches the door, and the page tells them to open the activity again.
+
 Every check-in puts a row in `check_in`. Re-entry is normal, so a guest may have several
 rows. A double submit is not: the unique index on `(user_id, scan_id)` collapses
 everything riding one scan into one row, while a later scan gets a row of its own.
@@ -291,10 +323,11 @@ the same.
 
 ### What stops abuse
 
-Checking a guest in takes their phone — or rather, the key its browser made — plus a code
-seen at the door in the last half-minute. Setting that key up takes their Moodle login,
-and a guest is their Moodle account, not an email address: nobody can take a guest over
-by putting their address on another Moodle profile.
+Checking a guest in takes their phone — or rather, the key its browser made — or a
+Moodle launch in the last 15 minutes, plus a code seen at the door in the last
+half-minute. Setting up the key takes their Moodle login too, and a guest is their
+Moodle account, not an email address: nobody can take a guest over by putting their
+address on another Moodle profile.
 
 What it does **not** stop:
 
@@ -302,7 +335,8 @@ What it does **not** stop:
   non-extractable: WebCrypto has no attestation, so a guest who calls the enrollment
   endpoint by hand can register a key they generated themselves and pass it on. It takes
   deliberate effort, and there is still one key per guest, but it can't be prevented —
-  the same is true of lending someone the phone.
+  the same is true of lending someone the phone. Likewise, a guest can copy the
+  enrollment token out of the launched page and hand it on for its 15 minutes.
 - **Checking in from elsewhere.** A photo of the code, sent to an absent guest within its
   30 seconds, checks them in from wherever they are. The address and user agent columns
   and the door screen are what catch this.
@@ -503,12 +537,12 @@ Deliberately absent:
 
 The one table that is ours. One row per check-in:
 
-| Column                     | Why it's there                                                                                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `user_id`, `checked_in_at` | who and when                                                                                                                                                             |
-| `method`                   | `device` (the phone's key) or `host` (see below), as verified server-side at that moment. `link` and `passkey` are from the removed `/setup` link and organizer passkeys |
-| `ip_address`, `user_agent` | a code photographed and passed around shows up as check-ins from addresses that aren't the venue's                                                                       |
-| `scan_id`                  | a non-secret handle for one scan; one device working through borrowed accounts shows up as one `scan_id` across many users                                               |
+| Column                     | Why it's there                                                                                                                                                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`, `checked_in_at` | who and when                                                                                                                                                                                                               |
+| `method`                   | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side at that moment. `link` and `passkey` are from the removed `/setup` link and organizer passkeys |
+| `ip_address`, `user_agent` | a code photographed and passed around shows up as check-ins from addresses that aren't the venue's                                                                                                                         |
+| `scan_id`                  | a non-secret handle for one scan; one device working through borrowed accounts shows up as one `scan_id` across many users                                                                                                 |
 
 `method = 'host'` marks the organizer who was signed in on the check-in screen, checked in
 automatically when the first guest got in through their code. It has no `ip_address`

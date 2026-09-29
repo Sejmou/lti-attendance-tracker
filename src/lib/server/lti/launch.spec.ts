@@ -1,17 +1,21 @@
 import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createSign, generateKeyPairSync } from 'node:crypto';
-import { eq, like } from 'drizzle-orm';
+import { desc, eq, like } from 'drizzle-orm';
 import { IdTokenValidationMethod } from 'ltijs';
 import { env } from '$env/dynamic/private';
 import { checkInMessage, enrollMessage } from '$lib/device-key';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
-import { deviceKey, ltiPlatform, ltiRegistration, user } from '../db/schema';
+import { checkIn, deviceKey, ltiPlatform, ltiRegistration, user } from '../db/schema';
 import { verifySignature } from '../device-key';
 import {
 	ADMIN_SESSION_COOKIE,
+	BUCKET_MS,
+	bucketToken,
+	ENROLLMENT_MS,
+	issueEnrollment,
 	verifyAdminLaunch,
 	verifyAdminSession,
 	verifyEnrollment
@@ -302,4 +306,68 @@ test('a public key without proof of its private half is refused', async () => {
 		})
 	});
 	expect(await actions.enroll({ request } as never)).toMatchObject({ status: 400 });
+});
+
+/** The page's `scan` action: the launch's token, and what the camera read. */
+function scan(token: string, code: string) {
+	const request = new Request('http://localhost:5173/lti-link/enroll?/scan', {
+		method: 'POST',
+		body: new URLSearchParams({ token, code })
+	});
+	return actions.scan({ request, getClientAddress: () => '10.0.0.7' } as never);
+}
+
+// Names nobody, so no organizer gets checked in alongside.
+const HOST = 'no-such-organizer';
+
+test('scanning inside the launched page checks the guest in, no phone set up', async () => {
+	const { id } = guest()!;
+	db.delete(checkIn).where(eq(checkIn.userId, id)).run();
+	const token = tokenFrom(await launch());
+	const code = bucketToken(HOST);
+
+	expect(await scan(token, code)).toEqual({ checkedIn: 'Ada' });
+	// Submitted twice: still one check-in.
+	expect(await scan(token, code)).toEqual({ checkedIn: 'Ada' });
+	const rows = db.select().from(checkIn).where(eq(checkIn.userId, id)).all();
+	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7' }]);
+
+	// Another code is another scan, and a row of its own: coming back in.
+	await scan(token, bucketToken(HOST, Date.now() - BUCKET_MS));
+	expect(await db.$count(checkIn, eq(checkIn.userId, id))).toBe(2);
+});
+
+test('two guests scanning the same code get scans of their own', async () => {
+	const code = bucketToken(HOST);
+	const ada = tokenFrom(await launch());
+	const other = tokenFrom(await launch({ sub: '666' }));
+	await scan(ada, code);
+	await scan(other, code);
+
+	const scanOf = (token: string) =>
+		db
+			.select({ scanId: checkIn.scanId })
+			.from(checkIn)
+			.where(eq(checkIn.userId, verifyEnrollment(token)!.userId))
+			.orderBy(desc(checkIn.checkedInAt))
+			.get()!.scanId;
+	// Or one scan_id across many guests would look like one device checking
+	// in borrowed accounts, which is what the log's scan column is for.
+	expect(scanOf(ada)).not.toBe(scanOf(other));
+});
+
+test('a scan needs a fresh launch and a live code', async () => {
+	const { id } = guest()!;
+	const before = await db.$count(checkIn, eq(checkIn.userId, id));
+
+	const stale = issueEnrollment({ userId: id, firstName: 'Ada' }, Date.now() - ENROLLMENT_MS - 1);
+	expect(await scan(stale, bucketToken(HOST))).toMatchObject({ status: 403 });
+	expect(await scan('forged', bucketToken(HOST))).toMatchObject({ status: 403 });
+
+	const token = tokenFrom(await launch());
+	const old = bucketToken(HOST, Date.now() - 2 * BUCKET_MS);
+	expect(await scan(token, old)).toMatchObject({ status: 403 });
+	expect(await scan(token, 'made-up.code')).toMatchObject({ status: 403 });
+
+	expect(await db.$count(checkIn, eq(checkIn.userId, id))).toBe(before);
 });

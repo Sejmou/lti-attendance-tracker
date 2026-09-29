@@ -16,9 +16,15 @@
 
 	const methods = {
 		device: m.checkins_method_device,
+		lti: m.checkins_method_lti,
 		passkey: m.checkins_method_passkey,
 		host: m.checkins_method_host,
 		link: m.checkins_method_link
+	};
+
+	const hints: Partial<Record<keyof typeof methods, () => string>> = {
+		host: m.checkins_host_hint,
+		lti: m.checkins_lti_hint
 	};
 
 	// The full string is in the title attribute; the table is for scanning.
@@ -73,10 +79,7 @@
 								{row.lastName}
 								<span class="block text-xs text-gray-500">{row.email}</span>
 							</td>
-							<td
-								class="py-2 pr-4"
-								title={row.method === 'host' ? m.checkins_host_hint() : undefined}
-							>
+							<td class="py-2 pr-4" title={hints[row.method]?.()}>
 								{methods[row.method]()}
 							</td>
 							<td class="py-2 pr-4 whitespace-nowrap">

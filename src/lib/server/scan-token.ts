@@ -86,6 +86,18 @@ export function scanId(value: string) {
 	return value.split('.')[2].slice(0, 16);
 }
 
+/**
+ * The handle for a code scanned inside the page a Moodle launch opened, rather
+ * than with a set-up phone (see `scan` in `/lti-link/enroll`). There is no
+ * presence cookie to take it from, so it is derived from the launch and the
+ * code: the same scan submitted twice gets the same handle, and the unique
+ * index collapses it, while two guests scanning the same code get different
+ * ones. Truncated, like `scanId`, so it is no use as either token.
+ */
+export function launchScanId(enrollment: string, code: string) {
+	return hmac(`launch-scan:${enrollment}:${code}`).slice(0, 16);
+}
+
 export type Enrollment = {
 	userId: string;
 	/** Only so the setup page can greet them; the server never reads it back. */
