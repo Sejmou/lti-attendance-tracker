@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import DatePicker from '$lib/components/date-picker.svelte';
+	import TimeInput from '$lib/components/time-input.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Field from '$lib/components/ui/field';
@@ -102,15 +103,18 @@
 							/>
 						</Field.Field>
 						<Field.Field data-invalid={errors.start ? true : undefined}>
-							<Field.Label for="event-start-time" class="sr-only">{m.event_form_time()}</Field.Label
-							>
-							<Input
+							<TimeInput
 								id="event-start-time"
 								name="startTime"
-								type="time"
-								bind:value={fields.startTime}
-								oninput={() => (errors.start = undefined)}
-								aria-invalid={errors.start ? true : undefined}
+								label={m.event_form_time()}
+								bind:value={
+									() => fields.startTime,
+									(time) => {
+										fields.startTime = time;
+										errors.start = undefined;
+									}
+								}
+								invalid={Boolean(errors.start)}
 							/>
 						</Field.Field>
 					</div>
@@ -131,14 +135,18 @@
 							/>
 						</Field.Field>
 						<Field.Field data-invalid={errors.end ? true : undefined}>
-							<Field.Label for="event-end-time" class="sr-only">{m.event_form_time()}</Field.Label>
-							<Input
+							<TimeInput
 								id="event-end-time"
 								name="endTime"
-								type="time"
-								bind:value={fields.endTime}
-								oninput={() => (errors.end = undefined)}
-								aria-invalid={errors.end ? true : undefined}
+								label={m.event_form_time()}
+								bind:value={
+									() => fields.endTime,
+									(time) => {
+										fields.endTime = time;
+										errors.end = undefined;
+									}
+								}
+								invalid={Boolean(errors.end)}
 							/>
 						</Field.Field>
 					</div>

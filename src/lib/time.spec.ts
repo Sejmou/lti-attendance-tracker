@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { fromWallClock, TIMEZONE, wallClock } from './time';
+import { formatDateTime, fromWallClock, TIMEZONE, wallClock } from './time';
 
 // The default, and what .env.test leaves it at.
 test('times are in Vienna', () => {
@@ -40,4 +40,10 @@ test('anything that is not a date and a time is null', () => {
 	]) {
 		expect(fromWallClock(date, time)).toBeNull();
 	}
+});
+
+test('times show on a 24-hour clock in English too', () => {
+	const at = new Date('2026-10-05T16:00:00Z');
+	expect(formatDateTime(at, 'en', { hour: '2-digit', minute: '2-digit' })).toBe('18:00');
+	expect(formatDateTime(at, 'de', { hour: '2-digit', minute: '2-digit' })).toBe('18:00');
 });

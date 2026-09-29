@@ -11,9 +11,13 @@ export const TIMEZONE = env.PUBLIC_TIMEZONE || 'Europe/Vienna';
 // Fails at startup, like a missing DATABASE_URL, rather than on the first page.
 new Intl.DateTimeFormat('en', { timeZone: TIMEZONE });
 
-/** `toLocaleString` and friends, always in TIMEZONE. */
+/**
+ * `toLocaleString` and friends, always in TIMEZONE and on a 24-hour clock,
+ * whatever the language: 18:00, not 6:00 PM. There is no telling a zone's
+ * own convention from its name, and TIMEZONE is meant to be a European one.
+ */
 export const formatDateTime = (at: Date, locale: string, options: Intl.DateTimeFormatOptions) =>
-	at.toLocaleString(locale, { ...options, timeZone: TIMEZONE });
+	at.toLocaleString(locale, { ...options, timeZone: TIMEZONE, hourCycle: 'h23' });
 
 const parts = new Intl.DateTimeFormat('en-US', {
 	timeZone: TIMEZONE,
