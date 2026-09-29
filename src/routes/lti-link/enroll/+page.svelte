@@ -11,6 +11,7 @@
 		saveDeviceKey,
 		sign
 	} from '$lib/device-key';
+	import QrScanner from '$lib/components/qr-scanner.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -30,6 +31,14 @@
 
 	let enrollForm = $state<HTMLFormElement>();
 	let pendingKey: CryptoKey | undefined;
+
+	// Scanning with this page instead: the launch that opened it vouches for
+	// the guest, the code for their being at the door.
+	let scanning = $state(false);
+	let code = $state('');
+	let scanForm = $state<HTMLFormElement>();
+
+	const checkedIn = $derived(form && 'checkedIn' in form ? form.checkedIn : null);
 
 	onMount(async () => {
 		// The launch hands the token over in the fragment, which no server sees.
@@ -69,6 +78,47 @@
 		enrollForm?.requestSubmit();
 	}
 
+	function startScan() {
+		problem = '';
+		scanning = true;
+	}
+
+	/**
+	 * Only the check-in screen's own code, which points at /checkin with the
+	 * code in `t`. The origin isn't compared: the server checks the code itself,
+	 * and a proxy or tailnet name may make ORIGIN differ from what this page is.
+	 */
+	function codeFrom(text: string) {
+		try {
+			const url = new URL(text);
+			return url.pathname === resolve('/checkin') ? url.searchParams.get('t') : null;
+		} catch {
+			return null;
+		}
+	}
+
+	async function scanned(text: string) {
+		if (busy) return;
+		const found = codeFrom(text);
+		if (!found) {
+			problem = m.enroll_scan_not_ours();
+			return;
+		}
+		problem = '';
+		busy = true;
+		code = found;
+		await tick();
+		scanForm?.requestSubmit();
+	}
+
+	const afterScan: SubmitFunction = () => {
+		return async ({ update }) => {
+			scanning = false;
+			busy = false;
+			await update();
+		};
+	};
+
 	// The key is only kept once the server has stored its public half.
 	const saveOnSuccess: SubmitFunction = () => {
 		return async ({ result, update }) => {
@@ -100,6 +150,9 @@
 		<p class="text-gray-600">
 			{m.enroll_open_from_moodle_text()}
 		</p>
+	{:else if checkedIn}
+		<h1 class="text-2xl font-semibold">{m.checkin_done_heading()}</h1>
+		<p class="text-gray-600">{m.checkin_welcome({ name: checkedIn })}</p>
 	{:else if done}
 		<h1 class="text-2xl font-semibold">{m.enroll_done_heading()}</h1>
 		<p class="text-gray-600">
@@ -108,47 +161,92 @@
 		<p class="text-sm text-gray-500">
 			{m.enroll_done_note()}
 		</p>
-	{:else if embedded}
-		<h1 class="text-2xl font-semibold">
-			{firstName ? m.enroll_greeting_name({ name: firstName }) : m.enroll_greeting()}
-		</h1>
-		<p class="text-gray-600">
-			{m.enroll_embedded_text()}
-		</p>
+	{:else if scanning}
+		<p class="text-gray-600">{busy ? m.checkin_in_progress() : m.enroll_scan_prompt()}</p>
+		<QrScanner
+			onscan={scanned}
+			onerror={() => {
+				scanning = false;
+				problem = embedded ? m.enroll_camera_failed_embedded() : m.enroll_camera_failed();
+			}}
+		/>
 		<button
 			type="button"
-			onclick={() => window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
-			class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+			onclick={() => (scanning = false)}
+			disabled={busy}
+			class="w-full rounded-md border border-gray-300 px-4 py-2 transition hover:bg-gray-50 disabled:opacity-50"
 		>
-			{m.enroll_continue_new_tab()}
+			{m.enroll_scan_cancel()}
 		</button>
+
+		<form method="post" action="?/scan" hidden bind:this={scanForm} use:enhance={afterScan}>
+			<input type="hidden" name="token" value={token} />
+			<input type="hidden" name="code" value={code} />
+		</form>
 	{:else}
 		<h1 class="text-2xl font-semibold">
 			{firstName ? m.enroll_greeting_name({ name: firstName }) : m.enroll_greeting()}
 		</h1>
-		<p class="text-gray-600">
-			<strong>{m.enroll_intro_phone()}</strong>
-			{m.enroll_intro_browser()}
-		</p>
-		{#if alreadySetUp}
-			<p class="text-sm text-gray-500">
-				{m.enroll_already_set_up()}
-			</p>
-		{/if}
-		<button
-			type="button"
-			onclick={setUp}
-			disabled={busy}
-			class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
-		>
-			{busy ? m.enroll_setting_up() : m.enroll_set_up()}
-		</button>
+		<p class="text-gray-600">{m.enroll_choose()}</p>
 
-		<form method="post" action="?/enroll" hidden bind:this={enrollForm} use:enhance={saveOnSuccess}>
-			<input type="hidden" name="token" value={token} />
-			<input type="hidden" name="publicKey" value={publicKey} />
-			<input type="hidden" name="signature" value={signature} />
-		</form>
+		<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
+			<h2 class="text-lg font-semibold">{m.enroll_scan_heading()}</h2>
+			<p class="text-gray-600">{m.enroll_scan_text()}</p>
+			<button
+				type="button"
+				onclick={startScan}
+				class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+			>
+				{m.enroll_scan_button()}
+			</button>
+		</section>
+
+		<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
+			<h2 class="text-lg font-semibold">{m.enroll_link_heading()}</h2>
+			{#if embedded}
+				<p class="text-gray-600">
+					{m.enroll_embedded_text()}
+				</p>
+				<button
+					type="button"
+					onclick={() =>
+						window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
+					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
+				>
+					{m.enroll_continue_new_tab()}
+				</button>
+			{:else}
+				<p class="text-gray-600">
+					<strong>{m.enroll_intro_phone()}</strong>
+					{m.enroll_intro_browser()}
+				</p>
+				{#if alreadySetUp}
+					<p class="text-sm text-gray-500">
+						{m.enroll_already_set_up()}
+					</p>
+				{/if}
+				<button
+					type="button"
+					onclick={setUp}
+					disabled={busy}
+					class="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
+				>
+					{busy ? m.enroll_setting_up() : m.enroll_set_up()}
+				</button>
+
+				<form
+					method="post"
+					action="?/enroll"
+					hidden
+					bind:this={enrollForm}
+					use:enhance={saveOnSuccess}
+				>
+					<input type="hidden" name="token" value={token} />
+					<input type="hidden" name="publicKey" value={publicKey} />
+					<input type="hidden" name="signature" value={signature} />
+				</form>
+			{/if}
+		</section>
 	{/if}
 
 	<p class="text-sm text-red-600" role="alert">

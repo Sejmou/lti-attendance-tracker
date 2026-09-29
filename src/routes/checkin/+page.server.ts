@@ -3,10 +3,9 @@ import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
 import { checkInMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { publishCheckIn } from '$lib/server/check-in-events';
-import { checkInHost } from '$lib/server/check-in-host';
+import { recordCheckIn } from '$lib/server/check-in';
 import { db } from '$lib/server/db';
-import { checkIn, deviceKey, user } from '$lib/server/db/schema';
+import { deviceKey } from '$lib/server/db/schema';
 import { verifySignature } from '$lib/server/device-key';
 import {
 	issuePresence,
@@ -16,7 +15,7 @@ import {
 	verifyBucketToken,
 	verifyPresence
 } from '$lib/server/scan-token';
-import type { Actions, PageServerLoad, RequestEvent } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 // Functions, not strings: the wording depends on the locale of each request.
 const NO_PRESENCE = m.checkin_expired;
@@ -70,38 +69,13 @@ export const actions: Actions = {
 			return fail(403, { message: NOT_FRESH() });
 		}
 
-		return record(event, key.userId, presence!, hostId);
+		const checkedIn = await recordCheckIn(event, {
+			userId: key.userId,
+			method: 'device',
+			scanId: scanId(presence!),
+			hostId
+		});
+		if (!checkedIn) return fail(403, { message: NOT_FRESH() });
+		return { checkedIn };
 	}
 };
-
-async function record(event: RequestEvent, userId: string, presence: string, hostId: string) {
-	const [guest] = await db
-		.select({ firstName: user.firstName, lastName: user.lastName })
-		.from(user)
-		.where(eq(user.id, userId))
-		.limit(1);
-	// Deleting a guest cascades to their key, so this is a race at most.
-	if (!guest) return fail(403, { message: NOT_FRESH() });
-
-	// Re-entry later means a new scan and a new row; a double submit rides the
-	// same one and is dropped by the unique index.
-	const [row] = await db
-		.insert(checkIn)
-		.values({
-			userId,
-			method: 'device',
-			scanId: scanId(presence),
-			ipAddress: event.getClientAddress(),
-			userAgent: event.request.headers.get('user-agent')
-		})
-		.onConflictDoNothing()
-		.returning({ id: checkIn.id, at: checkIn.checkedInAt });
-
-	if (row) {
-		publishCheckIn({ ...guest, id: row.id, at: row.at.getTime() });
-		const host = checkInHost(hostId, scanId(presence));
-		if (host) publishCheckIn(host);
-	}
-
-	return { checkedIn: guest.firstName };
-}

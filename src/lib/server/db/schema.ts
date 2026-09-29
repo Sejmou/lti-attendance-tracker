@@ -53,6 +53,9 @@ export const checkIn = sqliteTable(
 		// How they proved they were there:
 		// - device:  a signature from the key their phone got when they opened the
 		//            Moodle activity (see deviceKey)
+		// - lti:     they opened the Moodle activity and scanned the code inside
+		//            the page it opened, within 15 minutes of the launch. The
+		//            platform vouched for them; no device was set up.
 		// - passkey: an organizer's passkey. No longer possible; organizers
 		//            sign in through the admin tool now, and kept like `link`.
 		// - host:    they are the admin showing the check-in code, and a guest just
@@ -60,7 +63,7 @@ export const checkIn = sqliteTable(
 		//            scan says their screen is at the door. See checkInHost.
 		// - link:    a ticket from the old /setup?email= link. No longer issued; kept
 		//            so rows written before it was removed still type-check.
-		method: text('method', { enum: ['device', 'passkey', 'host', 'link'] }).notNull(),
+		method: text('method', { enum: ['device', 'lti', 'passkey', 'host', 'link'] }).notNull(),
 		ipAddress: text('ip_address'),
 		userAgent: text('user_agent'),
 		// Which scan of which displayed code this rode in on.
