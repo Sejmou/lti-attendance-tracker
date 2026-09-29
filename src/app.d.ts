@@ -1,12 +1,10 @@
-import type { auth } from '$lib/server/auth';
-
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 declare global {
 	namespace App {
 		interface Locals {
-			user?: typeof auth.$Infer.Session.user;
-			session?: typeof auth.$Infer.Session.session;
+			/** Signed in by launching the admin tool; see hooks.server.ts. */
+			admin?: { id: string; email: string; firstName: string; lastName: string };
 		}
 
 		// interface Error {}

@@ -1,15 +1,12 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { authClient } from '$lib/auth-client';
 	import { checkInMessage, loadDeviceKey, sign } from '$lib/device-key';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
-	let passkeyError = $state('');
-	let confirming = $state(false);
 	// null until this browser has looked for its key.
 	let hasDeviceKey = $state<boolean | null>(null);
 	let keyId = $state('');
@@ -32,19 +29,6 @@
 			document.forms.namedItem('withDeviceKey')?.requestSubmit();
 		})();
 	});
-
-	async function confirmWithPasskey() {
-		confirming = true;
-		passkeyError = '';
-		const { error } = (await authClient.signIn.passkey()) ?? {};
-		confirming = false;
-
-		if (error) {
-			passkeyError = m.checkin_passkey_failed();
-			return;
-		}
-		document.forms.namedItem('withPasskey')?.requestSubmit();
-	}
 </script>
 
 <svelte:head><title>{m.page_check_in()}</title></svelte:head>
@@ -74,19 +58,9 @@
 		<p class="text-gray-600">
 			{m.checkin_set_up_text({ button: m.enroll_set_up() })}
 		</p>
-		<button
-			type="button"
-			onclick={confirmWithPasskey}
-			disabled={confirming}
-			class="self-start text-sm text-gray-500 underline disabled:opacity-50"
-		>
-			{confirming ? m.waiting_for_device() : m.checkin_with_passkey()}
-		</button>
-
-		<form method="post" action="?/withPasskey" name="withPasskey" hidden use:enhance></form>
 	{/if}
 
 	<p class="text-sm text-red-600" role="alert">
-		{passkeyError || (form && 'message' in form ? form.message : '')}
+		{form && 'message' in form ? form.message : ''}
 	</p>
 </main>

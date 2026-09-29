@@ -11,7 +11,7 @@ import type { Actions, PageServerLoad } from './$types';
 // Functions, not strings: the wording depends on the locale of each request.
 const PROBLEMS = {
 	'no-profile': m.enroll_problem_no_profile,
-	'email-taken': m.enroll_problem_email_taken
+	'unknown-tool': m.enroll_problem_unknown_tool
 } as const;
 
 const EXPIRED = m.enroll_expired;

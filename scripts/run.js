@@ -3,7 +3,7 @@
  * `$env/*`, `$app/*` and `$lib/*` aliases resolve exactly as they do in the app.
  * Node can't load those on its own, and SvelteKit ships no script runner.
  *
- *   node scripts/run.js scripts/seed.ts --admin ops@corp.com
+ *   node scripts/run.js scripts/register-platform.ts --help
  */
 import { createServer } from 'vite';
 

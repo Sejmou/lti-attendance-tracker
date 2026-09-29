@@ -3,18 +3,15 @@ import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
 import { checkInMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { auth } from '$lib/server/auth';
 import { publishCheckIn } from '$lib/server/check-in-events';
 import { checkInHost } from '$lib/server/check-in-host';
 import { db } from '$lib/server/db';
-import { checkIn, deviceKey, passkey, user } from '$lib/server/db/schema';
+import { checkIn, deviceKey, user } from '$lib/server/db/schema';
 import { verifySignature } from '$lib/server/device-key';
-import { isAdmin } from '$lib/server/roles';
 import {
 	issuePresence,
 	PRESENCE_COOKIE,
 	presenceCookieOptions,
-	presenceIssuedAt,
 	scanId,
 	verifyBucketToken,
 	verifyPresence
@@ -73,48 +70,11 @@ export const actions: Actions = {
 			return fail(403, { message: NOT_FRESH() });
 		}
 
-		return record(event, key.userId, 'device', presence!, hostId);
-	},
-
-	/**
-	 * Organizers only: guests have no passkeys (see the README). The assertion
-	 * itself was verified by better-auth's own endpoint when the browser called
-	 * `signIn.passkey`, which mints a fresh session — so requiring a session newer
-	 * than the scan is what proves it just happened here.
-	 */
-	withPasskey: async (event) => {
-		const presence = event.cookies.get(PRESENCE_COOKIE);
-		const hostId = verifyPresence(presence);
-		if (!hostId) return fail(403, { message: NO_PRESENCE() });
-
-		const { user: current, session } = event.locals;
-		if (!current || !session) return fail(403, { message: NOT_FRESH() });
-		// A guest passkey registered before guests lost them still signs in. It
-		// doesn't check anyone in, and the session it made ends here.
-		if (!isAdmin(current)) {
-			await auth.api.signOut({ headers: event.request.headers });
-			return fail(403, { message: NOT_SET_UP() });
-		}
-		if (session.createdAt.getTime() < presenceIssuedAt(presence!)) {
-			return fail(403, { message: NOT_FRESH() });
-		}
-		// ponytail: a fresh *password* sign-in in another tab would also land here
-		// and be filed as a passkey. It can only mislabel an admin's own row.
-		if ((await db.$count(passkey, eq(passkey.userId, current.id))) === 0) {
-			return fail(403, { message: NOT_FRESH() });
-		}
-
-		return record(event, current.id, 'passkey', presence!, hostId);
+		return record(event, key.userId, presence!, hostId);
 	}
 };
 
-async function record(
-	event: RequestEvent,
-	userId: string,
-	method: 'passkey' | 'device',
-	presence: string,
-	hostId: string
-) {
+async function record(event: RequestEvent, userId: string, presence: string, hostId: string) {
 	const [guest] = await db
 		.select({ firstName: user.firstName, lastName: user.lastName })
 		.from(user)
@@ -129,7 +89,7 @@ async function record(
 		.insert(checkIn)
 		.values({
 			userId,
-			method,
+			method: 'device',
 			scanId: scanId(presence),
 			ipAddress: event.getClientAddress(),
 			userAgent: event.request.headers.get('user-agent')

@@ -18,10 +18,9 @@ services:
       - db:/data
     restart: unless-stopped
 
-  # Dev-dependency image for one-off schema and seed runs against the same volume:
+  # Dev-dependency image for one-off schema and registration runs against the same volume:
   #   docker compose run --rm tools pnpm db:push
-  #   docker compose run --rm tools pnpm db:seed --admin ops@corp.com --first-name Ada --last-name Lovelace
-  #   docker compose run --rm tools pnpm lti:register-platform --url https://moodle.example.com --client-id <id>
+  #   docker compose run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
   tools:
     build:
       context: .

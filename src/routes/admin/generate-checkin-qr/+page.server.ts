@@ -10,7 +10,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event) => {
 	const checkinUrl = new URL(resolve('/checkin'), env.ORIGIN);
 	// The admin layout already turned away anyone who isn't one.
-	checkinUrl.searchParams.set('t', bucketToken(event.locals.user!.id));
+	checkinUrl.searchParams.set('t', bucketToken(event.locals.admin!.id));
 
 	const [qr, [{ present }], recent] = await Promise.all([
 		// Rendered here rather than in the browser so the page needs no QR library.

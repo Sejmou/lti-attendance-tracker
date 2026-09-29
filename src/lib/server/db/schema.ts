@@ -2,11 +2,33 @@ import { sql } from 'drizzle-orm';
 import { sqliteTable, text, integer, index, unique, primaryKey } from 'drizzle-orm/sqlite-core';
 import type { AccessTokenRecord, IdTokenClaims, IdTokenValidation, PlatformKeys } from 'ltijs';
 import type { PublicJwk } from '../device-key';
-import { user } from './auth.schema';
-
-export * from './auth.schema';
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
+
+/**
+ * Everyone who has ever launched one of the tools from an LTI platform, guest
+ * or organizer alike. Nobody signs up or has a password: the first launch
+ * creates the row, from what the platform shares about them, and every later
+ * one finds it by `ltiSubject`. Whether someone is an organizer isn't stored
+ * here at all — it is which of the two tools they launched (see ltiRegistration).
+ */
+export const user = sqliteTable('user', {
+	id: text('id').primaryKey(),
+	/**
+	 * Whatever the platform profile said on the first launch. Not unique and not
+	 * an identity: the platform may let people change it, and two platforms may
+	 * share one person's address.
+	 */
+	email: text('email').notNull(),
+	firstName: text('first_name').notNull(),
+	lastName: text('last_name').notNull(),
+	/**
+	 * The platform account, `["<iss>","<sub>"]`: the platform's URL and its
+	 * permanent user ID, which is only unique within that platform.
+	 */
+	ltiSubject: text('lti_subject').notNull().unique(),
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
+});
 
 /**
  * One row per check-in. Re-entry is normal at an event, so a guest may have
@@ -31,7 +53,8 @@ export const checkIn = sqliteTable(
 		// How they proved they were there:
 		// - device:  a signature from the key their phone got when they opened the
 		//            Moodle activity (see deviceKey)
-		// - passkey: their passkey (admins only)
+		// - passkey: an organizer's passkey. No longer possible; organizers
+		//            sign in through the admin tool now, and kept like `link`.
 		// - host:    they are the admin showing the check-in code, and a guest just
 		//            checked in through it. Nobody confirmed it was them; the guest's
 		//            scan says their screen is at the door. See checkInHost.
@@ -74,6 +97,33 @@ export const deviceKey = sqliteTable('device_key', {
 	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull(),
 	userAgent: text('user_agent')
 });
+
+/**
+ * One LTI platform's pair of tools, set up in it identically but for the
+ * client ID it assigned each. A launch through `adminClientId` opens the admin
+ * pages, one through `attendeeClientId` sets up a phone — so who is an
+ * organizer is decided entirely by who the platform lets open the admin tool.
+ *
+ * Both client IDs are also ltijs platforms of their own (ltiPlatform), since
+ * ltijs checks each launch's audience against one. This is what says which is
+ * which; a platform ltijs knows that no row here names is turned away.
+ */
+export const ltiRegistration = sqliteTable(
+	'lti_registration',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		/** The platform's issuer, exactly as it sends it in `iss`. */
+		url: text('url').notNull(),
+		adminClientId: text('admin_client_id').notNull(),
+		attendeeClientId: text('attendee_client_id').notNull()
+	},
+	(table) => [
+		unique('lti_registration_admin_unq').on(table.url, table.adminClientId),
+		unique('lti_registration_attendee_unq').on(table.url, table.attendeeClientId)
+	]
+);
 
 // ltijs's own storage (see $lib/server/lti/database-manager). Same database as
 // everything else, so it shares the backups, the volume and `db:push`.

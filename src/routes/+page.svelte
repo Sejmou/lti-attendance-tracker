@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { m } from '$lib/paraglide/messages';
 </script>
 
@@ -10,5 +9,4 @@
 	<p class="text-gray-600">
 		{m.home_intro({ button: m.enroll_set_up() })}
 	</p>
-	<a href={resolve('/login')} class="text-sm text-gray-500 underline">{m.organizer_sign_in()}</a>
 </main>

@@ -1,7 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { checkIn, user } from '$lib/server/db/schema';
-import { hasAdminRole } from '$lib/server/roles';
 
 /**
  * Checks in the admin showing the code, once a guest has got in through it —
@@ -11,8 +10,8 @@ import { hasAdminRole } from '$lib/server/roles';
  *
  * Filed as `method: 'host'` — the admin hosting the screen — under the scan
  * that triggered it, so the log pairs it with that guest's row. `host` proves
- * less than `link` or `passkey`: nobody confirmed the admin's identity, only
- * that a guest scanned the code their account was showing. No address or
+ * less than `device`: nobody confirmed the admin's identity, only
+ * that a guest scanned the code their session was showing. No address or
  * device: the request in hand is the guest's, not the screen's.
  *
  * One transaction, so two guests arriving at once can't both find no row.
@@ -23,8 +22,9 @@ export function checkInHost(hostId: string, scan: string) {
 		const host = tx
 			.select({ firstName: user.firstName, lastName: user.lastName })
 			.from(user)
-			// A code shown by someone since demoted, or deleted, names nobody to check in.
-			.where(and(eq(user.id, hostId), hasAdminRole()))
+			// Only an admin session can show a code, and the code is signed, so
+			// whoever it names was an organizer then. Deleted since, they're nobody.
+			.where(eq(user.id, hostId))
 			.get();
 		if (!host) return null;
 
