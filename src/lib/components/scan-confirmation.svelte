@@ -5,7 +5,7 @@
 	import { formatDateTime } from '$lib/time';
 
 	type Scanned = { firstName: string; eventTitle: string } & (
-		{ direction: 'in' | 'out' } | { alreadyInSince: Date }
+		{ direction: 'in' | 'out'; early: boolean } | { alreadyInSince: Date }
 	);
 
 	/**
@@ -41,6 +41,10 @@
 		{m.scan_in_note()}
 	{:else}
 		{m.scan_done_text({ name: scanned.firstName })}
-		{scanned.direction === 'in' ? m.scan_in_note() : m.scan_out_note()}
+		{scanned.direction === 'in'
+			? m.scan_in_note()
+			: scanned.early
+				? m.scan_out_early_note()
+				: m.scan_out_note()}
 	{/if}
 </p>

@@ -1,7 +1,7 @@
 import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createSign, generateKeyPairSync } from 'node:crypto';
-import { desc, eq, like } from 'drizzle-orm';
+import { and, desc, eq, like } from 'drizzle-orm';
 import { IdTokenValidationMethod } from 'ltijs';
 import { env } from '$env/dynamic/private';
 import { enrollMessage, scanMessage } from '$lib/device-key';
@@ -352,7 +352,7 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	const code = bucketToken(SCREEN);
 
 	const scannedIn = {
-		scanned: { firstName: 'Ada', eventTitle: 'launch.spec party', direction: 'in' }
+		scanned: { firstName: 'Ada', eventTitle: 'launch.spec party', direction: 'in', early: false }
 	};
 	expect(await scan(token, code)).toEqual(scannedIn);
 	// Submitted twice: still one scan, and still the scan-in.
@@ -375,10 +375,11 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	});
 	expect(await count()).toBe(1);
 
-	// Past the grace period, a scan is a scan: for now, the scan-out.
+	// Past the grace period, a scan is a scan: for now, the scan-out. Well
+	// before the event ends, so the phone says how to undo it.
 	backdate(SCAN_IN_GRACE_MS + 60_000);
 	expect(await scan(tokenFrom(await launch()), bucketToken(SCREEN))).toMatchObject({
-		scanned: { direction: 'out' }
+		scanned: { direction: 'out', early: true }
 	});
 	expect(await count()).toBe(2);
 
@@ -438,4 +439,29 @@ test('a code for an event deleted since it went up files nothing, and says why',
 		data: { message: expect.stringMatching(/Veranstaltung/) }
 	});
 	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(before);
+});
+
+test('a scan-out in the last minutes of an event is just a scan-out', async () => {
+	const { id } = attendee()!;
+	const now = Date.now();
+	const closing = db
+		.insert(event)
+		.values({
+			source: 'manual',
+			title: 'launch.spec closing',
+			startsAt: new Date(now - 60 * 60_000),
+			endsAt: new Date(now + 2 * 60_000)
+		})
+		.returning()
+		.get();
+	const screen = { hostId: 'no-such-organizer', eventId: closing.id };
+
+	await scan(tokenFrom(await launch()), bucketToken(screen));
+	db.update(scanRow)
+		.set({ scannedAt: new Date(now - SCAN_IN_GRACE_MS - 60_000) })
+		.where(and(eq(scanRow.userId, id), eq(scanRow.eventId, closing.id)))
+		.run();
+	expect(await scan(tokenFrom(await launch()), bucketToken(screen))).toMatchObject({
+		scanned: { direction: 'out', early: false }
+	});
 });

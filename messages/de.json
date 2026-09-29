@@ -149,6 +149,7 @@
 	"qr_out": "ausgescannt",
 	"scan_already_heading": "Du bist bereits eingescannt",
 	"scan_already_text": "Seit {time} – dein erster Scan hat geklappt, noch einmal scannen ist nicht nötig.",
+	"scan_out_early_note": "Du wolltest nicht ausscannen? Kein Problem, scanne einfach später noch einmal: der letzte Scan zählt.",
 	"scan_done_text": "Danke, {name}.",
 	"scan_prompt_heading": "Scanne den Anwesenheits-QR-Code",
 	"scan_prompt_text": "Diese Seite öffnet sich, wenn du den Anwesenheits-QR-Code scannst. Der Code ändert sich alle 30 Sekunden – scanne also den, der gerade angezeigt wird.",

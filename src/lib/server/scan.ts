@@ -16,6 +16,12 @@ import type { CodeScreen } from '$lib/server/scan-token';
 export const SCAN_IN_GRACE_MS = 5 * 60_000;
 
 /**
+ * A scan-out earlier than this before the event's end may well be a mistake,
+ * so the phone says how to undo it: scan again later, the last scan counts.
+ */
+const EARLY_OUT_MS = 5 * 60_000;
+
+/**
  * Writes the scan for an attendee whose proof has already been checked, under
  * the event the code was for, tells the screens at the door, and files a scan
  * for the admin whose code it came through.
@@ -33,7 +39,7 @@ export function recordScan(
 	request: RequestEvent,
 	proof: { userId: string; method: 'device' | 'lti'; codeScanId: string; screen: CodeScreen }
 ):
-	| { firstName: string; eventTitle: string; direction: 'in' | 'out' }
+	| { firstName: string; eventTitle: string; direction: 'in' | 'out'; early: boolean }
 	| { firstName: string; eventTitle: string; alreadyInSince: Date }
 	| { gone: 'attendee' | 'event' } {
 	const { eventId, hostId } = proof.screen;
@@ -48,7 +54,7 @@ export function recordScan(
 		if (!attendee) return { gone: 'attendee' as const };
 
 		const event = tx
-			.select({ id: eventTable.id, title: eventTable.title })
+			.select({ id: eventTable.id, title: eventTable.title, endsAt: eventTable.endsAt })
 			.from(eventTable)
 			.where(eq(eventTable.id, eventId))
 			.get();
@@ -110,5 +116,6 @@ export function recordScan(
 		// Only ever their first for the event: see hostScan.
 		if (host) publishScan({ ...host, direction: 'in', present });
 	}
-	return { firstName: attendee.firstName, eventTitle: event!.title, direction };
+	const early = direction === 'out' && Date.now() < event!.endsAt.getTime() - EARLY_OUT_MS;
+	return { firstName: attendee.firstName, eventTitle: event!.title, direction, early };
 }
