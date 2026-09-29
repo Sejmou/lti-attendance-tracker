@@ -1,5 +1,6 @@
 import { countDistinct, eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
+import { direction as directionOf } from '$lib/server/attendance';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
 import { db } from '$lib/server/db';
@@ -11,7 +12,9 @@ import type { CodeScreen } from '$lib/server/scan-token';
  * the event the code was for, tells the screens at the door, and files a scan
  * for the admin whose code it came through.
  *
- * Returns the attendee's first name, or what is gone: the attendee (deleting
+ * Returns the attendee's first name, the event's title and which way the
+ * scan counts (their first for the event is a scan-in, a later one their
+ * scan-out), or what is gone: the attendee (deleting
  * one cascades to their key, so this is a race at most), or the event — a
  * manual one can be deleted while its code is still on a screen, as long as
  * nobody has scanned it yet.
@@ -19,7 +22,9 @@ import type { CodeScreen } from '$lib/server/scan-token';
 export function recordScan(
 	request: RequestEvent,
 	proof: { userId: string; method: 'device' | 'lti'; codeScanId: string; screen: CodeScreen }
-): { firstName: string } | { gone: 'attendee' | 'event' } {
+):
+	| { firstName: string; eventTitle: string; direction: 'in' | 'out' }
+	| { gone: 'attendee' | 'event' } {
 	const { eventId, hostId } = proof.screen;
 
 	// One transaction, so the event can't be deleted between looking and writing.
@@ -32,7 +37,7 @@ export function recordScan(
 		if (!attendee) return { gone: 'attendee' as const };
 
 		const event = tx
-			.select({ id: eventTable.id })
+			.select({ id: eventTable.id, title: eventTable.title })
 			.from(eventTable)
 			.where(eq(eventTable.id, eventId))
 			.get();
@@ -53,11 +58,13 @@ export function recordScan(
 			.onConflictDoNothing()
 			.returning({ id: scan.id, at: scan.scannedAt })
 			.get();
-		return { attendee, row };
+		return { attendee, event, row };
 	});
 	if (outcome.gone) return { gone: outcome.gone };
 
-	const { attendee, row } = outcome;
+	const { attendee, event, row } = outcome;
+	// Counted after writing, so a double submit reads the same as the first.
+	const direction = directionOf(proof.userId, eventId);
 	if (row) {
 		const host = hostScan(hostId, eventId, proof.codeScanId);
 		// Counted after both, so the screen's number matches the names under it.
@@ -66,8 +73,9 @@ export function recordScan(
 			.from(scan)
 			.where(eq(scan.eventId, eventId))
 			.get()!;
-		publishScan({ ...attendee, eventId, id: row.id, at: row.at.getTime(), present });
-		if (host) publishScan({ ...host, present });
+		publishScan({ ...attendee, eventId, id: row.id, at: row.at.getTime(), direction, present });
+		// Only ever their first for the event: see hostScan.
+		if (host) publishScan({ ...host, direction: 'in', present });
 	}
-	return { firstName: attendee.firstName };
+	return { firstName: attendee.firstName, eventTitle: event!.title, direction };
 }

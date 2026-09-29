@@ -63,7 +63,8 @@ export const actions: Actions = {
 		if ('gone' in outcome) {
 			return fail(403, { message: outcome.gone === 'event' ? EVENT_GONE() : SCAN_EXPIRED() });
 		}
-		return { scanned: outcome.firstName };
+		const { firstName, eventTitle, direction } = outcome;
+		return { scanned: { firstName, eventTitle, direction } };
 	},
 
 	/**

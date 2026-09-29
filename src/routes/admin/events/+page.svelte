@@ -163,7 +163,10 @@
 					<Table.Row class={[past(row) && 'text-muted-foreground']}>
 						<Table.Cell class="whitespace-nowrap">{when(row)}</Table.Cell>
 						<Table.Cell class="whitespace-normal">
-							<span class="font-medium">{row.title}</span>
+							<a
+								href={resolve('/admin/events/[id]', { id: row.id })}
+								class="font-medium underline-offset-4 hover:underline">{row.title}</a
+							>
 							<span class="mt-1 flex flex-wrap gap-1">
 								<Badge variant="outline">
 									{row.source === 'calendar'

@@ -66,7 +66,9 @@
 				{#each recent as arrival (arrival.id)}
 					<li class="flex justify-between gap-4 px-3 py-2">
 						<span>{arrival.firstName} {arrival.lastName}</span>
-						<span class="text-gray-500 tabular-nums">{time(arrival.at)}</span>
+						<span class="text-gray-500 tabular-nums">
+							{arrival.direction === 'in' ? m.qr_in() : m.qr_out()} · {time(arrival.at)}
+						</span>
 					</li>
 				{/each}
 			</ol>
@@ -76,7 +78,9 @@
 	<div class="flex gap-4">
 		<a href={resolve('/admin/code')} class="text-blue-600 underline">{m.code_other_event()}</a>
 		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
-		<a href={resolve('/admin/scans')} class="text-blue-600 underline">{m.scan_log()}</a>
+		<a href={resolve('/admin/events/[id]', { id: data.event.id })} class="text-blue-600 underline">
+			{m.attendance_title()}
+		</a>
 	</div>
 </QrScreen>
 
@@ -89,7 +93,9 @@
 			transition:fly={{ x: 80 }}
 			class="rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
 		>
-			✓ {m.qr_scanned({ name: `${toast.firstName} ${toast.lastName}` })}
+			✓ {(toast.direction === 'in' ? m.qr_scanned_in : m.qr_scanned_out)({
+				name: `${toast.firstName} ${toast.lastName}`
+			})}
 		</div>
 	{/each}
 </div>

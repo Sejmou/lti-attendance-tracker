@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { loadDeviceKey, scanMessage, sign } from '$lib/device-key';
+	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -35,10 +36,7 @@
 
 <main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
 	{#if scanned}
-		<h1 class="text-2xl font-semibold">{m.scan_done_heading()}</h1>
-		<p class="text-gray-600">
-			{m.scan_done_text({ name: scanned })}
-		</p>
+		<ScanConfirmation {scanned} />
 	{:else if !data.codeScanId}
 		<h1 class="text-2xl font-semibold">{m.scan_prompt_heading()}</h1>
 		<p class="text-gray-600">

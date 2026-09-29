@@ -350,14 +350,19 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	const token = tokenFrom(await launch());
 	const code = bucketToken(SCREEN);
 
-	expect(await scan(token, code)).toEqual({ scanned: 'Ada' });
-	// Submitted twice: still one scan.
-	expect(await scan(token, code)).toEqual({ scanned: 'Ada' });
+	const scannedIn = {
+		scanned: { firstName: 'Ada', eventTitle: 'launch.spec party', direction: 'in' }
+	};
+	expect(await scan(token, code)).toEqual(scannedIn);
+	// Submitted twice: still one scan, and still the scan-in.
+	expect(await scan(token, code)).toEqual(scannedIn);
 	const rows = db.select().from(scanRow).where(eq(scanRow.userId, id)).all();
 	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7', eventId: SCREEN.eventId }]);
 
-	// Another code is another scan, and a row of its own: coming back in.
-	await scan(token, bucketToken(SCREEN, Date.now() - BUCKET_MS));
+	// Another code is another scan, and a row of its own: for now, the scan-out.
+	expect(await scan(token, bucketToken(SCREEN, Date.now() - BUCKET_MS))).toMatchObject({
+		scanned: { direction: 'out' }
+	});
 	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(2);
 });
 

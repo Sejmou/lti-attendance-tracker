@@ -12,6 +12,7 @@
 		sign
 	} from '$lib/device-key';
 	import QrScanner from '$lib/components/qr-scanner.svelte';
+	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -151,8 +152,7 @@
 			{m.enroll_open_from_moodle_text()}
 		</p>
 	{:else if scanned}
-		<h1 class="text-2xl font-semibold">{m.scan_done_heading()}</h1>
-		<p class="text-gray-600">{m.scan_done_text({ name: scanned })}</p>
+		<ScanConfirmation {scanned} />
 	{:else if done}
 		<h1 class="text-2xl font-semibold">{m.enroll_done_heading()}</h1>
 		<p class="text-gray-600">

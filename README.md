@@ -327,7 +327,14 @@ own.
 Nobody says whether a scan is coming or going. An attendee's **first** scan counts as
 their scan-in, their **last** one as their scan-out — if they have two or more. Scans in
 between don't count for either, and an attendee who scans once is scanned in with no
-scan-out. Both are worked out from the rows when they are shown, never stored.
+scan-out. Both are worked out from the rows when they are shown, never stored
+(`src/lib/server/attendance.ts`).
+
+Each event's page (`/admin/events/<id>`) lists its attendees with their scan-in, their
+scan-out if they have one, and how many scans that took, above the event's full scan log.
+The phone says which way its scan counted: **eingescannt** after the first, **ausgescannt**
+after any later one — with a note that scanning again later would make the newer scan the
+scan-out. The code screen labels each name in its live list the same way.
 
 The organizer showing the code gets a scan too. The first time an attendee scans
 through their screen, a second row goes in for the admin, with `method = 'host'` and
@@ -377,7 +384,7 @@ visible to everyone around it. The toasts come over server-sent events from
 server only. Each carries the event's count along, so the number on the screen keeps up
 with the names under it.
 
-`/admin/scans` is the full log afterwards, newest first, with the two things worth
+The event's scan log is the full record afterwards, newest first, with the two things worth
 seeing at a glance flagged. `again` is an attendee who had already scanned earlier;
 `shared` is an address more than one attendee scanned from. Neither is wrong on its own
 — people step out for air, and many share one hotspot — but a code that leaked

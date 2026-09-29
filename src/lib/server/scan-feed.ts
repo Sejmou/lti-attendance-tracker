@@ -6,6 +6,8 @@ export type FeedScan = {
 	firstName: string;
 	lastName: string;
 	at: number;
+	/** Which way it counts as things stand: see `direction`. */
+	direction: 'in' | 'out';
 	/** How many people have scanned for the event now, this scan included. */
 	present: number;
 };

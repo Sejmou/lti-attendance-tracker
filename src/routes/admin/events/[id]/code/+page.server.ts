@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { countDistinct, desc, eq } from 'drizzle-orm';
+import { countDistinct, desc, eq, sql } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { env } from '$env/dynamic/private';
 import { resolve } from '$app/paths';
@@ -34,7 +34,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				id: scan.id,
 				at: scan.scannedAt,
 				firstName: user.firstName,
-				lastName: user.lastName
+				lastName: user.lastName,
+				// As the live feed says it: out if they have an earlier scan here.
+				direction: sql<'in' | 'out'>`case when exists (
+					select 1 from ${scan} as earlier
+					where earlier.user_id = ${scan.userId}
+						and earlier.event_id = ${scan.eventId}
+						and earlier.scanned_at < ${scan.scannedAt}
+				) then 'out' else 'in' end`
 			})
 			.from(scan)
 			.innerJoin(user, eq(user.id, scan.userId))
