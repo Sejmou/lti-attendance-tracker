@@ -8,7 +8,14 @@ import { enrollMessage, scanMessage } from '$lib/device-key';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
-import { deviceKey, ltiPlatform, ltiRegistration, scan as scanRow, user } from '../db/schema';
+import {
+	deviceKey,
+	event,
+	ltiPlatform,
+	ltiRegistration,
+	scan as scanRow,
+	user
+} from '../db/schema';
 import { verifySignature } from '../device-key';
 import {
 	ADMIN_SESSION_COOKIE,
@@ -41,9 +48,11 @@ beforeAll(async () => {
 	});
 	db.delete(ltiPlatform).where(eq(ltiPlatform.url, MOODLE)).run();
 	db.delete(ltiRegistration).where(eq(ltiRegistration.url, MOODLE)).run();
+	// Their scans cascade, which frees the events.
 	db.delete(user)
 		.where(like(user.ltiSubject, `["${MOODLE}"%`))
 		.run();
+	db.delete(event).where(like(event.title, 'launch.spec %')).run();
 
 	for (const clientId of [CLIENT_ID, ADMIN_CLIENT_ID, LONE_CLIENT_ID]) {
 		await provider.platformManager.registerPlatform({
@@ -317,28 +326,43 @@ function scan(token: string, code: string) {
 	return actions.scan({ request, getClientAddress: () => '10.0.0.7' } as never);
 }
 
+const party = () =>
+	db
+		.insert(event)
+		.values({
+			source: 'manual',
+			title: 'launch.spec party',
+			startsAt: new Date('2026-10-05T16:00:00Z'),
+			endsAt: new Date('2026-10-05T18:00:00Z')
+		})
+		.returning()
+		.get();
+
 // Names nobody, so no organizer gets a scan alongside.
-const HOST = 'no-such-organizer';
+let SCREEN: { hostId: string; eventId: string };
+beforeAll(() => {
+	SCREEN = { hostId: 'no-such-organizer', eventId: party().id };
+});
 
 test('scanning inside the launched page files a scan, no phone set up', async () => {
 	const { id } = attendee()!;
 	db.delete(scanRow).where(eq(scanRow.userId, id)).run();
 	const token = tokenFrom(await launch());
-	const code = bucketToken(HOST);
+	const code = bucketToken(SCREEN);
 
 	expect(await scan(token, code)).toEqual({ scanned: 'Ada' });
 	// Submitted twice: still one scan.
 	expect(await scan(token, code)).toEqual({ scanned: 'Ada' });
 	const rows = db.select().from(scanRow).where(eq(scanRow.userId, id)).all();
-	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7' }]);
+	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7', eventId: SCREEN.eventId }]);
 
 	// Another code is another scan, and a row of its own: coming back in.
-	await scan(token, bucketToken(HOST, Date.now() - BUCKET_MS));
+	await scan(token, bucketToken(SCREEN, Date.now() - BUCKET_MS));
 	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(2);
 });
 
 test('two attendees scanning the same code get scans of their own', async () => {
-	const code = bucketToken(HOST);
+	const code = bucketToken(SCREEN);
 	const ada = tokenFrom(await launch());
 	const other = tokenFrom(await launch({ sub: '666' }));
 	await scan(ada, code);
@@ -361,13 +385,28 @@ test('a scan needs a fresh launch and a live code', async () => {
 	const before = await db.$count(scanRow, eq(scanRow.userId, id));
 
 	const stale = issueEnrollment({ userId: id, firstName: 'Ada' }, Date.now() - ENROLLMENT_MS - 1);
-	expect(await scan(stale, bucketToken(HOST))).toMatchObject({ status: 403 });
-	expect(await scan('forged', bucketToken(HOST))).toMatchObject({ status: 403 });
+	expect(await scan(stale, bucketToken(SCREEN))).toMatchObject({ status: 403 });
+	expect(await scan('forged', bucketToken(SCREEN))).toMatchObject({ status: 403 });
 
 	const token = tokenFrom(await launch());
-	const old = bucketToken(HOST, Date.now() - 2 * BUCKET_MS);
+	const old = bucketToken(SCREEN, Date.now() - 2 * BUCKET_MS);
 	expect(await scan(token, old)).toMatchObject({ status: 403 });
 	expect(await scan(token, 'made-up.code')).toMatchObject({ status: 403 });
 
+	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(before);
+});
+
+test('a code for an event deleted since it went up files nothing, and says why', async () => {
+	const { id } = attendee()!;
+	const gone = party();
+	db.delete(event).where(eq(event.id, gone.id)).run();
+	const before = await db.$count(scanRow, eq(scanRow.userId, id));
+
+	const token = tokenFrom(await launch());
+	const result = await scan(token, bucketToken({ hostId: 'no-such-organizer', eventId: gone.id }));
+	expect(result).toMatchObject({
+		status: 403,
+		data: { message: expect.stringMatching(/Veranstaltung/) }
+	});
 	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(before);
 });

@@ -21,12 +21,13 @@ import type { Actions, PageServerLoad } from './$types';
 const NO_PRESENCE = m.scan_expired;
 const NOT_FRESH = m.scan_not_confirmed;
 const NOT_SET_UP = m.scan_not_set_up;
+const EVENT_GONE = m.scan_event_gone;
 
 export const load: PageServerLoad = async (event) => {
 	const token = event.url.searchParams.get('t');
-	const hostId = token && verifyBucketToken(token);
-	if (hostId) {
-		event.cookies.set(PRESENCE_COOKIE, issuePresence(hostId), presenceCookieOptions);
+	const screen = token && verifyBucketToken(token);
+	if (screen) {
+		event.cookies.set(PRESENCE_COOKIE, issuePresence(screen), presenceCookieOptions);
 		redirect(302, resolve('/scan'));
 	}
 
@@ -47,8 +48,8 @@ export const actions: Actions = {
 	 */
 	withDeviceKey: async (event) => {
 		const presence = event.cookies.get(PRESENCE_COOKIE);
-		const hostId = verifyPresence(presence);
-		if (!hostId) return fail(403, { message: NO_PRESENCE() });
+		const screen = verifyPresence(presence);
+		if (!screen) return fail(403, { message: NO_PRESENCE() });
 
 		const form = await event.request.formData();
 		const keyId = form.get('keyId');
@@ -69,13 +70,15 @@ export const actions: Actions = {
 			return fail(403, { message: NOT_FRESH() });
 		}
 
-		const scanned = await recordScan(event, {
+		const outcome = recordScan(event, {
 			userId: key.userId,
 			method: 'device',
 			codeScanId: codeScanId(presence!),
-			hostId
+			screen
 		});
-		if (!scanned) return fail(403, { message: NOT_FRESH() });
-		return { scanned };
+		if ('gone' in outcome) {
+			return fail(403, { message: outcome.gone === 'event' ? EVENT_GONE() : NOT_FRESH() });
+		}
+		return { scanned: outcome.firstName };
 	}
 };

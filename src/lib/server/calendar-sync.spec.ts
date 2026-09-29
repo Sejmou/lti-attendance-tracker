@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { eq, like } from 'drizzle-orm';
+import { eq, like, or } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { parseFeed, syncCalendar } from './calendar-sync';
 import { db } from './db';
@@ -8,6 +8,7 @@ import { event, scan, user } from './db/schema';
 
 const PLATFORM = 'https://calendar-sync.test';
 const NOW = new Date('2026-10-01T12:00:00Z');
+const ours = or(like(event.calendarKey, '%@sync.test%'), like(event.title, 'calendar-sync.spec %'));
 
 beforeAll(() => {
 	// See scan-host.spec.ts.
@@ -20,9 +21,10 @@ beforeAll(() => {
 		.run();
 });
 
+// Only its own rows: other specs share the database, and run alongside.
 beforeEach(() => {
 	db.delete(scan).where(like(scan.codeScanId, 'calendar-sync-%')).run();
-	db.delete(event).run();
+	db.delete(event).where(ours).run();
 });
 
 // What Google serves for a public calendar, cut down: its own VTIMEZONE for
@@ -107,7 +109,7 @@ const feed = (...events: string[]) =>
 		.join('\n')
 		.replaceAll('\n', '\r\n');
 
-const rows = () => db.select().from(event).orderBy(event.startsAt).all();
+const rows = () => db.select().from(event).where(ours).orderBy(event.startsAt).all();
 const byKey = (key: string) => db.select().from(event).where(eq(event.calendarKey, key)).get();
 
 function attendee() {
@@ -255,7 +257,7 @@ test('the sync leaves manual events and events outside the window alone', () => 
 		.insert(event)
 		.values({
 			source: 'manual',
-			title: 'Sommerfest',
+			title: 'calendar-sync.spec Sommerfest',
 			startsAt: new Date('2026-10-02T15:00:00Z'),
 			endsAt: new Date('2026-10-02T20:00:00Z')
 		})

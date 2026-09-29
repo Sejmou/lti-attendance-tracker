@@ -3,10 +3,10 @@ import { onScan } from '$lib/server/scan-feed';
 import type { RequestHandler } from './$types';
 
 /**
- * Server-sent events, one per new scan, for the code screen's live
+ * Server-sent events, one per new scan for this event, for its code screen's live
  * audit. Guarded here rather than by the admin layout, which only runs for pages.
  */
-export const GET: RequestHandler = ({ locals, request }) => {
+export const GET: RequestHandler = ({ locals, params, request }) => {
 	if (!locals.admin) error(403, 'Forbidden');
 
 	const encoder = new TextEncoder();
@@ -15,7 +15,9 @@ export const GET: RequestHandler = ({ locals, request }) => {
 	const stream = new ReadableStream({
 		start(controller) {
 			const send = (chunk: string) => controller.enqueue(encoder.encode(chunk));
-			const unsubscribe = onScan((scan) => send(`data: ${JSON.stringify(scan)}\n\n`));
+			const unsubscribe = onScan((scan) => {
+				if (scan.eventId === params.id) send(`data: ${JSON.stringify(scan)}\n\n`);
+			});
 			// Proxies close connections that stay silent; a comment line keeps it open.
 			const heartbeat = setInterval(() => send(': ping\n\n'), 25_000);
 

@@ -78,6 +78,13 @@
 	"event_form_invalid": "That isn't a valid date and time.",
 	"event_form_before_start": "The end has to be after the start.",
 
+	"code_pick_heading": "Which event is this for?",
+	"code_pick_suggested": "Suggested",
+	"code_pick_show": "Show QR code",
+	"code_pick_others": "Other events",
+	"code_pick_none": "There is no event between yesterday and a month from now. Create one on the events page.",
+	"code_other_event": "Other event",
+	"events_show_code": "QR code",
 	"qr_heading": "Scan here",
 	"qr_present": [
 		{
@@ -105,6 +112,7 @@
 	"scan_set_up_text": "Open the attendance activity in your Moodle course and scan the code from the page it opens. Or tap \"{button}\" there, and next time this is all it takes.",
 	"scan_expired": "This code has expired. Scan the one showing now.",
 	"scan_not_confirmed": "We could not confirm that was you. Try again.",
+	"scan_event_gone": "This event no longer exists. Ask the organizers to open the code again.",
 	"scan_not_set_up": "This phone isn't linked. Open the attendance activity in Moodle and scan the code from the page it opens.",
 
 	"enroll_title": "Set up attendance",

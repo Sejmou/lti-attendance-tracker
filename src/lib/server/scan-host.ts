@@ -1,12 +1,12 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { scan, user } from '$lib/server/db/schema';
 
 /**
  * Files a scan for the admin showing the code, once an attendee has got in through
  * it — someone at the door just scanned their screen, so they are evidently
- * there. Only if they have no scan yet: they don't step out and back in with
- * the screen, and a second row would count as their scan-out.
+ * there. Only if they have no scan for this event yet: they don't step out and
+ * back in with the screen, and a second row would count as their scan-out.
  *
  * Filed as `method: 'host'` — the admin hosting the screen — under the code
  * scan that triggered it, so the log pairs it with that attendee's row. `host`
@@ -17,7 +17,7 @@ import { scan, user } from '$lib/server/db/schema';
  * One transaction, so two attendees arriving at once can't both find no row.
  * Returns the new row for the code screens, or null if none was written.
  */
-export function hostScan(hostId: string, codeScanId: string) {
+export function hostScan(hostId: string, eventId: string, codeScanId: string) {
 	return db.transaction((tx) => {
 		const host = tx
 			.select({ firstName: user.firstName, lastName: user.lastName })
@@ -31,16 +31,16 @@ export function hostScan(hostId: string, codeScanId: string) {
 		const already = tx
 			.select({ id: scan.id })
 			.from(scan)
-			.where(eq(scan.userId, hostId))
+			.where(and(eq(scan.userId, hostId), eq(scan.eventId, eventId)))
 			.limit(1)
 			.get();
 		if (already) return null;
 
 		const row = tx
 			.insert(scan)
-			.values({ userId: hostId, method: 'host', codeScanId })
+			.values({ userId: hostId, eventId, method: 'host', codeScanId })
 			.returning({ id: scan.id, at: scan.scannedAt })
 			.get();
-		return { ...host, id: row.id, at: row.at.getTime() };
+		return { ...host, eventId, id: row.id, at: row.at.getTime() };
 	});
 }

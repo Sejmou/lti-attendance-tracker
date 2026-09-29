@@ -78,6 +78,13 @@
 	"event_form_invalid": "Das ist kein gültiges Datum mit Uhrzeit.",
 	"event_form_before_start": "Das Ende muss nach dem Beginn liegen.",
 
+	"code_pick_heading": "Für welche Veranstaltung?",
+	"code_pick_suggested": "Vorschlag",
+	"code_pick_show": "QR-Code anzeigen",
+	"code_pick_others": "Andere Veranstaltungen",
+	"code_pick_none": "Zwischen gestern und in einem Monat gibt es keine Veranstaltung. Lege auf der Veranstaltungsseite eine an.",
+	"code_other_event": "Andere Veranstaltung",
+	"events_show_code": "QR-Code",
 	"qr_heading": "Hier scannen",
 	"qr_present": [
 		{
@@ -105,6 +112,7 @@
 	"scan_set_up_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs und scanne den Code auf der Seite, die sich öffnet. Oder tippe dort auf „{button}“ – dann genügt beim nächsten Mal das hier.",
 	"scan_expired": "Dieser Code ist abgelaufen. Scanne den, der gerade angezeigt wird.",
 	"scan_not_confirmed": "Wir konnten nicht bestätigen, dass du das warst. Bitte versuch es noch einmal.",
+	"scan_event_gone": "Diese Veranstaltung gibt es nicht mehr. Bitte das Organisationsteam, den Code neu zu öffnen.",
 	"scan_not_set_up": "Dieses Handy ist nicht verknüpft. Öffne die Anwesenheits-Aktivität in Moodle und scanne den Code auf der Seite, die sich öffnet.",
 
 	"enroll_title": "Anwesenheit einrichten",

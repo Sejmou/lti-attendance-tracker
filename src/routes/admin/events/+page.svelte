@@ -181,6 +181,14 @@
 						<Table.Cell class="whitespace-normal">{row.location ?? '—'}</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{row.scans}</Table.Cell>
 						<Table.Cell class="text-right whitespace-nowrap">
+							<!-- Button passes href through as is; resolving it is ours to do. -->
+							<Button
+								href={resolve('/admin/events/[id]/code', { id: row.id })}
+								variant="ghost"
+								size="sm"
+							>
+								{m.events_show_code()}
+							</Button>
 							{#if row.source === 'manual'}
 								<Button variant="ghost" size="sm" onclick={() => edit(row)}>
 									{m.events_edit()}

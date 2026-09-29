@@ -38,6 +38,20 @@ function equals(a: string, b: string) {
 }
 
 /**
+ * Whose screen a code is on and which event it is for. Both are signed into
+ * the code and the presence cookie it turns into, so neither can be swapped:
+ * a scan is filed under the event the organizer picked, and nothing else.
+ */
+export type CodeScreen = { hostId: string; eventId: string };
+
+// One field in the tokens, `<hostId>:<eventId>`. IDs are UUIDs, never ':'.
+const subject = ({ hostId, eventId }: CodeScreen) => `${hostId}:${eventId}`;
+function screenOf(value: string | null): CodeScreen | null {
+	const [hostId, eventId, extra] = value?.split(':') ?? [];
+	return hostId && eventId && extra === undefined ? { hostId, eventId } : null;
+}
+
+/**
  * The QR payload. Derived from the clock rather than stored, so it rotates by
  * itself, needs no cleanup, and — the point of a kiosk code — is usable by
  * everyone who scans it during its window.
@@ -45,8 +59,9 @@ function equals(a: string, b: string) {
  * Names the admin showing it (`hostId`), so the first attendee through files a
  * scan for them too — see `hostScan`.
  */
-export function bucketToken(hostId: string, at = Date.now()) {
-	return `${hostId}.${hmac(`code:${hostId}:${Math.floor(at / BUCKET_MS)}`)}`;
+export function bucketToken(screen: CodeScreen, at = Date.now()) {
+	const id = subject(screen);
+	return `${id}.${hmac(`code:${id}:${Math.floor(at / BUCKET_MS)}`)}`;
 }
 
 /** Milliseconds until the on-screen code changes. */
@@ -55,27 +70,28 @@ export function msUntilNextBucket(at = Date.now()) {
 }
 
 /**
- * The admin showing the code, or null if it isn't ours. Accepts the current
+ * The screen the code was on, or null if it isn't ours. Accepts the current
  * bucket and the previous one, so a scan mid-rotation survives.
  */
 export function verifyBucketToken(token: string, at = Date.now()) {
-	const [hostId] = token.split('.');
-	if (!hostId) return null;
-	return equals(token, bucketToken(hostId, at)) ||
-		equals(token, bucketToken(hostId, at - BUCKET_MS))
-		? hostId
+	const screen = screenOf(token.split('.')[0]);
+	if (!screen) return null;
+	return equals(token, bucketToken(screen, at)) ||
+		equals(token, bucketToken(screen, at - BUCKET_MS))
+		? screen
 		: null;
 }
 
 /** Proof the holder scanned a live code, in a form that outlives one rotation. */
-export function issuePresence(hostId: string, at = Date.now()) {
+export function issuePresence(screen: CodeScreen, at = Date.now()) {
+	const id = subject(screen);
 	const expiresAt = at + PRESENCE_MS;
-	return `${hostId}.${expiresAt}.${hmac(`presence:${hostId}:${expiresAt}`)}`;
+	return `${id}.${expiresAt}.${hmac(`presence:${id}:${expiresAt}`)}`;
 }
 
-/** The admin whose code was scanned, or null if the presence is expired or not ours. */
+/** The screen whose code was scanned, or null if the presence is expired or not ours. */
 export function verifyPresence(value: string | undefined, at = Date.now()) {
-	return verifyExpiring('presence', value, at);
+	return screenOf(verifyExpiring('presence', value, at));
 }
 
 /**

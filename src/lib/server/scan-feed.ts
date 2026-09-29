@@ -1,6 +1,14 @@
 import { EventEmitter } from 'node:events';
 
-export type FeedScan = { id: string; firstName: string; lastName: string; at: number };
+export type FeedScan = {
+	id: string;
+	eventId: string;
+	firstName: string;
+	lastName: string;
+	at: number;
+	/** How many people have scanned for the event now, this scan included. */
+	present: number;
+};
 
 /**
  * Fans each new scan out to the open code screens, so a name nobody at the

@@ -152,8 +152,24 @@ the activity can come in. The page it opens then offers two ways in:
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
 2. An organizer opens the admin tool's activity, which signs them in (see
    [Organizers](#organizers)).
-3. They open **Show the attendance QR code** and leave it on a screen where attendees can
-   scan it. The QR code **rotates every 30 seconds** and stays up indefinitely.
+3. They open **Show the attendance QR code**, pick the event it is for, and leave it on a
+   screen where attendees can scan it. The QR code **rotates every 30 seconds** and stays
+   up indefinitely.
+
+### Which event a scan is for
+
+The organizer picks the event before the code goes up (`/admin/code`), and every scan
+through that screen is filed under it. The page suggests one: an event running now —
+the latest to start, if several overlap, so a talk rather than the all-day conference
+around it — or else the one nearest in time, by its start if it is ahead and by its end
+if it is over. Events removed from the calendar are never suggested. The picker offers
+what runs from a day back to a month ahead; the events page has a **QR code** button on
+every event.
+
+The event is signed into the code, not worked out from the time of the scan: synced
+events can move afterwards, and a scan must not change events with them. So overlapping
+events are no problem — two screens can show two events' codes side by side, and each
+scan lands where its code said.
 
 Everyone is created on their first launch of either tool, with the name and email the
 LMS shares, and found again on every later one by their LMS account: `user.lti_subject`,
@@ -316,10 +332,10 @@ scan-out. Both are worked out from the rows when they are shown, never stored.
 The organizer showing the code gets a scan too. The first time an attendee scans
 through their screen, a second row goes in for the admin, with `method = 'host'` and
 the attendee's `code_scan_id`, so the log shows the two side by side. It happens only if
-the admin has no scan yet — a second one would count as their scan-out. If they scanned
+the admin has no scan for that event yet — a second one would count as their scan-out. If they scanned
 themselves first, or an earlier attendee already did it for them, nothing is added.
 
-The code screen shows how many have scanned, and not "of how many": with no attendee
+The code screen shows how many have scanned for its event, and not "of how many": with no attendee
 list, the app only knows who has opened the Moodle activity so far, which says nothing
 about who is coming.
 
@@ -357,8 +373,9 @@ What catches the rest is the code screen. Every scan shows up there as it
 happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
 visible to everyone around it. The toasts come over server-sent events from
-`/admin/scans/stream`, fanned out in-process, so they reach screens on the same
-server only.
+`/admin/events/<id>/stream`, fanned out in-process, so they reach screens on the same
+server only. Each carries the event's count along, so the number on the screen keeps up
+with the names under it.
 
 `/admin/scans` is the full log afterwards, newest first, with the two things worth
 seeing at a glance flagged. `again` is an attendee who had already scanned earlier;
@@ -368,16 +385,19 @@ looks like several attendees on one address who were never there in person.
 
 ### What the QR code actually proves
 
-A code is an HMAC of the current 30-second time bucket and the ID of the admin showing
-it, derived from the clock rather than stored. The route recomputes it and accepts the current bucket and the previous
+A code is an HMAC of the current 30-second time bucket, the ID of the admin showing it and
+the event it is for, derived from the clock rather than stored. The route recomputes it and accepts the current bucket and the previous
 one, so a scan that crosses a rotation still works.
 
 It is deliberately **multi-use**: everyone who scans during its window gets in, which is
 the point of leaving it on screen. What it proves is that the scanner saw the code
 screen within the last half-minute, nothing more. On a successful scan the attendee gets a
 signed presence cookie good for 10 minutes, so the code rotating while they confirm
-costs them nothing. The cookie carries the admin's ID along, signed, so the scan
-knows whose screen it came through, and neither token can be moved to another admin.
+costs them nothing. The cookie carries the admin's ID and the event along, signed, so the
+scan knows whose screen it came through and which event it is for, and neither token can
+be moved to another admin or another event. If a manual event is deleted while its code is
+still up — possible as long as nobody has scanned it — a scan through it is turned away
+with a message saying so.
 
 The enrollment token from a Moodle launch is signed with the same secret but has a
 prefix of its own, so neither token passes for the other —

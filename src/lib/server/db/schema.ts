@@ -86,8 +86,11 @@ export const scan = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
 		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' }).default(now).notNull(),
-		// ponytail: nullable until the displayed code says which event it is for.
-		eventId: text('event_id').references(() => event.id),
+		// The event the displayed code was for. No cascade: an event with scans
+		// is never deleted (see event), and the database holds that line too.
+		eventId: text('event_id')
+			.notNull()
+			.references(() => event.id),
 		// How they proved they were there:
 		// - device: a signature from the key their phone got when they opened the
 		//           Moodle activity (see deviceKey)

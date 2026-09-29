@@ -78,6 +78,29 @@ export function listEvents(now = new Date()) {
 		.map((row) => ({ ...row, scans: row.scans ?? 0 }));
 }
 
+type Timed = { startsAt: Date; endsAt: Date; removedAt: Date | null };
+
+/**
+ * The event an organizer most likely wants to show the code for: one that is
+ * running, the latest to start if several overlap (a talk rather than the
+ * all-day conference around it), or else the one nearest in time — by its
+ * start if it is ahead, by its end if it is over. Never one removed from the
+ * calendar. Only a suggestion: the organizer picks.
+ */
+export function suggestEvent<T extends Timed>(events: T[], now = new Date()) {
+	const candidates = events.filter((e) => !e.removedAt);
+	const running = candidates.filter((e) => e.startsAt <= now && now < e.endsAt);
+	if (running.length > 0) {
+		return running.reduce((a, b) => (b.startsAt > a.startsAt ? b : a));
+	}
+	const distance = (e: T) =>
+		e.startsAt > now ? e.startsAt.getTime() - now.getTime() : now.getTime() - e.endsAt.getTime();
+	return candidates.reduce<T | null>(
+		(best, e) => (best === null || distance(e) < distance(best) ? e : best),
+		null
+	);
+}
+
 /** A manual event, the only kind the app edits or deletes. */
 export function manualEvent(id: string) {
 	const row = db

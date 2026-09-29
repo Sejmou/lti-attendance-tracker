@@ -19,6 +19,7 @@ const EXPIRED = m.enroll_expired;
 const BAD_KEY = m.enroll_bad_key;
 const SCAN_EXPIRED = m.enroll_scan_expired;
 const CODE_EXPIRED = m.scan_expired;
+const EVENT_GONE = m.scan_event_gone;
 
 export const load: PageServerLoad = ({ url }) => {
 	const problem = url.searchParams.get('problem');
@@ -50,17 +51,19 @@ export const actions: Actions = {
 		const enrollment = verifyEnrollment(token);
 		if (!enrollment) return fail(403, { message: SCAN_EXPIRED() });
 
-		const hostId = verifyBucketToken(code);
-		if (!hostId) return fail(403, { message: CODE_EXPIRED() });
+		const screen = verifyBucketToken(code);
+		if (!screen) return fail(403, { message: CODE_EXPIRED() });
 
-		const scanned = await recordScan(event, {
+		const outcome = recordScan(event, {
 			userId: enrollment.userId,
 			method: 'lti',
 			codeScanId: launchCodeScanId(token, code),
-			hostId
+			screen
 		});
-		if (!scanned) return fail(403, { message: SCAN_EXPIRED() });
-		return { scanned };
+		if ('gone' in outcome) {
+			return fail(403, { message: outcome.gone === 'event' ? EVENT_GONE() : SCAN_EXPIRED() });
+		}
+		return { scanned: outcome.firstName };
 	},
 
 	/**

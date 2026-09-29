@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { parseEventForm } from './events';
+import { parseEventForm, suggestEvent } from './events';
 
 const form = (fields: Record<string, string>) => {
 	const data = new FormData();
@@ -45,4 +45,34 @@ test('an event has to end after it starts', () => {
 	expect(
 		parseEventForm(form({ ...valid, endDate: '2026-10-16', endTime: '02:00' })).errors
 	).toBeNull();
+});
+
+const at = (hhmm: string) => new Date(`2026-10-05T${hhmm}:00Z`);
+const e = (name: string, start: string, end: string, removed = false) => ({
+	name,
+	startsAt: at(start),
+	endsAt: at(end),
+	removedAt: removed ? at('00:00') : null
+});
+
+test('a running event is suggested, the one that started last if several overlap', () => {
+	const day = e('conference', '06:00', '20:00');
+	const talk = e('talk', '10:00', '11:00');
+	const next = e('workshop', '11:05', '12:00');
+	expect(suggestEvent([day, talk, next], at('10:30'))?.name).toBe('talk');
+	expect(suggestEvent([day, talk, next], at('11:02'))?.name).toBe('conference');
+});
+
+test('with nothing running, the nearest one: by its start ahead, by its end behind', () => {
+	const before = e('before', '08:00', '09:50');
+	const after = e('after', '10:15', '11:00');
+	expect(suggestEvent([before, after], at('10:00'))?.name).toBe('before');
+	expect(suggestEvent([before, after], at('10:05'))?.name).toBe('after');
+});
+
+test('an event removed from the calendar is never suggested, and nothing is when nothing is left', () => {
+	const gone = e('gone', '10:00', '11:00', true);
+	const later = e('later', '15:00', '16:00');
+	expect(suggestEvent([gone, later], at('10:30'))?.name).toBe('later');
+	expect(suggestEvent([gone], at('10:30'))).toBeNull();
 });
