@@ -402,6 +402,9 @@ Finally, add each tool to the course as an activity:
 
 `--url` is the Moodle site's base URL exactly as Moodle sends it as the issuer, with no
 trailing slash. The script derives Moodle's auth, token and keyset endpoints from it.
+If this server reaches Moodle somewhere else than browsers do (inside a container
+network, say), `--internal-url` says where. Only the keyset and token endpoints are
+fetched from there; browsers are still sent to `--url`.
 Re-running it for a pair already registered does nothing; it refuses a client ID that is
 already part of a different pair, and a pair whose two client IDs are the same — that
 would make every guest an organizer.
@@ -446,6 +449,12 @@ dev dependencies into the build, and ltijs finds its HTML templates relative to 
 files.
 
 `src/lib/server/lti/launch.spec.ts` runs whole launches of both tools against a fake Moodle.
+
+## Test environment
+
+`testenv/` runs a Moodle of the version TUWEL uses, with the app registered in it as
+both tools and a course with an organizer and students, all in one compose project.
+It only needs a reverse proxy for HTTPS in front. See [testenv/README.md](testenv/README.md).
 
 ## Commands
 

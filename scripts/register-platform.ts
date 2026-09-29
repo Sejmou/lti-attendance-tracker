@@ -21,6 +21,9 @@ const USAGE = `Usage: pnpm lti:register-platform --url <platform-url> --admin-cl
   --url <url>                  Base URL of the platform, e.g. https://moodle.example.com
   --admin-client-id <id>       Client ID the platform shows for the admin tool
   --attendee-client-id <id>    Client ID the platform shows for the attendee tool
+  --internal-url <url>         Where this server reaches the platform, if not at --url
+                               (default: --url). Only for fetching its keys and tokens;
+                               browsers are still sent to --url
   --name <name>                Display name (default: Moodle)`;
 
 const { values } = parseArgs({
@@ -28,6 +31,7 @@ const { values } = parseArgs({
 		url: { type: 'string' },
 		'admin-client-id': { type: 'string' },
 		'attendee-client-id': { type: 'string' },
+		'internal-url': { type: 'string' },
 		name: { type: 'string', default: 'Moodle' },
 		help: { type: 'boolean', short: 'h' }
 	}
@@ -47,6 +51,8 @@ if (values.help) {
 } else {
 	// Moodle puts its URL without a trailing slash in `iss`, and ltijs matches it exactly.
 	const url = values.url.replace(/\/+$/, '');
+	// Server-to-server only: the login redirect goes to the browser, so it stays public.
+	const internalUrl = (values['internal-url'] ?? url).replace(/\/+$/, '');
 
 	// A client ID already in some other pair — or in this one the other way
 	// round — would make one tool mean two things.
@@ -87,10 +93,10 @@ if (values.help) {
 				url,
 				clientId,
 				authenticationEndpoint: `${url}/mod/lti/auth.php`,
-				accessTokenEndpoint: `${url}/mod/lti/token.php`,
+				accessTokenEndpoint: `${internalUrl}/mod/lti/token.php`,
 				idTokenValidation: {
 					method: IdTokenValidationMethod.JwkSet,
-					key: `${url}/mod/lti/certs.php`
+					key: `${internalUrl}/mod/lti/certs.php`
 				}
 			});
 		}

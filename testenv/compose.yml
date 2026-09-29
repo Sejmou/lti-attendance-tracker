@@ -1,0 +1,83 @@
+# A throwaway Moodle (the version TUWEL runs) with the check-in app registered
+# in it as both LTI tools. See testenv/README.md.
+#
+#   cp testenv/.env.example testenv/.env    # set MOODLE_HOST and APP_HOST
+#   podman compose -f testenv/compose.yml up -d --build
+#
+# Both hostnames have to reach the published ports over HTTPS through a
+# reverse proxy of your own, which passes the Host header through unchanged.
+
+name: event-checkin-testenv
+
+x-shared: &shared
+  MOODLE_URL: https://${MOODLE_HOST:?set MOODLE_HOST in testenv/.env}
+  ADMIN_CLIENT_ID: ${ADMIN_CLIENT_ID:-checkin-admin}
+  ATTENDEE_CLIENT_ID: ${ATTENDEE_CLIENT_ID:-checkin-attendee}
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: moodle
+      POSTGRES_USER: moodle
+      POSTGRES_PASSWORD: ${MOODLE_DB_PASSWORD:-moodle}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  moodle:
+    build:
+      context: moodle
+      args:
+        MOODLE_BRANCH: ${MOODLE_BRANCH:-502}
+    environment:
+      <<: *shared
+      MOODLE_DB_PASSWORD: ${MOODLE_DB_PASSWORD:-moodle}
+      MOODLE_ADMIN_PASSWORD: ${MOODLE_ADMIN_PASSWORD:-Admin-Test-1}
+      TESTENV_USER_PASSWORD: ${TESTENV_USER_PASSWORD:-Moodle-Test-1}
+      APP_URL: https://${APP_HOST:?set APP_HOST in testenv/.env}${BASE_PATH:-}
+    ports:
+      - '${MOODLE_BIND_IP:-127.0.0.1}:${MOODLE_HOST_PORT:-8080}:80'
+    volumes:
+      - moodledata:/var/www/moodledata
+    networks:
+      default:
+        # The app fetches Moodle's keyset server-to-server. Under its public
+        # hostname, Moodle's wwwroot check lets the request through, and over
+        # plain http it needs neither the proxy nor a certificate.
+        aliases:
+          - ${MOODLE_HOST}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ..
+      # The stage with dev dependencies: app-start.sh pushes the schema and
+      # registers the tools before starting the server.
+      target: build
+      args:
+        BASE_PATH: ${BASE_PATH:-}
+    command: ['sh', 'testenv/app-start.sh']
+    environment:
+      <<: *shared
+      MOODLE_HOST: ${MOODLE_HOST}
+      DATABASE_URL: /data/app.db
+      ORIGIN: https://${APP_HOST}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-testenv-secret-not-for-production}
+      ADDRESS_HEADER: x-forwarded-for
+      PORT: '3000'
+    ports:
+      - '${APP_BIND_IP:-127.0.0.1}:${APP_HOST_PORT:-3000}:3000'
+    volumes:
+      - appdata:/data
+    restart: unless-stopped
+
+networks:
+  default:
+
+volumes:
+  pgdata:
+  moodledata:
+  appdata:
