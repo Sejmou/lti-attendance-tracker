@@ -1,6 +1,6 @@
-# Anwesenheitstool
+# LTI Attendance Tracker
 
-An attendance tool: attendees scan a rotating QR code, and the first and last scan of
+An LTI tool for tracking attendance to events (managed internally; syncable from an ICS calendar): attendees scan a rotating QR code, and the first and last scan of
 each event count as their scan-in and scan-out.
 
 SvelteKit + Drizzle (SQLite) + ltijs.
