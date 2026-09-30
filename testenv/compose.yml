@@ -69,6 +69,7 @@ services:
       SIGNING_SECRET: ${SIGNING_SECRET:-testenv-secret-not-for-production}
       ADDRESS_HEADER: x-forwarded-for
       PORT: '3000'
+      CALENDAR_ICS_URL: ${CALENDAR_ICS_URL:-}
     ports:
       - '${APP_BIND_IP:-127.0.0.1}:${APP_HOST_PORT:-3000}:3000'
     volumes:
