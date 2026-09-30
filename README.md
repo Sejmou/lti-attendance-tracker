@@ -30,13 +30,46 @@ There are no accounts to create here. Organizers and attendees alike come from t
 whoever it lets open the admin tool is an organizer, and whoever it lets open the
 attendee tool is an attendee.
 
-## Docker
+## Containers (Docker or Podman)
 
 ```sh
 cp .env.example .env      # fill it in, as above
-docker compose build
-docker compose run --rm tools pnpm db:push
-docker compose run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+docker compose --profile tools build
+docker compose --profile tools run --rm tools pnpm db:push
+docker compose --profile tools run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+docker compose up -d
+```
+
+With Podman (`podman compose` hands off to podman-compose or docker-compose,
+whichever is installed):
+
+```sh
+cp .env.example .env      # fill it in, as above
+podman compose --profile tools build
+podman compose --profile tools run --rm tools pnpm db:push
+podman compose --profile tools run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+podman compose up -d
+```
+
+Every other `docker compose` command below works as `podman compose` too, except
+`cp`, which podman-compose lacks. Use `podman cp` with the container's name instead
+(`podman compose ps` shows it, usually `<directory>_app_1`), e.g.
+`podman cp event-check-in_app_1:/data/app.db.2026-09-11.bak ./`.
+
+Keep `--profile tools` on `build`. `tools` sits behind a profile, and a plain
+`build` skips services whose profile is not active, while `run` happily reuses
+whatever `tools` image is already there. After pulling changes that is the image
+from the previous build, so `db:push` pushes the old schema and the app fails with
+"no such table". `down -v` does not help: it removes containers and volumes, not
+images. podman-compose also refuses to `run` a profiled service without
+`--profile`, which is why it is on the `run` lines as well.
+
+To update after pulling changes, rebuild both images, push the schema, and
+recreate the app:
+
+```sh
+docker compose --profile tools build
+docker compose --profile tools run --rm tools pnpm db:push
 docker compose up -d
 ```
 
@@ -54,7 +87,7 @@ refuses to write over an existing file. Without `dest` it writes next to the dat
 `docker compose cp` can reach it:
 
 ```sh
-docker compose run --rm tools pnpm db:backup
+docker compose --profile tools run --rm tools pnpm db:backup
 docker compose cp app:/data/app.db.2026-09-11.bak ./
 ```
 
@@ -64,7 +97,7 @@ running process leaves it holding a file that no longer exists:
 ```sh
 docker compose stop app
 docker compose cp ./app.db.2026-09-11.bak app:/data/restore-me.bak
-docker compose run --rm tools pnpm db:restore /data/restore-me.bak
+docker compose --profile tools run --rm tools pnpm db:restore /data/restore-me.bak
 docker compose start app
 ```
 
@@ -93,7 +126,7 @@ Most are read when the server **starts**: change them and restart, no rebuild. W
 Docker that means `docker compose up -d`, which recreates the container with the new
 `.env` (a plain `restart` keeps the old values). `BASE_PATH` is the exception: it is
 compiled into the **build**, so changing it means `pnpm build` or
-`docker compose build` first. `HOST_PORT` is compose's own and never reaches the app.
+`docker compose --profile tools build` first. `HOST_PORT` is compose's own and never reaches the app.
 
 | Variable           | Required | Read at      | Notes                                                                                                                                                                                                                                                                              |
 | ------------------ | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -127,7 +160,7 @@ would point somewhere else. The app builds full URLs (the QR code) from `ORIGIN`
 `BASE_PATH` becomes SvelteKit's `paths.base`, which is compiled into the build: it
 is read from the environment (or `.env`) when `pnpm build` runs, not when the server
 starts. With Docker, compose passes it as a build arg, so change it and
-`docker compose build` again. `pnpm dev` picks it up too, which is the quickest way
+`docker compose --profile tools build` again. `pnpm dev` picks it up too, which is the quickest way
 to try a sub-path locally.
 
 The reverse proxy has to forward requests **with the prefix intact** —
