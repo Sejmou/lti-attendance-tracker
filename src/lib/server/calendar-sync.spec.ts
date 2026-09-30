@@ -207,6 +207,24 @@ test('a series is expanded without its excluded and cancelled dates, a moved one
 	});
 });
 
+test("a series doesn't take on another series' edited occurrences", () => {
+	const from = new Date('2026-09-01T00:00:00Z');
+	const to = new Date('2027-03-30T00:00:00Z');
+	const other = `BEGIN:VEVENT
+DTSTART;TZID=Europe/Vienna:20260903T190000
+DTEND;TZID=Europe/Vienna:20260903T213000
+RRULE:FREQ=WEEKLY;COUNT=2
+UID:other@sync.test
+SUMMARY:Probe
+END:VEVENT`;
+	const occurrences = parseFeed(feed(SERIES, other), from, to).occurrences;
+
+	// The moved Übung once, under its own series, and nothing else moved.
+	expect(occurrences.filter((o) => o.title === 'Übung (verschoben)')).toHaveLength(1);
+	expect(occurrences.filter((o) => o.title === 'Probe')).toHaveLength(2);
+	expect(occurrences).toHaveLength(10);
+});
+
 test('only the window around now is synced', () => {
 	syncCalendar(feed(LECTURE, SERIES, LONG_AGO), new Date('2026-10-10T12:00:00Z'));
 

@@ -148,7 +148,10 @@ export function parseFeed(ics: string, from: Date, to: Date) {
 	const masters = new Map<string, ICAL.Event>();
 	const exceptions: ICAL.Event[] = [];
 	for (const vevent of vevents) {
-		const item = new ICAL.Event(vevent);
+		// Without `exceptions`, ical.js relates every edited occurrence in the
+		// whole feed to each series, whatever its UID. The right ones are
+		// related below.
+		const item = new ICAL.Event(vevent, { exceptions: [] });
 		if (!item.uid) continue;
 		if (item.isRecurrenceException()) exceptions.push(item);
 		else masters.set(item.uid, item);
