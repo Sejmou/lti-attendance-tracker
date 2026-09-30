@@ -73,6 +73,9 @@ docker compose --profile tools run --rm tools pnpm db:push
 docker compose up -d
 ```
 
+No need to register the platform again: the registration lives in the database on
+the `db` volume, and only `down -v` removes it.
+
 The app listens on port 3000 in the container, published on the host's `HOST_PORT`
 (3000 unless `.env` says otherwise). The SQLite file
 lives on the `db` volume, so compose overrides `DATABASE_URL` to `/data/app.db` for
