@@ -1,7 +1,7 @@
 # Data protection plan
 
-What has to change for the app to do what its privacy notice (Datenschutzerklärung)
-says. The notice describes the app **after** these steps, so it must not be published
+What has to change for the app to do what its privacy notice says
+([Datenschutzerklärung](datenschutzerklaerung.md), [English](privacy-notice.md)). The notice describes the app **after** these steps, so it must not be published
 before they are done.
 
 Context: the app is used by one Austrian Verein, in one Moodle course that only active
@@ -133,7 +133,7 @@ the notice says.
 ### 7. Publish the Datenschutzerklärung
 
 Once steps 1 to 6 are done: fill in the placeholders (Verein, ZVR number, contact,
-legal basis, hosting provider, backup period), serve it as a page, and link it from
+legal basis, hosting provider, backup period) in both versions, serve them as pages, and link them from
 the enroll page, the admin pages and the footer next to the source code link.
 
 ### 8. Record of processing (Art. 30)
