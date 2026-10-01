@@ -5,50 +5,50 @@ What has to change for the app to do what its privacy notice says
 
 ## Decisions already made
 
-- **Members leave, their attendance stays, anonymised.** Deleting a member removes
+- **Deleted attendees' attendance stays, anonymised.** Deleting an attendee removes
   everything that identifies them; their scans are kept for per-event statistics, under
   a random ID per event, so nothing links them across events. Scan times stay exact.
-- **Anti-cheat data is kept for 12 months, or until membership ends.** IP addresses are
+- **Anti-cheat data is kept for 12 months, or until the attendee is deleted.** IP addresses are
   stored only as an HMAC, user agents in full.
 - **The HMAC key is derived from `SIGNING_SECRET`**, domain-separated by a prefix, the
   way the tokens already are. No new environment variable.
-- **Email stays.** Organizers need it to tell apart two members with the same name.
+- **Email stays.** Organizers need it to tell apart two attendees with the same name.
 - **The code screen shows the shortest unique name**, never the full name.
 - **Unchanged:** ltijs's `lti_id_token` claims (24 hours), host scans, ignoring the
-  course (one course, one Verein).
+  course (one course per deployment).
 
 ## Steps
 
-### 1. Members page, `last_seen_at` and deletion with anonymisation
+### 1. Attendees page, `last_seen_at` and deletion with anonymisation
 
 Schema:
 
 - `user.last_seen_at`: set on every launch, in the transaction in
   `src/lib/server/lti/provider.ts` that finds or creates the user.
 - `scan.user_id` becomes nullable (foreign key and cascade kept).
-- `scan.anonymous_id`: null for current members' scans; for a deleted member's, a
-  random ID, one per member and event.
+- `scan.anonymous_id`: null for current attendees' scans; for a deleted attendee's, a
+  random ID, one per attendee and event.
 
-`/admin/members`: every member with name, email, first launch, last launch, number of
-scans and whether a phone is linked, sortable by last launch so members who have left
-are easy to spot. **Delete** asks for confirmation, then in one transaction:
+`/admin/attendees`: every attendee with name, email, first launch, last launch, number of
+scans and whether a phone is linked, sortable by last launch so attendees who have stopped
+coming are easy to spot. **Delete** asks for confirmation, then in one transaction:
 
-1. for each event the member has scans for, generates one random `anonymous_id` and sets
+1. for each event the attendee has scans for, generates one random `anonymous_id` and sets
    it on all their scans for that event (so scan-in, scan-out and scan count survive)
 2. on those scans, sets `user_id`, `ip_hash` and `user_agent` to null and replaces
    `code_scan_id` with a random value, so nothing matches it to a host scan
 3. deletes the `user` row; `device_key` and `device_enrollment` cascade
 
 Everywhere scans are counted or grouped by person, `user_id` becomes
-`coalesce(user_id, anonymous_id)`, and inner joins to `user` become left joins, shown as
-"Ehemaliges Mitglied":
+`coalesce(user_id, anonymous_id)`, and inner joins to `user` become left joins, shown with a
+new message, "Gelöschte:r Teilnehmer:in" / "Deleted attendee":
 
 - `src/lib/server/attendance.ts` (grouping and join)
 - `src/lib/server/scan.ts` (the live count)
 - `src/routes/admin/events/[id]/+page.server.ts` (log join)
 - `src/routes/admin/events/[id]/code/+page.server.ts` (count, recent arrivals)
 
-Queries about one specific current member (`scan.ts`, `scan-host.ts`,
+Queries about one specific current attendee (`scan.ts`, `scan-host.ts`,
 `attendance.ts`'s `direction`) stay as they are.
 
 ### 2. Hash IP addresses
@@ -87,8 +87,8 @@ export const deviceEnrollment = sqliteTable(
 
 The `enroll` action in `src/routes/lti-link/enroll/+page.server.ts` inserts a row in
 the same transaction that upserts `device_key`. No IP: phones are mostly set up at home.
-Nothing runs in production yet, so no data migration, just `pnpm db:push`. The members
-page (step 1) shows each member's enrollments.
+Nothing runs in production yet, so no data migration, just `pnpm db:push`. The attendees
+page (step 1) shows each attendee's enrollments.
 
 ### 4. 12-month cleanup
 
@@ -102,20 +102,20 @@ the limit through a quiet season.
 
 ### 5. Shortest unique names on the code screen
 
-Among all members (`user` rows), grouped by first name, case-insensitively:
+Among all attendees (`user` rows), grouped by first name, case-insensitively:
 
 - alone in their group: first name only
 - otherwise: the shortest prefix of the last name nobody else in the group shares,
   followed by a dot; the whole last name, without a dot, if every prefix is shared
 
-| Members                                         | Shown as                                     |
+| Attendees                                       | Shown as                                     |
 | ----------------------------------------------- | -------------------------------------------- |
 | Anna Aichinger, Anna Bloberger                  | Anna A., Anna B.                             |
 | Thomas Schilling, Thomas Schirrer, Thomas Bauer | Thomas Schil., Thomas Schir., Thomas B.      |
 | Thomas Schill, Thomas Schiller                  | Thomas Schill, Thomas Schille.               |
 | Lukas Müller, Lukas Müller                      | both Lukas Müller (organizers use the email) |
 
-Worked out when a scan is published, so it follows members joining and leaving.
+Worked out when a scan is published, so it follows attendees being added and deleted.
 `FeedScan` in `src/lib/server/scan-feed.ts` carries `displayName` instead of
 `firstName` and `lastName`, so the full name never reaches the screen's browser.
 The admin event page keeps full names and email. A unit-tested pure function.
@@ -135,11 +135,11 @@ publishing the notices.
 ## Tests
 
 - anonymisation: counts, scan-in and scan-out of past events unchanged after deleting
-  a member; no remaining reference to them; different `anonymous_id`s across events
-- `shared` still flags two members on one address, from the hash
+  an attendee; no remaining reference to them; different `anonymous_id`s across events
+- `shared` still flags two attendees on one address, from the hash
 - an enrollment writes a log row; cleanup removes old ones and nulls old scan columns
 - the display name function, with the cases in the table above
 
 ## Open
 
-- Anonymise every scan after a fixed period too, not just on leaving?
+- Anonymise every scan after a fixed period too, not just on deletion?
