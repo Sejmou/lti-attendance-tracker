@@ -780,6 +780,14 @@ and the security measures. The privacy notice already has most of it. The exempt
 organisations under 250 people doesn't apply, because attendance is recorded regularly.
 The record isn't published; the supervisory authority can ask to see it.
 
+**Deleting people.** The app can't tell when someone's membership ends, and nothing
+about a person is deleted by time alone: their name, email, phone key and the link
+between them and their scans stay until an organizer deletes them on the attendees page
+(see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention)). The
+privacy notices promise that this happens when the membership ends, and on request, so
+make it part of how the organisation handles a member leaving. The attendees page sorted
+by last launch shows who may have left without saying so.
+
 **Hosting.** A provider running the server processes the data on the organisation's
 behalf and needs a data processing agreement (Art. 28 GDPR). If it is outside the EEA,
 the notice has to say so.
