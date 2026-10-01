@@ -4,6 +4,7 @@ import { direction as directionOf, scanner } from '$lib/server/attendance';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
 import { ipHash } from '$lib/server/ip-hash';
+import { pruneExpired } from '$lib/server/retention';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import type { CodeScreen } from '$lib/server/scan-token';
@@ -106,6 +107,7 @@ export function recordScan(
 	// Counted after writing, so a double submit reads the same as the first.
 	const direction = directionOf(proof.userId, eventId);
 	if (row) {
+		pruneExpired();
 		const host = hostScan(hostId, eventId, proof.codeScanId);
 		// Counted after both, so the screen's number matches the names under it.
 		// Deleted attendees still count: they were there.

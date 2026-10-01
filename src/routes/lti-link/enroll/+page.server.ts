@@ -6,6 +6,7 @@ import { recordScan } from '$lib/server/scan';
 import { db } from '$lib/server/db';
 import { deviceEnrollment, deviceKey, user } from '$lib/server/db/schema';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
+import { pruneExpired } from '$lib/server/retention';
 import { launchCodeScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -125,6 +126,7 @@ export const actions: Actions = {
 		});
 
 		if (typeof outcome === 'string') return fail(403, { message: outcome });
+		pruneExpired();
 		return outcome;
 	}
 };
