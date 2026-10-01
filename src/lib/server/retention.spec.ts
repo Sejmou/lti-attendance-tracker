@@ -98,7 +98,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-test('the schedule prunes at start and again every day, with nobody using the app', () => {
+test('the schedule prunes at start and again every hour, with nobody using the app', () => {
 	vi.useFakeTimers({ toFake: ['setInterval', 'Date'] });
 	vi.setSystemTime(NOW);
 	const lin = db
@@ -124,20 +124,22 @@ test('the schedule prunes at start and again every day, with nobody using the ap
 		db.select().from(deviceEnrollment).where(eq(deviceEnrollment.id, id)).get() === undefined;
 	const launchGone = (id: string) =>
 		db.select().from(ltiIdToken).where(eq(ltiIdToken.id, id)).get() === undefined;
+	const HOUR = 60 * 60_000;
 
 	const oldSetup = setupAt(daysAgo(366));
-	const oldLaunch = launchAt(daysAgo(2));
-	// Expire a day from now, while nothing else happens.
-	const setupDueTomorrow = setupAt(new Date(retentionCutoff(NOW).getTime() + 60_000));
-	const launchDueTomorrow = launchAt(new Date(NOW.getTime() - 60_000));
+	const oldLaunch = launchAt(new Date(NOW.getTime() - 24 * HOUR));
+	// Both expire half an hour from now, while nothing else happens.
+	const setupDueSoon = setupAt(new Date(retentionCutoff(NOW).getTime() + HOUR / 2));
+	const launchDueSoon = launchAt(new Date(NOW.getTime() - 23 * HOUR + HOUR / 2));
 
 	scheduleRetention();
 	expect(gone(oldSetup.id)).toBe(true);
 	expect(launchGone(oldLaunch.id)).toBe(true);
-	expect(gone(setupDueTomorrow.id)).toBe(false);
-	expect(launchGone(launchDueTomorrow.id)).toBe(false);
+	expect(gone(setupDueSoon.id)).toBe(false);
+	expect(launchGone(launchDueSoon.id)).toBe(false);
 
-	vi.advanceTimersByTime(24 * 60 * 60_000);
-	expect(gone(setupDueTomorrow.id)).toBe(true);
-	expect(launchGone(launchDueTomorrow.id)).toBe(true);
+	// The next run: the launch is gone well inside its 24 hours.
+	vi.advanceTimersByTime(HOUR);
+	expect(gone(setupDueSoon.id)).toBe(true);
+	expect(launchGone(launchDueSoon.id)).toBe(true);
 });

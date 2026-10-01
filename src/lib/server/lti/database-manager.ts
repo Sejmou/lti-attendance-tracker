@@ -12,8 +12,13 @@ import { ltiAccessToken, ltiIdToken, ltiNonce, ltiPlatform } from '$lib/server/d
 
 /** How long a login's nonce may take to come back as a launch. */
 const NONCE_TTL_MS = 10 * 60_000;
-/** How long a launch can be resumed by its ltik. Matches ltijs's own ltik lifetime. */
-const ID_TOKEN_TTL_MS = 24 * 60 * 60_000;
+/**
+ * How long a launch can be resumed by its ltik. An hour short of ltijs's own
+ * ltik lifetime, so that with the hourly pruning (see scheduleRetention) no
+ * claims outlive the 24 hours the privacy notice promises. Nothing here
+ * resumes a launch anyway: each one goes straight on with a token of ours.
+ */
+const ID_TOKEN_TTL_MS = 23 * 60 * 60_000;
 
 /**
  * ltijs's storage, on the app's own database connection instead of the MongoDB
@@ -25,7 +30,7 @@ const ID_TOKEN_TTL_MS = 24 * 60 * 60_000;
  * Another process on the same file (`pnpm lti:register-platform`) waits on SQLite's lock like it already does.
  *
  * Mongo's TTL indexes are emulated by filtering on createdAt, and pruning
- * whenever a new row goes in, and once a day (see scheduleRetention).
+ * whenever a new row goes in, and every hour (see scheduleRetention).
  */
 export class DrizzleDatabaseManager implements DatabaseManager {
 	// The connection is the app's, opened in $lib/server/db and never closed by us.
@@ -170,7 +175,7 @@ function pruneExpiredNonces() {
 /**
  * Deletes expired launches and nonces now, rather than at the next launch: the
  * claims hold names and emails, and with no launch for a while they would
- * otherwise sit there past their 24 hours. See scheduleRetention.
+ * otherwise sit there past their TTL. See scheduleRetention.
  */
 export function pruneExpiredLaunches() {
 	pruneExpiredIdTokens();

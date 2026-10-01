@@ -483,12 +483,14 @@ deleted, on request or by an organizer, their scans stay theirs.
 
 **Retention.** What is only kept against abuse goes after 12 months: scans older than that
 lose their `ip_hash` and `user_agent` (the scans stay), and older `device_enrollment` rows
-are deleted. ltijs keeps each launch's `id_token` claims (name, email, role, course) for
-24 hours, and its nonces for 10 minutes.
+are deleted. ltijs's store keeps each launch's `id_token` claims (name, email, role,
+course) for 23 hours, and its nonces for 10 minutes.
 
-All of it is pruned when the server starts and then once a day (`scheduleRetention` in
+All of it is pruned when the server starts and then every hour (`scheduleRetention` in
 `src/lib/server/retention.ts`, started by the `init` hook), so the limits hold even when
-nobody uses the app; anything can outlive its limit by a day at most. It is also pruned
+nobody uses the app; anything can outlive its limit by an hour at most. That hour is why
+launches are kept 23 hours and not ltijs's usual 24: the privacy notice promises 24, and
+nothing here resumes a launch later anyway. It is also pruned
 sooner along the way: the 12 months whenever a scan or a setup is written and on every
 admin page, ltijs's data whenever a launch saves new rows. The schedule lives in the
 process, so a restart starts it over, with a run of its own. Backups are another matter:
