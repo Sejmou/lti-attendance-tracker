@@ -190,11 +190,14 @@ test('a first launch creates the attendee from what Moodle says about them', asy
 });
 
 test('later launches find the same attendee by Moodle account, whatever the email says now', async () => {
-	const { id } = attendee()!;
+	const { id, createdAt } = attendee()!;
 	const enrollment = verifyEnrollment(tokenFrom(await launch({ email: 'ada@new.example' })));
 
 	expect(enrollment?.userId).toBe(id);
 	expect(await db.$count(user, eq(user.ltiSubject, ADA))).toBe(1);
+	// Seen again, first seen as before.
+	expect(attendee()).toMatchObject({ createdAt });
+	expect(attendee()!.lastSeenAt.getTime()).toBeGreaterThan(createdAt.getTime());
 });
 
 test('an id_token is good for one launch', async () => {

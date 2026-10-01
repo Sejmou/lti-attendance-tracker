@@ -27,7 +27,12 @@ export const user = sqliteTable('user', {
 	 * permanent user ID, which is only unique within that platform.
 	 */
 	ltiSubject: text('lti_subject').notNull().unique(),
-	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+	/**
+	 * Their latest launch of either tool, so organizers can spot attendees who
+	 * have stopped coming and delete them (see /admin/attendees).
+	 */
+	lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }).default(now).notNull()
 });
 
 /**
