@@ -25,6 +25,8 @@ FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
 FROM node:24-slim AS runtime
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.source="https://github.com/Sejmou/lti-attendance-tracker"
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 # The SQLite file lives here; compose mounts a volume over it. A fresh named
