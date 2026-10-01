@@ -12,6 +12,8 @@ What has to change for the app to do what its privacy notice says
   stored only as an HMAC, user agents in full.
 - **The HMAC key is derived from `SIGNING_SECRET`**, domain-separated by a prefix, the
   way the tokens already are. No new environment variable.
+- **No anonymisation after a fixed period.** Attendance data isn't critical, so scans
+  stay linked to an attendee until they are deleted, on request or by an organizer.
 - **Email stays.** Organizers need it to tell apart two attendees with the same name.
 - **The code screen shows the shortest unique name**, never the full name.
 - **Unchanged:** ltijs's `lti_id_token` claims (24 hours), host scans, ignoring the
@@ -139,7 +141,3 @@ publishing the notices.
 - `shared` still flags two attendees on one address, from the hash
 - an enrollment writes a log row; cleanup removes old ones and nulls old scan columns
 - the display name function, with the cases in the table above
-
-## Open
-
-- Anonymise every scan after a fixed period too, not just on deletion?
