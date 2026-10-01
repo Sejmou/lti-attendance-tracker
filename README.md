@@ -671,6 +671,61 @@ for what it does and doesn't prove.
 proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-for` (and
 `XFF_DEPTH`) or the column records one address for the whole event.
 
+## Data protection
+
+> **Disclaimer:** none of this section, the privacy notice templates or the
+> [data protection plan](docs/data-protection-plan.md) is legal advice. It was written by
+> a programmer who cares about privacy, not a lawyer, by prompting Claude (an AI model).
+> It may be incomplete or wrong. Have someone qualified check it before relying on it.
+
+Whoever runs the tool for their organisation is the controller under the GDPR. The tool
+can't make a deployment compliant by itself; the following is up to the organisation.
+
+**Privacy notice.** [`docs/datenschutzerklaerung-oesterreich.md`](docs/datenschutzerklaerung-oesterreich.md)
+(German) and [`docs/privacy-notice-austria.md`](docs/privacy-notice-austria.md) (English)
+are templates for an Austrian Verein using the tool through Moodle. Fill in the
+bracketed placeholders: the organisation and its contact, the legal basis for
+attendance, the hosting provider and how long backups are kept. Outside Austria, replace
+what cites Austrian law (the TKG 2021, the Datenschutzbehörde). The people using the app
+have to be able to read the notice before their data is collected; how it reaches them
+(a page on the organisation's website, a link in the Moodle course, a handout) is up to
+the organisation. The notices describe the app once the
+[data protection plan](docs/data-protection-plan.md) is done, so don't publish them
+before that.
+
+**Legal basis for attendance.** The notice has to name one:
+
+- Art. 6(1)(b) GDPR (contract), if the organisation's rules make something depend on
+  attendance. For example, a choir whose statute lets only members who came to 70% of
+  rehearsals sing in the concert, or a club where active membership (and with it voting
+  rights or a lower fee) requires regular training. Cite the clause.
+- Art. 6(1)(f) GDPR (legitimate interest), if nothing depends on it and attendance is
+  recorded for planning or statistics. Write down why that interest outweighs members'
+  privacy, and expect that a member may object (Art. 21), after which their attendance
+  can't be recorded without compelling reasons.
+
+The data kept against abuse (IP address, user agent, phone setups) is Art. 6(1)(f)
+either way. Consent (Art. 6(1)(a)) fits poorly: it can be withdrawn at any time, and
+within a membership it is hard to show it was given freely.
+
+**Special categories.** For a religious community, a political party or a trade union,
+attendance at its events can reveal beliefs or membership, which is special-category data
+(Art. 9 GDPR) with stricter rules. The templates assume it isn't.
+
+**Record of processing.** Art. 30 GDPR requires an entry for the tool in the
+organisation's record of processing activities (_Verzeichnis von
+Verarbeitungstätigkeiten_): purposes, whose data and which, recipients, deletion periods
+and the security measures. The privacy notice already has most of it. The exemption for
+organisations under 250 people doesn't apply, because attendance is recorded regularly.
+The record isn't published; the supervisory authority can ask to see it.
+
+**Hosting.** A provider running the server processes the data on the organisation's
+behalf and needs a data processing agreement (Art. 28 GDPR). If it is outside the EEA,
+the notice has to say so.
+
+**Backups.** Members who were deleted stay in backups until those are deleted, so decide
+how long backups are kept and put it in the notice.
+
 ## License
 
 Copyright (C) 2026 Sejmou

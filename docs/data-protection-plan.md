@@ -1,11 +1,7 @@
 # Data protection plan
 
 What has to change for the app to do what its privacy notice says
-([Datenschutzerklärung](datenschutzerklaerung-oesterreich.md), [English](privacy-notice-austria.md)). The notice describes the app **after** these steps, so it must not be published
-before they are done.
-
-Context: the app is used by one Austrian Verein, in one Moodle course that only active
-members can open. Attendance is not special-category data (Art. 9 GDPR) for this Verein.
+([Datenschutzerklärung](datenschutzerklaerung-oesterreich.md), [English](privacy-notice-austria.md)). The notice describes the app **after** these steps.
 
 ## Decisions already made
 
@@ -126,26 +122,15 @@ The admin event page keeps full names and email. A unit-tested pure function.
 
 ### 6. Backup rotation
 
-Decide how long backups are kept, delete older ones (`scripts/backup.js` or a cron
-job), and document it in the README. Deleted members stay in backups until then, which
-the notice says.
+Delete backups older than a retention period (`scripts/backup.js` or a cron job), and
+document it in the README.
 
-### 7. Publish the Datenschutzerklärung
-
-Once steps 1 to 6 are done: fill in the placeholders (Verein, ZVR number, contact,
-legal basis, hosting provider, backup period) in both versions, serve them as pages, and link them from
-the enroll page, the admin pages and the footer next to the source code link.
-
-### 8. Record of processing (Art. 30)
-
-An entry in the Verein's record of processing: purposes, data, recipients and deletion
-periods, as in the notice.
-
-### 9. README
+### 7. README
 
 Update the schema notes (`scan` columns, `device_enrollment`, `anonymous_id`,
 `last_seen_at`), "What stops abuse", "Things that undo it", and add a section on
-deletion, anonymisation and retention.
+deletion, anonymisation and retention. Drop the warning in "Data protection" against
+publishing the notices.
 
 ## Tests
 
@@ -157,7 +142,4 @@ deletion, anonymisation and retention.
 
 ## Open
 
-- Legal basis for attendance tracking: does the Verein's statute make attendance part of
-  membership (Art. 6(1)(b)), or is it legitimate interest (Art. 6(1)(f))?
 - Anonymise every scan after a fixed period too, not just on leaving?
-- Backup retention period and hosting provider, for the notice.
