@@ -1,6 +1,6 @@
 import { and, asc, countDistinct, eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
-import { direction as directionOf } from '$lib/server/attendance';
+import { direction as directionOf, scanner } from '$lib/server/attendance';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
 import { db } from '$lib/server/db';
@@ -107,8 +107,9 @@ export function recordScan(
 	if (row) {
 		const host = hostScan(hostId, eventId, proof.codeScanId);
 		// Counted after both, so the screen's number matches the names under it.
+		// Deleted attendees still count: they were there.
 		const { present } = db
-			.select({ present: countDistinct(scan.userId) })
+			.select({ present: countDistinct(scanner) })
 			.from(scan)
 			.where(eq(scan.eventId, eventId))
 			.get()!;

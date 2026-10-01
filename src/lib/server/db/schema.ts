@@ -75,6 +75,11 @@ export const event = sqliteTable(
  * photographed and passed around shows up as scans from addresses that
  * aren't the venue's, and one device working through borrowed accounts shows up
  * as one userAgent and one codeScanId across many users.
+ *
+ * A deleted attendee's scans stay, for the events' statistics, with nothing
+ * left that says whose they were: `userId` and the trailing columns are
+ * cleared, and `anonymousId` keeps their rows for one event together. See
+ * deleteAttendee.
  */
 export const scan = sqliteTable(
 	'scan',
@@ -82,9 +87,14 @@ export const scan = sqliteTable(
 		id: text('id')
 			.primaryKey()
 			.$defaultFn(() => crypto.randomUUID()),
-		userId: text('user_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
+		// Null once the attendee is deleted; anonymousId stands in for it then.
+		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		/**
+		 * Random, one per deleted attendee and event, so their scan-in, scan-out
+		 * and scan count for it survive, while nothing links their scans across
+		 * events. Null while the attendee exists.
+		 */
+		anonymousId: text('anonymous_id'),
 		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' }).default(now).notNull(),
 		// The event the displayed code was for. No cascade: an event with scans
 		// is never deleted (see event), and the database holds that line too.

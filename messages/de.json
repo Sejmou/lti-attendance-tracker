@@ -55,6 +55,7 @@
 	"scans_none": "Noch hat niemand gescannt.",
 	"scans_col_when": "Zeitpunkt",
 	"scans_col_attendee": "Teilnehmer:in",
+	"scans_deleted_attendee": "Gelöschte:r Teilnehmer:in",
 	"scans_col_method": "Bestätigt mit",
 	"scans_col_address": "Adresse",
 	"scans_col_device": "Gerät",

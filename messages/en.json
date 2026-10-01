@@ -52,6 +52,7 @@
 	"scans_none": "Nobody has scanned yet.",
 	"scans_col_when": "When",
 	"scans_col_attendee": "Attendee",
+	"scans_deleted_attendee": "Deleted attendee",
 	"scans_col_method": "Confirmed with",
 	"scans_col_address": "Address",
 	"scans_col_device": "Device",

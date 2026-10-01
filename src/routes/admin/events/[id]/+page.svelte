@@ -101,11 +101,15 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.attendance as row (row.userId)}
+					{#each data.attendance as row (row.scanner)}
 						<Table.Row>
 							<Table.Cell class="whitespace-normal">
-								<span class="font-medium">{row.firstName} {row.lastName}</span>
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									<span class="font-medium">{row.firstName} {row.lastName}</span>
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell class="tabular-nums">{at(row.scannedIn)}</Table.Cell>
 							<Table.Cell class="tabular-nums">
@@ -140,13 +144,17 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.log.rows as row (row.codeScanId + row.userId)}
+					{#each data.log.rows as row (row.codeScanId + row.scanner)}
 						<Table.Row>
 							<Table.Cell class="tabular-nums">{at(row.at)}</Table.Cell>
 							<Table.Cell class="whitespace-normal">
-								{row.firstName}
-								{row.lastName}
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									{row.firstName}
+									{row.lastName}
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell title={hints[row.method]?.()}>{methods[row.method]()}</Table.Cell>
 							<Table.Cell>

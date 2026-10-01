@@ -65,7 +65,11 @@
 			<ol class="divide-y divide-gray-100 rounded-lg border border-gray-200">
 				{#each recent as arrival (arrival.id)}
 					<li class="flex justify-between gap-4 px-3 py-2">
-						<span>{arrival.firstName} {arrival.lastName}</span>
+						<span>
+							{arrival.firstName === null
+								? m.scans_deleted_attendee()
+								: `${arrival.firstName} ${arrival.lastName}`}
+						</span>
 						<span class="text-gray-500 tabular-nums">
 							{arrival.direction === 'in' ? m.qr_in() : m.qr_out()} · {time(arrival.at)}
 						</span>
