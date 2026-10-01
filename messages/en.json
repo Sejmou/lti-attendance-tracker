@@ -52,8 +52,10 @@
 	"scans_none": "Nobody has scanned yet.",
 	"scans_col_when": "When",
 	"scans_col_attendee": "Attendee",
+	"scans_deleted_attendee": "Deleted attendee",
 	"scans_col_method": "Confirmed with",
 	"scans_col_address": "Address",
+	"scans_address_hint": "The start of a check value of the IP address, not the address itself. The same value means the same address, but only within this event.",
 	"scans_col_device": "Device",
 	"scans_col_scan": "Scan",
 	"scans_method_device": "device",
@@ -194,5 +196,30 @@
 	"enroll_problem_no_profile": "Moodle didn't tell us your name and email address, which we need to set you up. Let the organizers know: the activity's privacy settings in Moodle need to share both.",
 	"enroll_problem_unknown_tool": "This Moodle activity isn't set up yet. Let the organizers know: the tool has to be registered with the attendance tool first.",
 	"enroll_expired": "This setup link has expired or was already used. Open the attendance activity in Moodle again.",
-	"enroll_bad_key": "Something went wrong creating the key. Try again."
+	"enroll_bad_key": "Something went wrong creating the key. Try again.",
+
+	"attendees_title": "Attendees",
+	"attendees_intro": "Everyone who has opened either Moodle activity, organizers included. Sorted by last launch, those who haven't come for a long time are at the top.",
+	"attendees_none": "Nobody has opened either Moodle activity yet.",
+	"attendees_col_name": "Name",
+	"attendees_col_first_seen": "First launch",
+	"attendees_col_last_seen": "Last launch",
+	"attendees_col_phone": "Phone",
+	"attendees_phone_linked": "linked",
+	"attendees_enrollments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} device setup",
+				"countPlural=*": "{count} device setups"
+			}
+		}
+	],
+	"attendees_sort_hint": "Sort by this",
+	"attendees_delete": "Delete",
+	"attendees_delete_title": "Delete attendee?",
+	"attendees_delete_text": "{name} ({email}) will be deleted, along with their linked phone. Their scans stay, without a name, for the events' statistics. This can't be undone; if they open the activity in Moodle again, they are created anew.",
+	"attendees_deleted": "Deleted. Their scans are anonymous now.",
+	"attendees_missing": "This person no longer exists."
 }

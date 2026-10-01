@@ -65,7 +65,7 @@
 			<ol class="divide-y divide-gray-100 rounded-lg border border-gray-200">
 				{#each recent as arrival (arrival.id)}
 					<li class="flex justify-between gap-4 px-3 py-2">
-						<span>{arrival.firstName} {arrival.lastName}</span>
+						<span>{arrival.displayName ?? m.scans_deleted_attendee()}</span>
 						<span class="text-gray-500 tabular-nums">
 							{arrival.direction === 'in' ? m.qr_in() : m.qr_out()} · {time(arrival.at)}
 						</span>
@@ -94,7 +94,7 @@
 			class="rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
 		>
 			✓ {(toast.direction === 'in' ? m.qr_scanned_in : m.qr_scanned_out)({
-				name: `${toast.firstName} ${toast.lastName}`
+				name: toast.displayName ?? m.scans_deleted_attendee()
 			})}
 		</div>
 	{/each}

@@ -20,7 +20,7 @@ import { scan, user } from '$lib/server/db/schema';
 export function hostScan(hostId: string, eventId: string, codeScanId: string) {
 	return db.transaction((tx) => {
 		const host = tx
-			.select({ firstName: user.firstName, lastName: user.lastName })
+			.select({ id: user.id })
 			.from(user)
 			// Only an admin session can show a code, and the code is signed, so
 			// whoever it names was an organizer then. Deleted since, they're nobody.
@@ -41,6 +41,6 @@ export function hostScan(hostId: string, eventId: string, codeScanId: string) {
 			.values({ userId: hostId, eventId, method: 'host', codeScanId })
 			.returning({ id: scan.id, at: scan.scannedAt })
 			.get();
-		return { ...host, eventId, id: row.id, at: row.at.getTime() };
+		return { id: row.id, at: row.at.getTime() };
 	});
 }

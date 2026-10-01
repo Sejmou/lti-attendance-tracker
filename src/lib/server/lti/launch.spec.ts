@@ -9,6 +9,7 @@ import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
 import {
+	deviceEnrollment,
 	deviceKey,
 	event,
 	ltiPlatform,
@@ -27,6 +28,7 @@ import {
 	verifyAdminSession,
 	verifyEnrollment
 } from '../scan-token';
+import { ipHash } from '../ip-hash';
 import { SCAN_IN_GRACE_MS } from '../scan';
 import { httpHandler, provider } from './provider';
 
@@ -160,6 +162,7 @@ async function enroll(token: string) {
 	);
 	const request = new Request('http://localhost:5173/lti-link/enroll?/enroll', {
 		method: 'POST',
+		headers: { 'user-agent': 'launch.spec phone' },
 		body: new URLSearchParams({
 			token,
 			publicKey: JSON.stringify(await crypto.subtle.exportKey('jwk', pair.publicKey)),
@@ -190,11 +193,14 @@ test('a first launch creates the attendee from what Moodle says about them', asy
 });
 
 test('later launches find the same attendee by Moodle account, whatever the email says now', async () => {
-	const { id } = attendee()!;
+	const { id, createdAt } = attendee()!;
 	const enrollment = verifyEnrollment(tokenFrom(await launch({ email: 'ada@new.example' })));
 
 	expect(enrollment?.userId).toBe(id);
 	expect(await db.$count(user, eq(user.ltiSubject, ADA))).toBe(1);
+	// Seen again, first seen as before.
+	expect(attendee()).toMatchObject({ createdAt });
+	expect(attendee()!.lastSeenAt.getTime()).toBeGreaterThan(createdAt.getTime());
 });
 
 test('an id_token is good for one launch', async () => {
@@ -300,6 +306,17 @@ test('setting up again replaces the key, and the old one stops working', async (
 	const after = db.select().from(deviceKey).where(eq(deviceKey.userId, attendee()!.id)).get()!;
 	expect(after.id).not.toBe(before.id);
 	expect(await db.$count(deviceKey, eq(deviceKey.id, before.id))).toBe(0);
+
+	// The log keeps both setups, the replaced one included.
+	const log = db
+		.select()
+		.from(deviceEnrollment)
+		.where(eq(deviceEnrollment.userId, attendee()!.id))
+		.orderBy(desc(deviceEnrollment.enrolledAt))
+		.all();
+	expect(log.length).toBeGreaterThanOrEqual(2);
+	expect(log[0]).toMatchObject({ enrolledAt: after.createdAt, userAgent: 'launch.spec phone' });
+	expect(log[1]).toMatchObject({ enrolledAt: before.createdAt });
 });
 
 test('a public key without proof of its private half is refused', async () => {
@@ -309,6 +326,7 @@ test('a public key without proof of its private half is refused', async () => {
 	]);
 	const request = new Request('http://localhost:5173/lti-link/enroll?/enroll', {
 		method: 'POST',
+		headers: { 'user-agent': 'launch.spec phone' },
 		body: new URLSearchParams({
 			token,
 			publicKey: JSON.stringify(await crypto.subtle.exportKey('jwk', pair.publicKey)),
@@ -358,7 +376,9 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	// Submitted twice: still one scan, and still the scan-in.
 	expect(await scan(token, code)).toEqual(scannedIn);
 	const rows = db.select().from(scanRow).where(eq(scanRow.userId, id)).all();
-	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7', eventId: SCREEN.eventId }]);
+	expect(rows).toMatchObject([
+		{ method: 'lti', ipHash: ipHash(SCREEN.eventId, '10.0.0.7'), eventId: SCREEN.eventId }
+	]);
 
 	const count = () => db.$count(scanRow, eq(scanRow.userId, id));
 	const backdate = (ms: number) =>

@@ -1,8 +1,11 @@
 import { and, asc, countDistinct, eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
-import { direction as directionOf } from '$lib/server/attendance';
+import { direction as directionOf, scanner } from '$lib/server/attendance';
+import { displayNames } from '$lib/server/display-name';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
+import { ipHash } from '$lib/server/ip-hash';
+import { pruneExpired } from '$lib/server/retention';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import type { CodeScreen } from '$lib/server/scan-token';
@@ -47,7 +50,7 @@ export function recordScan(
 	// One transaction, so the event can't be deleted between looking and writing.
 	const outcome = db.transaction((tx) => {
 		const attendee = tx
-			.select({ firstName: user.firstName, lastName: user.lastName })
+			.select({ firstName: user.firstName })
 			.from(user)
 			.where(eq(user.id, proof.userId))
 			.get();
@@ -86,7 +89,7 @@ export function recordScan(
 				eventId,
 				method: proof.method,
 				codeScanId: proof.codeScanId,
-				ipAddress: request.getClientAddress(),
+				ipHash: ipHash(eventId, request.getClientAddress()),
 				userAgent: request.request.headers.get('user-agent')
 			})
 			.onConflictDoNothing()
@@ -105,16 +108,30 @@ export function recordScan(
 	// Counted after writing, so a double submit reads the same as the first.
 	const direction = directionOf(proof.userId, eventId);
 	if (row) {
+		pruneExpired();
 		const host = hostScan(hostId, eventId, proof.codeScanId);
 		// Counted after both, so the screen's number matches the names under it.
+		// Deleted attendees still count: they were there.
 		const { present } = db
-			.select({ present: countDistinct(scan.userId) })
+			.select({ present: countDistinct(scanner) })
 			.from(scan)
 			.where(eq(scan.eventId, eventId))
 			.get()!;
-		publishScan({ ...attendee, eventId, id: row.id, at: row.at.getTime(), direction, present });
+		// Worked out now, so it follows attendees being added and deleted.
+		const names = displayNames();
+		publishScan({
+			id: row.id,
+			eventId,
+			at: row.at.getTime(),
+			displayName: names.get(proof.userId)!,
+			direction,
+			present
+		});
 		// Only ever their first for the event: see hostScan.
-		if (host) publishScan({ ...host, direction: 'in', present });
+		if (host) {
+			const { id, at } = host;
+			publishScan({ id, eventId, at, displayName: names.get(hostId)!, direction: 'in', present });
+		}
 	}
 	const early = direction === 'out' && Date.now() < event!.endsAt.getTime() - EARLY_OUT_MS;
 	return { firstName: attendee.firstName, eventTitle: event!.title, direction, early };

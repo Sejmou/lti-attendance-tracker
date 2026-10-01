@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
+	import { deviceName } from '$lib/device-name';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
@@ -46,15 +47,6 @@
 		host: m.scans_host_hint,
 		lti: m.scans_lti_hint
 	};
-
-	// The full string is in the title attribute; the table is for scanning.
-	const device = (userAgent: string | null) =>
-		userAgent
-			?.match(/\((.*?)\)/)?.[1]
-			?.split(';')[0]
-			?.trim() ??
-		userAgent?.slice(0, 24) ??
-		'—';
 </script>
 
 <svelte:head><title>{event.title} · {m.attendance_title()}</title></svelte:head>
@@ -101,11 +93,15 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.attendance as row (row.userId)}
+					{#each data.attendance as row (row.scanner)}
 						<Table.Row>
 							<Table.Cell class="whitespace-normal">
-								<span class="font-medium">{row.firstName} {row.lastName}</span>
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									<span class="font-medium">{row.firstName} {row.lastName}</span>
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell class="tabular-nums">{at(row.scannedIn)}</Table.Cell>
 							<Table.Cell class="tabular-nums">
@@ -140,23 +136,28 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.log.rows as row (row.codeScanId + row.userId)}
+					{#each data.log.rows as row (row.codeScanId + row.scanner)}
 						<Table.Row>
 							<Table.Cell class="tabular-nums">{at(row.at)}</Table.Cell>
 							<Table.Cell class="whitespace-normal">
-								{row.firstName}
-								{row.lastName}
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									{row.firstName}
+									{row.lastName}
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell title={hints[row.method]?.()}>{methods[row.method]()}</Table.Cell>
-							<Table.Cell>
-								{row.ipAddress ?? '—'}
+							<!-- A prefix is plenty to see two match; the full hash says no more. -->
+							<Table.Cell class="font-mono text-xs" title={m.scans_address_hint()}>
+								{row.ipHash?.slice(0, 8) ?? '—'}
 								{#if row.sharedAddress}
 									<Badge variant="secondary" title={m.scans_shared_hint()}>{m.scans_shared()}</Badge
 									>
 								{/if}
 							</Table.Cell>
-							<Table.Cell title={row.userAgent ?? ''}>{device(row.userAgent)}</Table.Cell>
+							<Table.Cell title={row.userAgent ?? ''}>{deviceName(row.userAgent)}</Table.Cell>
 							<Table.Cell class="font-mono text-xs text-muted-foreground">
 								{row.codeScanId}
 								{#if row.repeat}

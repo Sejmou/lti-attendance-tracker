@@ -131,18 +131,18 @@ Docker that means `docker compose up -d`, which recreates the container with the
 compiled into the **build**, so changing it means `pnpm build` or
 `docker compose --profile tools build` first. `HOST_PORT` is compose's own and never reaches the app.
 
-| Variable            | Required | Read at      | Notes                                                                                                                                                                                                                                                                              |
-| ------------------- | -------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`      | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                           |
-| `ORIGIN`            | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone)) |
-| `SIGNING_SECRET`    | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones                                                                                                 |
-| `BASE_PATH`         | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                       |
-| `CALENDAR_ICS_URL`  | no       | start        | A public Google Calendar's iCal address, whose events are synced in. See [Events](#events)                                                                                                                                                                                         |
-| `PUBLIC_TIMEZONE`   | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                |
-| `PUBLIC_SOURCE_URL` | no       | start        | Where the "Source code" link at the bottom of every page points. Defaults to https://github.com/Sejmou/lti-attendance-tracker. If you run a modified version, the AGPL requires pointing it at your version's source                                                               |
-| `ADDRESS_HEADER`    | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_address` records the proxy for everyone                                                                                                                                                                               |
-| `PORT`              | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                  |
-| `HOST_PORT`         | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                           |
+| Variable            | Required | Read at      | Notes                                                                                                                                                                                                                                                                                                              |
+| ------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`      | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                                                           |
+| `ORIGIN`            | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone))                                 |
+| `SIGNING_SECRET`    | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens, and keys the IP address hashes. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones. Changed during an event, `shared` can't match scans from before the change with scans after it |
+| `BASE_PATH`         | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                                                       |
+| `CALENDAR_ICS_URL`  | no       | start        | A public Google Calendar's iCal address, whose events are synced in. See [Events](#events)                                                                                                                                                                                                                         |
+| `PUBLIC_TIMEZONE`   | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                                                |
+| `PUBLIC_SOURCE_URL` | no       | start        | Where the "Source code" link at the bottom of every page points. Defaults to https://github.com/Sejmou/lti-attendance-tracker. If you run a modified version, the AGPL requires pointing it at your version's source                                                                                               |
+| `ADDRESS_HEADER`    | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_hash` hashes the proxy's address for everyone                                                                                                                                                                                                         |
+| `PORT`              | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                                                  |
+| `HOST_PORT`         | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                                                           |
 
 Behind a reverse proxy, `ORIGIN` is the public HTTPS URL — not the container's.
 
@@ -211,8 +211,8 @@ scan lands where its code said.
 Everyone is created on their first launch of either tool, with the name and email the
 LMS shares, and found again on every later one by their LMS account: `user.lti_subject`,
 the launch's issuer and user ID (`iss` and `sub`). Not by email — a Moodle user may be
-able to change theirs, and the ID never changes. The email is only shown in the log; two
-accounts sharing one are two people here.
+able to change theirs, and the ID never changes. The email is only shown to organizers, in
+the log and on the attendees page; two accounts sharing one are two people here.
 
 ### Organizers
 
@@ -251,7 +251,7 @@ under **Link this phone**, they tap **Set up this phone**:
    out, not even this app. It is kept in IndexedDB.
 2. It sends the public half, signed with the private half, and the proof of the launch.
 3. The server stores the public key against the attendee (`device_key`), replacing any
-   earlier one.
+   earlier one, and logs the setup with the browser's user agent (`device_enrollment`).
 
 The proof of the launch is an enrollment token: HMAC-signed, naming the attendee, and good
 for 15 minutes. It travels in the URL **fragment**, which
@@ -265,7 +265,9 @@ The key lives in one browser on one phone. The attendee has to open Moodle again
 
 - they clear that browser's website data, or used a private window
 - they set up another phone or browser — there is one key per attendee, and the old one stops
-  working
+  working. Every setup stays in the log, so an attendee setting up phone after phone shows
+  on the attendees page
+- an organizer deletes them (see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention))
 - **Safari deletes it.** WebKit clears script-writable storage, IndexedDB included, for a
   site the user hasn't visited in seven days. Setting up more than a week before the event
   may not survive on an iPhone. The setup page asks for persistent storage, but that does
@@ -405,7 +407,7 @@ What it does **not** stop:
   the same is true of lending someone the phone. Likewise, an attendee can copy the
   enrollment token out of the launched page and hand it on for its 15 minutes.
 - **Scanning from elsewhere.** A photo of the code, sent to an absent attendee within its
-  30 seconds, files a scan for them from wherever they are. The address and user agent
+  30 seconds, files a scan for them from wherever they are. The address hash and user agent
   columns and the code screen are what catch this.
 - **Anyone who can open the activity.** There is no list to be on: everyone in the
   course becomes an attendee by opening it. So does anyone in a course the tool is added to,
@@ -416,14 +418,20 @@ What it does **not** stop:
 What catches the rest is the code screen. Every scan shows up there as it
 happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
-visible to everyone around it. The toasts come over server-sent events from
+visible to everyone around it. Since everyone around it can read it, it is the shortest
+name that tells the attendee apart, not the full one: the first name, plus as much of the
+last name as it takes among those sharing that first name ("Anna B."), or the whole last
+name when every start of it is shared. Worked out when each scan is published, so it
+follows attendees being added and deleted (`src/lib/server/display-name.ts`). The full name
+never reaches the screen's browser. The toasts come over server-sent events from
 `/admin/events/<id>/stream`, fanned out in-process, so they reach screens on the same
 server only. Each carries the event's count along, so the number on the screen keeps up
 with the names under it.
 
 The event's scan log is the full record afterwards, newest first, with the two things worth
 seeing at a glance flagged. `again` is an attendee who had already scanned earlier;
-`shared` is an address more than one attendee scanned from. Neither is wrong on its own
+`shared` is an address more than one attendee scanned from, matched by its hash (see
+[`scan`](#scan)). Neither is wrong on its own
 — people step out for air, and many share one hotspot — but a code that leaked
 looks like several attendees on one address who were never there in person.
 
@@ -446,6 +454,47 @@ with a message saying so.
 The enrollment token from a Moodle launch is signed with the same secret but has a
 prefix of its own, so neither token passes for the other —
 `src/lib/server/scan-token.spec.ts` pins that down.
+
+## Deletion, anonymisation and retention
+
+**Attendees page.** `/admin/attendees` lists everyone who has launched either tool,
+organizers included: name, email, first and last launch (`user.created_at`,
+`user.last_seen_at`), number of scans, whether a phone is linked, and every phone setup in
+the log. Sorted by last launch, those who stopped coming are at the top.
+
+**Deleting an attendee** removes everything that identifies them but keeps their
+attendance for the events' statistics. In one transaction:
+
+1. each event they have scans for gets one random `anonymous_id`, set on all their scans
+   for it, so their scan-in, scan-out and scan count there survive
+2. on those scans, `user_id`, `ip_hash` and `user_agent` are cleared, and `code_scan_id`
+   is replaced with a random value, since it would pair the row with the host scan riding
+   the same code scan
+3. the `user` row is deleted; `device_key` and `device_enrollment` go with it by cascade
+
+A different `anonymous_id` per event means nothing links their scans across events.
+Scan times stay exact. Wherever scans are counted or grouped by person, it is by
+`coalesce(user_id, anonymous_id)` (`scanner` in `src/lib/server/attendance.ts`), and a
+deleted attendee shows as "Deleted attendee". Someone deleted who opens a tool again is
+created anew, with none of their old scans.
+
+Scans are anonymised only on deletion, never after a fixed period: until someone is
+deleted, on request or by an organizer, their scans stay theirs.
+
+**Retention.** What is only kept against abuse goes after 12 months: scans older than that
+lose their `ip_hash` and `user_agent` (the scans stay), and older `device_enrollment` rows
+are deleted. ltijs's store keeps each launch's `id_token` claims (name, email, role,
+course) for 23 hours, and its nonces for 10 minutes.
+
+All of it is pruned when the server starts and then every hour (`scheduleRetention` in
+`src/lib/server/retention.ts`, started by the `init` hook), so the limits hold even when
+nobody uses the app; anything can outlive its limit by an hour at most. That hour is why
+launches are kept 23 hours and not ltijs's usual 24: the privacy notice promises 24, and
+nothing here resumes a launch later anyway. It is also pruned
+sooner along the way: the 12 months whenever a scan or a setup is written and on every
+admin page, ltijs's data whenever a launch saves new rows. The schedule lives in the
+process, so a restart starts it over, with a run of its own. Backups are another matter:
+see [Data protection](#data-protection).
 
 ## Events
 
@@ -636,7 +685,12 @@ Vite loaded — so overriding `process.env` from inside a spec does **not** work
 Besides the log and `event` (see [Events](#events)), `device_key` (see [Setting up a phone](#setting-up-a-phone)), the tool
 pairs in `lti_registration` and ltijs's `lti_*` tables (see [LTI platforms](#lti-platforms)),
 there is `user`: everyone who has launched either tool. Its `lti_subject` — the LMS
-account, `["<iss>","<sub>"]`, unique — is how every launch finds them.
+account, `["<iss>","<sub>"]`, unique — is how every launch finds them. `last_seen_at` is
+set on every launch, so organizers can spot attendees who stopped coming.
+
+`device_enrollment` logs every phone setup, replaced ones included, with the browser's user
+agent and no address: phones are mostly set up at home. Kept 12 months, or until the
+attendee is deleted (see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention)).
 
 Deliberately absent:
 
@@ -654,22 +708,96 @@ Deliberately absent:
 
 One row per scan, filed under an `event` (`event_id`):
 
-| Column                     | Why it's there                                                                                                                   |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `user_id`, `scanned_at`    | who and when                                                                                                                     |
-| `method`                   | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
-| `ip_address`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's                                   |
-| `code_scan_id`             | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
+| Column                  | Why it's there                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`, `scanned_at` | who and when; `user_id` is null once the attendee is deleted                                                                     |
+| `anonymous_id`          | null while the attendee exists; for a deleted one, random, one per attendee and event, so their attendance there still adds up   |
+| `method`                | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
+| `ip_hash`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's. Cleared after 12 months          |
+| `code_scan_id`          | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
 
 `method = 'host'` marks the organizer who was signed in on the code screen, filed
-automatically when the first attendee got in through their code. It has no `ip_address`
+automatically when the first attendee got in through their code. It has no `ip_hash`
 or `user_agent`, because the request that wrote it came from the attendee's phone, and
 it shares that attendee's `code_scan_id`. See [Scan-in and scan-out](#scan-in-and-scan-out)
 for what it does and doesn't prove.
 
-`ip_address` comes from `event.getClientAddress()`. Behind a reverse proxy that is the
+`ip_hash` is never the address itself: it is `HMAC(key, ip)` with
+`key = HMAC(SIGNING_SECRET, "ip-hash:" + event_id)`, a key per event
+(`src/lib/server/ip-hash.ts`). The log only compares addresses within one event, so that
+is all the hash allows: nobody can follow an address across events, or try addresses
+against it without the secret. The event page shows its first eight characters. Rotating
+`SIGNING_SECRET` during an event means `shared` can't match scans from before the change
+with scans after it.
+
+The address comes from `event.getClientAddress()`. Behind a reverse proxy that is the
 proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-for` (and
-`XFF_DEPTH`) or the column records one address for the whole event.
+`XFF_DEPTH`) or the column holds one hash for the whole event.
+
+## Data protection
+
+> **Disclaimer:** neither this section nor the privacy notice templates are legal advice.
+> They were written by a programmer who cares about privacy, not a lawyer, by prompting
+> Claude (an AI model). They may be incomplete or wrong. Have someone qualified check them
+> before relying on them.
+
+Whoever runs the tool for their organisation is the controller under the GDPR. The tool
+can't make a deployment compliant by itself; the following is up to the organisation.
+
+**Privacy notice.** [`docs/datenschutzerklaerung-oesterreich.md`](docs/datenschutzerklaerung-oesterreich.md)
+(German) and [`docs/privacy-notice-austria.md`](docs/privacy-notice-austria.md) (English)
+are templates for an Austrian Verein using the tool through Moodle. Fill in the
+bracketed placeholders: the organisation and its contact, the legal basis for
+attendance, the hosting provider and how long backups are kept. Outside Austria, replace
+what cites Austrian law (the TKG 2021, the Datenschutzbehörde). The people using the app
+have to be able to read the notice before their data is collected; how it reaches them
+(a page on the organisation's website, a link in the Moodle course, a handout) is up to
+the organisation.
+
+**Legal basis for attendance.** The notice has to name one:
+
+- Art. 6(1)(b) GDPR (contract), if the organisation's rules make something depend on
+  attendance. For example, a choir whose statute lets only members who came to 70% of
+  rehearsals sing in the concert, or a club where active membership (and with it voting
+  rights or a lower fee) requires regular training. Cite the clause.
+- Art. 6(1)(f) GDPR (legitimate interest), if nothing depends on it and attendance is
+  recorded for planning or statistics. Write down why that interest outweighs members'
+  privacy, and expect that a member may object (Art. 21), after which their attendance
+  can't be recorded without compelling reasons.
+
+The data kept against abuse (IP address, user agent, phone setups) is Art. 6(1)(f)
+either way. Consent (Art. 6(1)(a)) fits poorly: it can be withdrawn at any time, and
+within a membership it is hard to show it was given freely.
+
+**Special categories.** For a religious community, a political party or a trade union,
+attendance at its events can reveal beliefs or membership, which is special-category data
+(Art. 9 GDPR) with stricter rules. The templates assume it isn't.
+
+**Record of processing.** Art. 30 GDPR requires an entry for the tool in the
+organisation's record of processing activities (_Verzeichnis von
+Verarbeitungstätigkeiten_): purposes, whose data and which, recipients, deletion periods
+and the security measures. The privacy notice already has most of it. The exemption for
+organisations under 250 people doesn't apply, because attendance is recorded regularly.
+The record isn't published; the supervisory authority can ask to see it.
+
+**Deleting people.** The app can't tell when someone's membership ends, and nothing
+about a person is deleted by time alone: their name, email, phone key and the link
+between them and their scans stay until an organizer deletes them on the attendees page
+(see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention)). The
+privacy notices promise that this happens when the membership ends, and on request, so
+make it part of how the organisation handles a member leaving. The attendees page sorted
+by last launch shows who may have left without saying so.
+
+**Hosting.** A provider running the server processes the data on the organisation's
+behalf and needs a data processing agreement (Art. 28 GDPR). If it is outside the EEA,
+the notice has to say so.
+
+**Backups.** `pnpm db:backup` never deletes old snapshots, so deleted members, and IP
+hashes, user agents and phone setups older than 12 months, stay in every backup made
+before. Decide how long backups are kept, put it in the notice, and delete them by hand
+once they are older than that: the `*.bak` files next to the database (on the volume,
+under Docker), including the `*.pre-restore.bak` files `pnpm db:restore` leaves, and every
+copy taken off the server.
 
 ## License
 
