@@ -682,3 +682,7 @@ As permitted by section 14 of the license, the person registered as holder of th
 domain koltergeist.at with nic.at on 1 October 2026 (who publishes as "Sejmou") is
 designated as the proxy who may decide whether future versions of the GNU Affero
 General Public License can be used for this program.
+
+The components in `src/lib/components/ui/` are based on
+[shadcn-svelte](https://shadcn-svelte.com). Its MIT license, which covers the code taken
+from it, is kept next to them in [`LICENSE.md`](src/lib/components/ui/LICENSE.md).
