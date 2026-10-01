@@ -124,7 +124,6 @@
 	"attendance_col_in": "Scanned in",
 	"attendance_col_out": "Scanned out",
 	"attendance_footnote": "A person's first scan counts as scanning in, their last as scanning out — if there are at least two. Scans in between count as neither.",
-	"qr_heading": "Scan here",
 	"qr_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],

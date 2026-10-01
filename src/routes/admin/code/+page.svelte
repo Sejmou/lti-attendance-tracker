@@ -5,8 +5,7 @@
 	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { formatDateTime, wallClock } from '$lib/time';
+	import { eventWhen } from '$lib/event-when';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -16,16 +15,6 @@
 	const suggested = $derived(data.events.find((e) => e.id === data.suggested));
 	const others = $derived(data.events.filter((e) => e.id !== data.suggested));
 
-	const day = (at: Date) =>
-		formatDateTime(at, getLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-	const time = (at: Date) =>
-		formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
-	const when = (row: Row) =>
-		row.allDay
-			? `${day(row.startsAt)} · ${m.events_all_day()}`
-			: wallClock(row.startsAt).date === wallClock(row.endsAt).date
-				? `${day(row.startsAt)}, ${time(row.startsAt)}–${time(row.endsAt)}`
-				: `${day(row.startsAt)}, ${time(row.startsAt)} – ${day(row.endsAt)}, ${time(row.endsAt)}`;
 	const running = (row: Row) => row.startsAt <= data.now && data.now < row.endsAt;
 	// Button passes href through as is; resolving it is the caller's job.
 	const codeFor = (row: Row) => resolve('/admin/events/[id]/code', { id: row.id });
@@ -47,7 +36,7 @@
 			<div>
 				<p class="text-xl font-medium">{suggested.title}</p>
 				<p class="text-muted-foreground">
-					{when(suggested)}{suggested.location ? ` · ${suggested.location}` : ''}
+					{eventWhen(suggested)}{suggested.location ? ` · ${suggested.location}` : ''}
 				</p>
 				{#if running(suggested)}<Badge class="mt-2">{m.events_ongoing()}</Badge>{/if}
 			</div>
@@ -68,7 +57,7 @@
 									{row.title}
 									{#if running(row)}<Badge class="ml-1">{m.events_ongoing()}</Badge>{/if}
 								</p>
-								<p class="text-sm text-muted-foreground">{when(row)}</p>
+								<p class="text-sm text-muted-foreground">{eventWhen(row)}</p>
 							</div>
 							<Button href={codeFor(row)} variant="outline" size="sm">
 								{m.code_pick_show()}
