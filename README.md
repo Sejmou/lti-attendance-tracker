@@ -211,8 +211,8 @@ scan lands where its code said.
 Everyone is created on their first launch of either tool, with the name and email the
 LMS shares, and found again on every later one by their LMS account: `user.lti_subject`,
 the launch's issuer and user ID (`iss` and `sub`). Not by email — a Moodle user may be
-able to change theirs, and the ID never changes. The email is only shown in the log; two
-accounts sharing one are two people here.
+able to change theirs, and the ID never changes. The email is only shown to organizers, in
+the log and on the attendees page; two accounts sharing one are two people here.
 
 ### Organizers
 
@@ -251,7 +251,7 @@ under **Link this phone**, they tap **Set up this phone**:
    out, not even this app. It is kept in IndexedDB.
 2. It sends the public half, signed with the private half, and the proof of the launch.
 3. The server stores the public key against the attendee (`device_key`), replacing any
-   earlier one.
+   earlier one, and logs the setup with the browser's user agent (`device_enrollment`).
 
 The proof of the launch is an enrollment token: HMAC-signed, naming the attendee, and good
 for 15 minutes. It travels in the URL **fragment**, which
@@ -265,7 +265,9 @@ The key lives in one browser on one phone. The attendee has to open Moodle again
 
 - they clear that browser's website data, or used a private window
 - they set up another phone or browser — there is one key per attendee, and the old one stops
-  working
+  working. Every setup stays in the log, so an attendee setting up phone after phone shows
+  on the attendees page
+- an organizer deletes them (see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention))
 - **Safari deletes it.** WebKit clears script-writable storage, IndexedDB included, for a
   site the user hasn't visited in seven days. Setting up more than a week before the event
   may not survive on an iPhone. The setup page asks for persistent storage, but that does
@@ -405,7 +407,7 @@ What it does **not** stop:
   the same is true of lending someone the phone. Likewise, an attendee can copy the
   enrollment token out of the launched page and hand it on for its 15 minutes.
 - **Scanning from elsewhere.** A photo of the code, sent to an absent attendee within its
-  30 seconds, files a scan for them from wherever they are. The address and user agent
+  30 seconds, files a scan for them from wherever they are. The address hash and user agent
   columns and the code screen are what catch this.
 - **Anyone who can open the activity.** There is no list to be on: everyone in the
   course becomes an attendee by opening it. So does anyone in a course the tool is added to,
@@ -416,14 +418,20 @@ What it does **not** stop:
 What catches the rest is the code screen. Every scan shows up there as it
 happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
-visible to everyone around it. The toasts come over server-sent events from
+visible to everyone around it. Since everyone around it can read it, it is the shortest
+name that tells the attendee apart, not the full one: the first name, plus as much of the
+last name as it takes among those sharing that first name ("Anna B."), or the whole last
+name when every start of it is shared. Worked out when each scan is published, so it
+follows attendees being added and deleted (`src/lib/server/display-name.ts`). The full name
+never reaches the screen's browser. The toasts come over server-sent events from
 `/admin/events/<id>/stream`, fanned out in-process, so they reach screens on the same
 server only. Each carries the event's count along, so the number on the screen keeps up
 with the names under it.
 
 The event's scan log is the full record afterwards, newest first, with the two things worth
 seeing at a glance flagged. `again` is an attendee who had already scanned earlier;
-`shared` is an address more than one attendee scanned from. Neither is wrong on its own
+`shared` is an address more than one attendee scanned from, matched by its hash (see
+[`scan`](#scan)). Neither is wrong on its own
 — people step out for air, and many share one hotspot — but a code that leaked
 looks like several attendees on one address who were never there in person.
 
@@ -446,6 +454,40 @@ with a message saying so.
 The enrollment token from a Moodle launch is signed with the same secret but has a
 prefix of its own, so neither token passes for the other —
 `src/lib/server/scan-token.spec.ts` pins that down.
+
+## Deletion, anonymisation and retention
+
+**Attendees page.** `/admin/attendees` lists everyone who has launched either tool,
+organizers included: name, email, first and last launch (`user.created_at`,
+`user.last_seen_at`), number of scans, whether a phone is linked, and every phone setup in
+the log. Sorted by last launch, those who stopped coming are at the top.
+
+**Deleting an attendee** removes everything that identifies them but keeps their
+attendance for the events' statistics. In one transaction:
+
+1. each event they have scans for gets one random `anonymous_id`, set on all their scans
+   for it, so their scan-in, scan-out and scan count there survive
+2. on those scans, `user_id`, `ip_hash` and `user_agent` are cleared, and `code_scan_id`
+   is replaced with a random value, since it would pair the row with the host scan riding
+   the same code scan
+3. the `user` row is deleted; `device_key` and `device_enrollment` go with it by cascade
+
+A different `anonymous_id` per event means nothing links their scans across events.
+Scan times stay exact. Wherever scans are counted or grouped by person, it is by
+`coalesce(user_id, anonymous_id)` (`scanner` in `src/lib/server/attendance.ts`), and a
+deleted attendee shows as "Deleted attendee". Someone deleted who opens a tool again is
+created anew, with none of their old scans.
+
+Scans are anonymised only on deletion, never after a fixed period: until someone is
+deleted, on request or by an organizer, their scans stay theirs.
+
+**Retention.** What is only kept against abuse goes after 12 months: scans older than that
+lose their `ip_hash` and `user_agent` (the scans stay), and older `device_enrollment` rows
+are deleted. There is no timer, so, like ltijs's own pruning, it runs whenever a scan or a
+setup is written and on every admin page (`src/lib/server/retention.ts`), so nothing
+outlives the limit through a quiet season. ltijs keeps each launch's `id_token` claims
+(name, email, role, course) for 24 hours. Backups are another matter: see
+[Data protection](#data-protection).
 
 ## Events
 
@@ -636,7 +678,12 @@ Vite loaded — so overriding `process.env` from inside a spec does **not** work
 Besides the log and `event` (see [Events](#events)), `device_key` (see [Setting up a phone](#setting-up-a-phone)), the tool
 pairs in `lti_registration` and ltijs's `lti_*` tables (see [LTI platforms](#lti-platforms)),
 there is `user`: everyone who has launched either tool. Its `lti_subject` — the LMS
-account, `["<iss>","<sub>"]`, unique — is how every launch finds them.
+account, `["<iss>","<sub>"]`, unique — is how every launch finds them. `last_seen_at` is
+set on every launch, so organizers can spot attendees who stopped coming.
+
+`device_enrollment` logs every phone setup, replaced ones included, with the browser's user
+agent and no address: phones are mostly set up at home. Kept 12 months, or until the
+attendee is deleted (see [Deletion, anonymisation and retention](#deletion-anonymisation-and-retention)).
 
 Deliberately absent:
 
@@ -654,22 +701,31 @@ Deliberately absent:
 
 One row per scan, filed under an `event` (`event_id`):
 
-| Column                     | Why it's there                                                                                                                   |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `user_id`, `scanned_at`    | who and when                                                                                                                     |
-| `method`                   | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
-| `ip_address`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's                                   |
-| `code_scan_id`             | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
+| Column                  | Why it's there                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`, `scanned_at` | who and when; `user_id` is null once the attendee is deleted                                                                     |
+| `anonymous_id`          | null while the attendee exists; for a deleted one, random, one per attendee and event, so their attendance there still adds up   |
+| `method`                | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
+| `ip_hash`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's. Cleared after 12 months          |
+| `code_scan_id`          | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
 
 `method = 'host'` marks the organizer who was signed in on the code screen, filed
-automatically when the first attendee got in through their code. It has no `ip_address`
+automatically when the first attendee got in through their code. It has no `ip_hash`
 or `user_agent`, because the request that wrote it came from the attendee's phone, and
 it shares that attendee's `code_scan_id`. See [Scan-in and scan-out](#scan-in-and-scan-out)
 for what it does and doesn't prove.
 
-`ip_address` comes from `event.getClientAddress()`. Behind a reverse proxy that is the
+`ip_hash` is never the address itself: it is `HMAC(key, ip)` with
+`key = HMAC(SIGNING_SECRET, "ip-hash:" + event_id)`, a key per event
+(`src/lib/server/ip-hash.ts`). The log only compares addresses within one event, so that
+is all the hash allows: nobody can follow an address across events, or try addresses
+against it without the secret. The event page shows its first eight characters. Rotating
+`SIGNING_SECRET` during an event means `shared` can't match scans from before the change
+with scans after it.
+
+The address comes from `event.getClientAddress()`. Behind a reverse proxy that is the
 proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-for` (and
-`XFF_DEPTH`) or the column records one address for the whole event.
+`XFF_DEPTH`) or the column holds one hash for the whole event.
 
 ## Data protection
 
@@ -689,9 +745,7 @@ attendance, the hosting provider and how long backups are kept. Outside Austria,
 what cites Austrian law (the TKG 2021, the Datenschutzbehörde). The people using the app
 have to be able to read the notice before their data is collected; how it reaches them
 (a page on the organisation's website, a link in the Moodle course, a handout) is up to
-the organisation. The notices describe the app once the
-[data protection plan](docs/data-protection-plan.md) is done, so don't publish them
-before that.
+the organisation.
 
 **Legal basis for attendance.** The notice has to name one:
 
