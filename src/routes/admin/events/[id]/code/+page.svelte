@@ -12,6 +12,30 @@
 	type Arrival = PageServerData['recent'][number];
 
 	const TOAST_MS = 6_000;
+	// A rush at the door would otherwise stack them down over the code.
+	const MAX_TOASTS = 3;
+	const SHOW_SCANS_KEY = 'code-screen-show-scans';
+
+	// Names on a big screen aren't always wanted, so the list can be hidden,
+	// which leaves the code alone on the screen. Remembered in this browser
+	// only, and read once mounted so the server render (which can't know) and
+	// the first client render agree.
+	let showScans = $state(true);
+	$effect(() => {
+		try {
+			showScans = localStorage.getItem(SHOW_SCANS_KEY) !== 'false';
+		} catch {
+			// Storage blocked: keep the default.
+		}
+	});
+	function toggleScans() {
+		showScans = !showScans;
+		try {
+			localStorage.setItem(SHOW_SCANS_KEY, String(showScans));
+		} catch {
+			// Storage blocked: the choice lasts until the page is left.
+		}
+	}
 
 	/** Arrivals pushed since the page loaded; `data.recent` catches up on each rotation. */
 	let live = $state<Arrival[]>([]);
@@ -38,7 +62,8 @@
 			livePresent = Math.max(livePresent, event.present);
 
 			live = [arrival, ...live].slice(0, 5);
-			toasts = [...toasts, arrival];
+			// The oldest give way early; their timers then find nothing to remove.
+			toasts = [...toasts, arrival].slice(-MAX_TOASTS);
 			setTimeout(() => (toasts = toasts.filter((t) => t.id !== arrival.id)), TOAST_MS);
 		};
 		return () => source.close();
@@ -50,15 +75,26 @@
 
 <svelte:head><title>{m.show_code()}</title></svelte:head>
 
-<QrScreen title={m.qr_heading()} qr={data.qr} msUntilNextBucket={data.msUntilNextBucket}>
+<QrScreen
+	title={m.qr_heading()}
+	qr={data.qr}
+	msUntilNextBucket={data.msUntilNextBucket}
+	expanded={!showScans}
+	oncollapse={toggleScans}
+>
 	<p class="text-xl font-medium">{data.event.title}</p>
 	<p class="text-gray-600">
 		{m.qr_present({ count: present })}
 		{m.qr_keep_open()}
 	</p>
 
-	<section class="w-full max-w-md">
-		<h2 class="mb-2 text-sm font-medium text-gray-500">{m.qr_last_scans()}</h2>
+	<section class="w-full text-left">
+		<div class="mb-2 flex items-baseline justify-between gap-4">
+			<h2 class="text-sm font-medium text-gray-500">{m.qr_last_scans()}</h2>
+			<button type="button" class="text-sm text-blue-600 underline" onclick={toggleScans}>
+				{m.qr_scans_hide()}
+			</button>
+		</div>
 		{#if recent.length === 0}
 			<p class="text-gray-500">{m.qr_nobody_yet()}</p>
 		{:else}
@@ -75,7 +111,7 @@
 		{/if}
 	</section>
 
-	<div class="flex gap-4">
+	<div class="flex flex-wrap justify-center gap-4 lg:justify-start">
 		<a href={resolve('/admin/code')} class="text-blue-600 underline">{m.code_other_event()}</a>
 		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
 		<a href={resolve('/admin/events/[id]', { id: data.event.id })} class="text-blue-600 underline">
@@ -85,7 +121,7 @@
 </QrScreen>
 
 <div
-	class="pointer-events-none fixed top-4 right-4 left-4 flex flex-col items-end gap-2"
+	class="pointer-events-none fixed top-4 right-4 left-4 z-20 flex flex-col items-end gap-2"
 	aria-live="polite"
 >
 	{#each toasts as toast (toast.id)}

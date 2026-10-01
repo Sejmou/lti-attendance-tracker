@@ -48,7 +48,7 @@
 	</Table.Head>
 {/snippet}
 
-<main class="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-6">
+<main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
 	<h1 class="text-2xl font-semibold">{m.attendees_title()}</h1>
 
 	<p class="text-sm text-muted-foreground">

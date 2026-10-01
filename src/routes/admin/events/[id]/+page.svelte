@@ -51,7 +51,7 @@
 
 <svelte:head><title>{event.title} · {m.attendance_title()}</title></svelte:head>
 
-<main class="mx-auto flex min-h-svh max-w-5xl flex-col gap-8 p-6">
+<main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
 	<header class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex flex-col gap-1">
 			<h1 class="text-2xl font-semibold">{event.title}</h1>

@@ -33,7 +33,7 @@
 
 <svelte:head><title>{m.show_code()}</title></svelte:head>
 
-<main class="mx-auto flex min-h-svh max-w-2xl flex-col gap-6 p-6">
+<main class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-6">
 	<h1 class="text-2xl font-semibold">{m.code_pick_heading()}</h1>
 	<CalendarSyncStatus sync={data.sync} />
 

@@ -94,7 +94,7 @@
 
 <svelte:head><title>{m.events_title()}</title></svelte:head>
 
-<main class="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-6">
+<main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<h1 class="text-2xl font-semibold">{m.events_title()}</h1>
 		<div class="flex flex-wrap gap-2">

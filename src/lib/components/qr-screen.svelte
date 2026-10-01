@@ -7,8 +7,18 @@
 		title,
 		qr,
 		msUntilNextBucket,
+		expanded = false,
+		oncollapse,
 		children
-	}: { title: string; qr: string; msUntilNextBucket: number; children: Snippet } = $props();
+	}: {
+		title: string;
+		qr: string;
+		msUntilNextBucket: number;
+		/** The code alone, as large as the screen allows; `children` aren't shown. */
+		expanded?: boolean;
+		oncollapse?: () => void;
+		children: Snippet;
+	} = $props();
 
 	// The code is derived from the clock, so refetch exactly when it rolls over
 	// rather than on a fixed interval that would drift out of step with it.
@@ -18,35 +28,48 @@
 	});
 </script>
 
-<main class="mx-auto flex min-h-svh max-w-2xl flex-col items-center justify-center gap-6 p-6">
-	<h1 class="text-3xl font-semibold">{title}</h1>
+<svelte:window onkeydown={(e) => expanded && e.key === 'Escape' && oncollapse?.()} />
 
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -- our own server-rendered SVG -->
-	<div class="rounded-xl bg-white p-4 shadow-sm">{@html qr}</div>
-
-	<div
-		class="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-gray-200"
-		role="progressbar"
-		aria-label={m.qr_time_until_change()}
-	>
-		{#key msUntilNextBucket}
-			<div
-				class="h-full bg-blue-600"
-				style="animation: countdown {msUntilNextBucket}ms linear forwards"
-			></div>
-		{/key}
+{#snippet code(size: string)}
+	<div class="aspect-square rounded-xl bg-white p-4 shadow-sm [&_svg]:size-full {size}">
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -- our own server-rendered SVG -->
+		{@html qr}
 	</div>
+{/snippet}
 
-	{@render children()}
-</main>
+{#if expanded}
+	<!-- Over everything, footer included, so nothing can push the code off the
+	     screen: the smaller of its width and height, less the padding and the
+	     button below it. -->
+	<main
+		class="fixed inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background p-4"
+	>
+		{@render code('w-[min(100vw-2rem,100svh-4rem)]')}
+		<button type="button" class="text-sm text-blue-600 underline" onclick={oncollapse}>
+			{m.qr_scans_show()}
+		</button>
+	</main>
+{:else}
+	<!-- Stacked on small screens; from lg the code takes the left column at full
+	     height and everything else moves to a column beside it. -->
+	<main
+		class="grid w-full flex-1 content-start justify-items-center gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_1fr] lg:content-center"
+	>
+		<h1
+			class="text-center text-3xl font-semibold lg:col-start-2 lg:justify-self-start lg:text-left"
+		>
+			{title}
+		</h1>
 
-<style>
-	@keyframes countdown {
-		from {
-			width: 100%;
-		}
-		to {
-			width: 0%;
-		}
-	}
-</style>
+		<!-- The full width, but never taller than the viewport (less the padding and the footer). -->
+		{@render code(
+			'w-[min(100%,calc(100svh-5.5rem))] lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center'
+		)}
+
+		<div
+			class="flex w-full max-w-md flex-col items-center gap-6 text-center lg:col-start-2 lg:items-start lg:text-left"
+		>
+			{@render children()}
+		</div>
+	</main>
+{/if}

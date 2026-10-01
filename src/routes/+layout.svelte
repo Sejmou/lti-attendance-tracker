@@ -14,22 +14,26 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
-{@render children()}
+<!-- A column the height of the screen: pages grow to fill it, and the footer
+     follows them instead of floating over whatever is at the bottom. -->
+<div class="flex min-h-svh flex-col">
+	{@render children()}
 
-<div class="fixed right-4 bottom-4 flex gap-3 text-sm text-gray-500">
-	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
-	<a href={sourceUrl} class="underline">{m.source_code()}</a>
-	<nav aria-label={m.language()} class="flex gap-3">
-		{#each locales as locale (locale)}
-			<button
-				type="button"
-				lang={locale}
-				aria-current={locale === getLocale() ? 'true' : undefined}
-				onclick={() => setLocale(locale)}
-				class="underline aria-[current]:font-semibold aria-[current]:no-underline"
-			>
-				{names[locale]}
-			</button>
-		{/each}
-	</nav>
+	<footer class="flex justify-end gap-3 px-4 pb-4 text-sm text-gray-500">
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
+		<a href={sourceUrl} class="underline">{m.source_code()}</a>
+		<nav aria-label={m.language()} class="flex gap-3">
+			{#each locales as locale (locale)}
+				<button
+					type="button"
+					lang={locale}
+					aria-current={locale === getLocale() ? 'true' : undefined}
+					onclick={() => setLocale(locale)}
+					class="underline aria-[current]:font-semibold aria-[current]:no-underline"
+				>
+					{names[locale]}
+				</button>
+			{/each}
+		</nav>
+	</footer>
 </div>

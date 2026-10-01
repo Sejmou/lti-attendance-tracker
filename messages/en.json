@@ -138,7 +138,8 @@
 	"qr_keep_open": "This code changes automatically — leave this page open.",
 	"qr_last_scans": "Last scans",
 	"qr_nobody_yet": "Nobody yet.",
-	"qr_time_until_change": "Time until this code changes",
+	"qr_scans_hide": "Hide list",
+	"qr_scans_show": "Show list",
 
 	"scan_in_heading": "You're scanned in",
 	"scan_out_heading": "You're scanned out",
