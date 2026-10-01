@@ -1,6 +1,6 @@
 # Datenschutzerklärung zur Anwesenheitserfassung
 
-Diese Datenschutzerklärung informiert dich darüber, welche personenbezogenen Daten der [Name des Vereins] bei der Erfassung der Anwesenheit bei Vereinsveranstaltungen zu welchem Zweck verarbeitet. Sie beschreibt auch, welche Daten wie lange gespeichert werden.
+Diese Datenschutzerklärung informiert dich darüber, welche personenbezogenen Daten der [Name des Vereins] bei der Erfassung der Anwesenheit bei Vereinsveranstaltungen zu welchem Zweck verarbeitet. Außerdem erfährst du, welche Daten wie lange gespeichert werden.
 
 ## Verantwortlicher
 
