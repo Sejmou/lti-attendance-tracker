@@ -70,7 +70,7 @@ function scanAt(
 			method: 'device',
 			codeScanId,
 			scannedAt: at(hhmm),
-			ipAddress: '10.0.0.1',
+			ipHash: 'hash-of-10.0.0.1',
 			userAgent: 'Phone'
 		})
 		.run();
@@ -118,7 +118,7 @@ test("deleting an attendee keeps each event's attendance as it was, with nothing
 		.filter((row) => row.userId === null);
 	expect(anonymised).toHaveLength(4);
 	for (const row of anonymised) {
-		expect(row).toMatchObject({ ipAddress: null, userAgent: null });
+		expect(row).toMatchObject({ ipHash: null, userAgent: null });
 		expect(row.anonymousId).toBeTruthy();
 		// Would pair it with the organizer's host scan.
 		expect(row.codeScanId).not.toBe('ada-in');
@@ -132,7 +132,7 @@ test("deleting an attendee keeps each event's attendance as it was, with nothing
 
 	// Nobody else's scans are touched.
 	expect(db.select().from(scan).where(eq(scan.userId, grace.id)).all()).toMatchObject([
-		{ ipAddress: '10.0.0.1', anonymousId: null }
+		{ ipHash: 'hash-of-10.0.0.1', anonymousId: null }
 	]);
 });
 

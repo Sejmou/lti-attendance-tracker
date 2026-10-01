@@ -3,6 +3,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { direction as directionOf, scanner } from '$lib/server/attendance';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
+import { ipHash } from '$lib/server/ip-hash';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import type { CodeScreen } from '$lib/server/scan-token';
@@ -86,7 +87,7 @@ export function recordScan(
 				eventId,
 				method: proof.method,
 				codeScanId: proof.codeScanId,
-				ipAddress: request.getClientAddress(),
+				ipHash: ipHash(eventId, request.getClientAddress()),
 				userAgent: request.request.headers.get('user-agent')
 			})
 			.onConflictDoNothing()

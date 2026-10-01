@@ -157,8 +157,9 @@
 								{/if}
 							</Table.Cell>
 							<Table.Cell title={hints[row.method]?.()}>{methods[row.method]()}</Table.Cell>
-							<Table.Cell>
-								{row.ipAddress ?? '—'}
+							<!-- A prefix is plenty to see two match; the full hash says no more. -->
+							<Table.Cell class="font-mono text-xs" title={m.scans_address_hint()}>
+								{row.ipHash?.slice(0, 8) ?? '—'}
 								{#if row.sharedAddress}
 									<Badge variant="secondary" title={m.scans_shared_hint()}>{m.scans_shared()}</Badge
 									>

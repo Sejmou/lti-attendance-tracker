@@ -58,6 +58,7 @@
 	"scans_deleted_attendee": "Gelöschte:r Teilnehmer:in",
 	"scans_col_method": "Bestätigt mit",
 	"scans_col_address": "Adresse",
+	"scans_address_hint": "Der Anfang eines Prüfwerts der IP-Adresse, nicht die Adresse selbst. Gleicher Wert heißt gleiche Adresse, aber nur innerhalb dieser Veranstaltung.",
 	"scans_col_device": "Gerät",
 	"scans_col_scan": "Scan",
 	"scans_method_device": "Gerät",

@@ -27,6 +27,7 @@ import {
 	verifyAdminSession,
 	verifyEnrollment
 } from '../scan-token';
+import { ipHash } from '../ip-hash';
 import { SCAN_IN_GRACE_MS } from '../scan';
 import { httpHandler, provider } from './provider';
 
@@ -361,7 +362,9 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 	// Submitted twice: still one scan, and still the scan-in.
 	expect(await scan(token, code)).toEqual(scannedIn);
 	const rows = db.select().from(scanRow).where(eq(scanRow.userId, id)).all();
-	expect(rows).toMatchObject([{ method: 'lti', ipAddress: '10.0.0.7', eventId: SCREEN.eventId }]);
+	expect(rows).toMatchObject([
+		{ method: 'lti', ipHash: ipHash(SCREEN.eventId, '10.0.0.7'), eventId: SCREEN.eventId }
+	]);
 
 	const count = () => db.$count(scanRow, eq(scanRow.userId, id));
 	const backdate = (ms: number) =>

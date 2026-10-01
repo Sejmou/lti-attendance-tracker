@@ -56,7 +56,7 @@ export function deleteAttendee(userId: string) {
 				.set({
 					anonymousId: crypto.randomUUID(),
 					userId: null,
-					ipAddress: null,
+					ipHash: null,
 					userAgent: null,
 					// Per row, the length of a real one.
 					codeScanId: sql`lower(hex(randomblob(8)))`

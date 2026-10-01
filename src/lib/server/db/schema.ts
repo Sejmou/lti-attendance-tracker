@@ -78,7 +78,7 @@ export const event = sqliteTable(
  *
  * The trailing columns exist to make abuse visible after the fact: a code
  * photographed and passed around shows up as scans from addresses that
- * aren't the venue's, and one device working through borrowed accounts shows up
+ * aren't the venue's (as hashes, see ipHash), and one device working through borrowed accounts shows up
  * as one userAgent and one codeScanId across many users.
  *
  * A deleted attendee's scans stay, for the events' statistics, with nothing
@@ -116,7 +116,8 @@ export const scan = sqliteTable(
 		//           it. Nobody confirmed it was them; the attendee's scan says their
 		//           screen is at the door. See hostScan.
 		method: text('method', { enum: ['device', 'lti', 'host'] }).notNull(),
-		ipAddress: text('ip_address'),
+		/** Never the address itself: see ipHash. */
+		ipHash: text('ip_hash'),
 		userAgent: text('user_agent'),
 		// Which scan of which displayed code this rode in on. A host row shares
 		// the attendee's.

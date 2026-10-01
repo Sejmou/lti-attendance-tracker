@@ -55,6 +55,7 @@
 	"scans_deleted_attendee": "Deleted attendee",
 	"scans_col_method": "Confirmed with",
 	"scans_col_address": "Address",
+	"scans_address_hint": "The start of a check value of the IP address, not the address itself. The same value means the same address, but only within this event.",
 	"scans_col_device": "Device",
 	"scans_col_scan": "Scan",
 	"scans_method_device": "device",

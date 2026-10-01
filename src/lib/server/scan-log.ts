@@ -1,5 +1,5 @@
 // `scanner`, not a user ID: a deleted attendee's rows still need telling apart.
-type Row = { scanner: string; ipAddress: string | null };
+type Row = { scanner: string; ipHash: string | null };
 
 /**
  * Marks the two things worth seeing at a glance in the log. Neither is wrong on
@@ -10,10 +10,10 @@ type Row = { scanner: string; ipAddress: string | null };
  */
 export function annotate<T extends Row>(rows: T[]) {
 	const usersPerIp = new Map<string, Set<string>>();
-	for (const { ipAddress, scanner } of rows) {
-		if (!ipAddress) continue;
-		let seen = usersPerIp.get(ipAddress);
-		if (!seen) usersPerIp.set(ipAddress, (seen = new Set()));
+	for (const { ipHash, scanner } of rows) {
+		if (!ipHash) continue;
+		let seen = usersPerIp.get(ipHash);
+		if (!seen) usersPerIp.set(ipHash, (seen = new Set()));
 		seen.add(scanner);
 	}
 
@@ -28,7 +28,7 @@ export function annotate<T extends Row>(rows: T[]) {
 			return {
 				...row,
 				repeat,
-				sharedAddress: (usersPerIp.get(row.ipAddress ?? '')?.size ?? 0) > 1
+				sharedAddress: (usersPerIp.get(row.ipHash ?? '')?.size ?? 0) > 1
 			};
 		})
 		.reverse();

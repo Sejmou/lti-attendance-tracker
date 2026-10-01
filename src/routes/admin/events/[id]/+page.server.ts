@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		.select({
 			at: scan.scannedAt,
 			method: scan.method,
-			ipAddress: scan.ipAddress,
+			ipHash: scan.ipHash,
 			userAgent: scan.userAgent,
 			codeScanId: scan.codeScanId,
 			scanner,
