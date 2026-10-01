@@ -141,7 +141,8 @@
 	"qr_keep_open": "Dieser Code ändert sich automatisch – lass diese Seite geöffnet.",
 	"qr_last_scans": "Letzte Scans",
 	"qr_nobody_yet": "Noch niemand.",
-	"qr_time_until_change": "Zeit bis zum nächsten Code",
+	"qr_scans_hide": "Liste ausblenden",
+	"qr_scans_show": "Liste anzeigen",
 
 	"scan_in_heading": "Du bist eingescannt",
 	"scan_out_heading": "Du bist ausgescannt",

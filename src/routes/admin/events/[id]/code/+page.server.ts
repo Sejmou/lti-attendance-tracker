@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const [qr, [{ present }], recent] = await Promise.all([
 		// Rendered here rather than in the browser so the page needs no QR library.
-		QRCode.toString(scanUrl.toString(), { type: 'svg', margin: 1, width: 420 }),
+		QRCode.toString(scanUrl.toString(), { type: 'svg', margin: 1 }),
 		// Distinct: re-entry writes another row, and the headline number is people,
 		// deleted ones included.
 		db
