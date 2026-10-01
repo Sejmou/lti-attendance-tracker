@@ -1,10 +1,11 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { dev } from '$app/environment';
+import { building, dev } from '$app/environment';
 import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
+import { scheduleRetention } from '$lib/server/retention';
 import { ADMIN_SESSION_COOKIE, verifyAdminSession } from '$lib/server/scan-token';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
@@ -81,3 +82,9 @@ const handleAdminSession: Handle = ({ event, resolve }) => {
 };
 
 export const handle: Handle = sequence(handleCsrf, handleParaglide, handleAdminSession);
+
+// Once per server start, before the first request. Not in `vite build`, whose
+// database is an empty one in memory (see $lib/server/db).
+export const init: ServerInit = () => {
+	if (!building) scheduleRetention();
+};

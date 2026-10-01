@@ -1,10 +1,10 @@
-import { beforeAll, expect, test } from 'vitest';
+import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { eq, like } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { db } from './db';
-import { deviceEnrollment, event, scan, user } from './db/schema';
-import { pruneExpired, retentionCutoff } from './retention';
+import { deviceEnrollment, event, ltiIdToken, scan, user } from './db/schema';
+import { pruneExpired, retentionCutoff, scheduleRetention } from './retention';
 
 const PLATFORM = 'https://retention.test';
 
@@ -92,4 +92,52 @@ test('anything older than 12 months loses what is kept against abuse, and nothin
 		db.select().from(deviceEnrollment).where(eq(deviceEnrollment.id, id)).get();
 	expect(setupById(oldSetup.id)).toBeUndefined();
 	expect(setupById(newSetup.id)).toBeDefined();
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
+test('the schedule prunes at start and again every day, with nobody using the app', () => {
+	vi.useFakeTimers({ toFake: ['setInterval', 'Date'] });
+	vi.setSystemTime(NOW);
+	const lin = db
+		.insert(user)
+		.values({
+			id: crypto.randomUUID(),
+			email: 'lin@example.com',
+			firstName: 'Lin',
+			lastName: 'Test',
+			ltiSubject: JSON.stringify([PLATFORM, 'lin'])
+		})
+		.returning()
+		.get();
+	const setupAt = (enrolledAt: Date) =>
+		db.insert(deviceEnrollment).values({ userId: lin.id, enrolledAt }).returning().get();
+	const launchAt = (createdAt: Date) =>
+		db
+			.insert(ltiIdToken)
+			.values({ claims: {} as never, createdAt })
+			.returning()
+			.get();
+	const gone = (id: string) =>
+		db.select().from(deviceEnrollment).where(eq(deviceEnrollment.id, id)).get() === undefined;
+	const launchGone = (id: string) =>
+		db.select().from(ltiIdToken).where(eq(ltiIdToken.id, id)).get() === undefined;
+
+	const oldSetup = setupAt(daysAgo(366));
+	const oldLaunch = launchAt(daysAgo(2));
+	// Expire a day from now, while nothing else happens.
+	const setupDueTomorrow = setupAt(new Date(retentionCutoff(NOW).getTime() + 60_000));
+	const launchDueTomorrow = launchAt(new Date(NOW.getTime() - 60_000));
+
+	scheduleRetention();
+	expect(gone(oldSetup.id)).toBe(true);
+	expect(launchGone(oldLaunch.id)).toBe(true);
+	expect(gone(setupDueTomorrow.id)).toBe(false);
+	expect(launchGone(launchDueTomorrow.id)).toBe(false);
+
+	vi.advanceTimersByTime(24 * 60 * 60_000);
+	expect(gone(setupDueTomorrow.id)).toBe(true);
+	expect(launchGone(launchDueTomorrow.id)).toBe(true);
 });

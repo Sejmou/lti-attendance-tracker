@@ -1,6 +1,7 @@
 import { and, isNotNull, lt, or } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { deviceEnrollment, scan } from '$lib/server/db/schema';
+import { pruneExpiredLaunches } from '$lib/server/lti/database-manager';
 
 /** How long the data kept against abuse is kept: twelve calendar months. */
 export function retentionCutoff(now = new Date()) {
@@ -14,9 +15,8 @@ export function retentionCutoff(now = new Date()) {
  * the address hash and user agent on scans (the scans themselves stay), and
  * the phone setup log.
  *
- * There is no timer, so like DrizzleDatabaseManager's pruning this runs
- * whenever a scan or a setup is written, and on every admin page, so nothing
- * outlives the limit through a quiet season.
+ * Runs once a day (see scheduleRetention), and also whenever a scan or a
+ * setup is written and on every admin page.
  *
  * ponytail: unthrottled. Both are index range scans over a club's worth of
  * rows; batch it if a page ever feels it.
@@ -30,4 +30,30 @@ export function pruneExpired(now = new Date()) {
 			.run();
 		tx.delete(deviceEnrollment).where(lt(deviceEnrollment.enrolledAt, cutoff)).run();
 	});
+}
+
+const DAY_MS = 24 * 60 * 60_000;
+
+/**
+ * Runs every pruning now and then once a day, from server start, so the limits
+ * hold whether or not anyone uses the app: the 12 months here, and ltijs's 24
+ * hours for launches (see pruneExpiredLaunches). The calls on writes and
+ * admin pages only get there sooner.
+ *
+ * ponytail: setInterval, in-process. One box; a restart starts it over, and
+ * starting is a run of its own.
+ */
+export function scheduleRetention() {
+	const run = () => {
+		try {
+			pruneExpired();
+			pruneExpiredLaunches();
+		} catch (error) {
+			// The next run tries again; a failed one mustn't take the server down.
+			console.error('Pruning expired data failed:', error);
+		}
+	};
+	run();
+	// Unref'd: a pending run is no reason to keep the process alive.
+	setInterval(run, DAY_MS).unref();
 }
