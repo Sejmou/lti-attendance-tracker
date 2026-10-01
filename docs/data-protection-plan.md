@@ -1,7 +1,7 @@
 # Data protection plan
 
 What has to change for the app to do what its privacy notice says
-([Datenschutzerklärung](datenschutzerklaerung.md), [English](privacy-notice.md)). The notice describes the app **after** these steps, so it must not be published
+([Datenschutzerklärung](datenschutzerklaerung-oesterreich.md), [English](privacy-notice-austria.md)). The notice describes the app **after** these steps, so it must not be published
 before they are done.
 
 Context: the app is used by one Austrian Verein, in one Moodle course that only active
