@@ -729,10 +729,10 @@ proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-
 
 ## Data protection
 
-> **Disclaimer:** none of this section, the privacy notice templates or the
-> [data protection plan](docs/data-protection-plan.md) is legal advice. It was written by
-> a programmer who cares about privacy, not a lawyer, by prompting Claude (an AI model).
-> It may be incomplete or wrong. Have someone qualified check it before relying on it.
+> **Disclaimer:** neither this section nor the privacy notice templates are legal advice.
+> They were written by a programmer who cares about privacy, not a lawyer, by prompting
+> Claude (an AI model). They may be incomplete or wrong. Have someone qualified check them
+> before relying on them.
 
 Whoever runs the tool for their organisation is the controller under the GDPR. The tool
 can't make a deployment compliant by itself; the following is up to the organisation.
