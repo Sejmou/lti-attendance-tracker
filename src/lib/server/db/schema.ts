@@ -152,9 +152,32 @@ export const deviceKey = sqliteTable('device_key', {
 	/** P-256 public key as a JWK: `{ kty, crv, x, y }`. */
 	publicKey: text('public_key', { mode: 'json' }).$type<PublicJwk>().notNull(),
 	/** Enrollment links issued before this are spent. */
-	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull(),
-	userAgent: text('user_agent')
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
 });
+
+/**
+ * Every phone setup, the replaced ones included, so an organizer can see an
+ * attendee setting up phone after phone (one way to pass scans around). Kept
+ * for 12 months (see cleanup) or until the attendee is deleted. No address:
+ * phones are mostly set up at home, which says nothing.
+ */
+export const deviceEnrollment = sqliteTable(
+	'device_enrollment',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		enrolledAt: integer('enrolled_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+		userAgent: text('user_agent')
+	},
+	(table) => [
+		index('device_enrollment_userId_idx').on(table.userId),
+		index('device_enrollment_enrolledAt_idx').on(table.enrolledAt)
+	]
+);
 
 /**
  * One LTI platform's pair of tools, set up in it identically but for the

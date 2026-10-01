@@ -6,6 +6,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
+	import { deviceName } from '$lib/device-name';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
@@ -26,6 +27,8 @@
 	let deleting = $state<Row | null>(null);
 
 	const date = (at: Date) => formatDateTime(at, getLocale(), { dateStyle: 'medium' });
+	const dateTime = (at: Date) =>
+		formatDateTime(at, getLocale(), { dateStyle: 'medium', timeStyle: 'short' });
 </script>
 
 <svelte:head><title>{m.attendees_title()}</title></svelte:head>
@@ -81,11 +84,26 @@
 						<Table.Cell class="tabular-nums">{date(row.createdAt)}</Table.Cell>
 						<Table.Cell class="tabular-nums">{date(row.lastSeenAt)}</Table.Cell>
 						<Table.Cell class="text-right tabular-nums">{row.scans}</Table.Cell>
-						<Table.Cell>
+						<Table.Cell class="whitespace-normal">
 							{#if row.linked}
 								<Badge variant="secondary">{m.attendees_phone_linked()}</Badge>
 							{:else}
 								<span class="text-muted-foreground">—</span>
+							{/if}
+							<!-- Every setup, replaced ones included: phone after phone stands out. -->
+							{#if row.enrollments.length > 0}
+								<details class="mt-1 text-xs text-muted-foreground">
+									<summary class="cursor-pointer">
+										{m.attendees_enrollments({ count: row.enrollments.length })}
+									</summary>
+									<ul class="mt-1 flex flex-col gap-0.5">
+										{#each row.enrollments as setup, i (i)}
+											<li class="tabular-nums" title={setup.userAgent ?? ''}>
+												{dateTime(setup.enrolledAt)} · {deviceName(setup.userAgent)}
+											</li>
+										{/each}
+									</ul>
+								</details>
 							{/if}
 						</Table.Cell>
 						<Table.Cell class="text-right">

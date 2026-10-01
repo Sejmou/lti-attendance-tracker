@@ -4,7 +4,7 @@ import { enrollMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
 import { recordScan } from '$lib/server/scan';
 import { db } from '$lib/server/db';
-import { deviceKey, user } from '$lib/server/db/schema';
+import { deviceEnrollment, deviceKey, user } from '$lib/server/db/schema';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
 import { launchCodeScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
@@ -106,12 +106,16 @@ export const actions: Actions = {
 
 			// Replaces any earlier key, and gives it a new id, so the browser that
 			// held the old one is no longer set up.
-			const values = {
-				id: crypto.randomUUID(),
-				publicKey,
-				createdAt: new Date(),
-				userAgent: event.request.headers.get('user-agent')
-			};
+			const createdAt = new Date();
+			const values = { id: crypto.randomUUID(), publicKey, createdAt };
+			// The key forgets the phone it replaced; the log doesn't.
+			tx.insert(deviceEnrollment)
+				.values({
+					userId: attendee.id,
+					enrolledAt: createdAt,
+					userAgent: event.request.headers.get('user-agent')
+				})
+				.run();
 			return tx
 				.insert(deviceKey)
 				.values({ ...values, userId: attendee.id })

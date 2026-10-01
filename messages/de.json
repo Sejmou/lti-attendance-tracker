@@ -209,6 +209,16 @@
 	"attendees_col_last_seen": "Zuletzt geöffnet",
 	"attendees_col_phone": "Handy",
 	"attendees_phone_linked": "verknüpft",
+	"attendees_enrollments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Geräteeinrichtung",
+				"countPlural=*": "{count} Geräteeinrichtungen"
+			}
+		}
+	],
 	"attendees_sort_hint": "Danach sortieren",
 	"attendees_delete": "Löschen",
 	"attendees_delete_title": "Teilnehmer:in löschen?",

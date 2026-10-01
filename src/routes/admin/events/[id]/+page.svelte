@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
+	import { deviceName } from '$lib/device-name';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
@@ -46,15 +47,6 @@
 		host: m.scans_host_hint,
 		lti: m.scans_lti_hint
 	};
-
-	// The full string is in the title attribute; the table is for scanning.
-	const device = (userAgent: string | null) =>
-		userAgent
-			?.match(/\((.*?)\)/)?.[1]
-			?.split(';')[0]
-			?.trim() ??
-		userAgent?.slice(0, 24) ??
-		'—';
 </script>
 
 <svelte:head><title>{event.title} · {m.attendance_title()}</title></svelte:head>
@@ -165,7 +157,7 @@
 									>
 								{/if}
 							</Table.Cell>
-							<Table.Cell title={row.userAgent ?? ''}>{device(row.userAgent)}</Table.Cell>
+							<Table.Cell title={row.userAgent ?? ''}>{deviceName(row.userAgent)}</Table.Cell>
 							<Table.Cell class="font-mono text-xs text-muted-foreground">
 								{row.codeScanId}
 								{#if row.repeat}

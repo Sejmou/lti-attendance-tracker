@@ -206,6 +206,16 @@
 	"attendees_col_last_seen": "Last launch",
 	"attendees_col_phone": "Phone",
 	"attendees_phone_linked": "linked",
+	"attendees_enrollments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} device setup",
+				"countPlural=*": "{count} device setups"
+			}
+		}
+	],
 	"attendees_sort_hint": "Sort by this",
 	"attendees_delete": "Delete",
 	"attendees_delete_title": "Delete attendee?",

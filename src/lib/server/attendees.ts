@@ -1,10 +1,11 @@
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { deviceKey, scan, user } from '$lib/server/db/schema';
+import { deviceEnrollment, deviceKey, scan, user } from '$lib/server/db/schema';
 
 /**
  * Everyone who has launched either tool, organizers included, with when they
- * first and last did, how many scans they have and whether a phone is linked.
+ * first and last did, how many scans they have, whether a phone is linked and
+ * every phone setup still in the log, newest first.
  *
  * ponytail: one page, no paging. A club is hundreds of people at most.
  */
@@ -14,6 +15,18 @@ export function listAttendees() {
 		.from(scan)
 		.groupBy(scan.userId)
 		.as('scans');
+	const enrollments = Map.groupBy(
+		db
+			.select({
+				userId: deviceEnrollment.userId,
+				enrolledAt: deviceEnrollment.enrolledAt,
+				userAgent: deviceEnrollment.userAgent
+			})
+			.from(deviceEnrollment)
+			.orderBy(desc(deviceEnrollment.enrolledAt))
+			.all(),
+		(row) => row.userId
+	);
 	return db
 		.select({
 			id: user.id,
@@ -29,7 +42,14 @@ export function listAttendees() {
 		.leftJoin(scans, eq(scans.userId, user.id))
 		.leftJoin(deviceKey, eq(deviceKey.userId, user.id))
 		.orderBy(user.lastName, user.firstName)
-		.all();
+		.all()
+		.map((row) => ({
+			...row,
+			enrollments: (enrollments.get(row.id) ?? []).map(({ enrolledAt, userAgent }) => ({
+				enrolledAt,
+				userAgent
+			}))
+		}));
 }
 
 /**

@@ -9,6 +9,7 @@ import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
 import {
+	deviceEnrollment,
 	deviceKey,
 	event,
 	ltiPlatform,
@@ -161,6 +162,7 @@ async function enroll(token: string) {
 	);
 	const request = new Request('http://localhost:5173/lti-link/enroll?/enroll', {
 		method: 'POST',
+		headers: { 'user-agent': 'launch.spec phone' },
 		body: new URLSearchParams({
 			token,
 			publicKey: JSON.stringify(await crypto.subtle.exportKey('jwk', pair.publicKey)),
@@ -304,6 +306,17 @@ test('setting up again replaces the key, and the old one stops working', async (
 	const after = db.select().from(deviceKey).where(eq(deviceKey.userId, attendee()!.id)).get()!;
 	expect(after.id).not.toBe(before.id);
 	expect(await db.$count(deviceKey, eq(deviceKey.id, before.id))).toBe(0);
+
+	// The log keeps both setups, the replaced one included.
+	const log = db
+		.select()
+		.from(deviceEnrollment)
+		.where(eq(deviceEnrollment.userId, attendee()!.id))
+		.orderBy(desc(deviceEnrollment.enrolledAt))
+		.all();
+	expect(log.length).toBeGreaterThanOrEqual(2);
+	expect(log[0]).toMatchObject({ enrolledAt: after.createdAt, userAgent: 'launch.spec phone' });
+	expect(log[1]).toMatchObject({ enrolledAt: before.createdAt });
 });
 
 test('a public key without proof of its private half is refused', async () => {
@@ -313,6 +326,7 @@ test('a public key without proof of its private half is refused', async () => {
 	]);
 	const request = new Request('http://localhost:5173/lti-link/enroll?/enroll', {
 		method: 'POST',
+		headers: { 'user-agent': 'launch.spec phone' },
 		body: new URLSearchParams({
 			token,
 			publicKey: JSON.stringify(await crypto.subtle.exportKey('jwk', pair.publicKey)),

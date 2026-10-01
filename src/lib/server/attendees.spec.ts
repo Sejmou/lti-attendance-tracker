@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 import { attendance } from './attendance';
 import { deleteAttendee, listAttendees } from './attendees';
 import { db } from './db';
-import { deviceKey, event, scan, user } from './db/schema';
+import { deviceEnrollment, deviceKey, event, scan, user } from './db/schema';
 
 const PLATFORM = 'https://attendees.test';
 
@@ -85,6 +85,7 @@ test("deleting an attendee keeps each event's attendance as it was, with nothing
 	db.insert(deviceKey)
 		.values({ userId: ada.id, publicKey: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' } })
 		.run();
+	db.insert(deviceEnrollment).values({ userId: ada.id, userAgent: 'Phone' }).run();
 
 	scanAt(ada.id, talk.id, '16:02', 'ada-in');
 	// The organizer's screen filed a scan for them on Ada's code scan.
@@ -109,6 +110,9 @@ test("deleting an attendee keeps each event's attendance as it was, with nothing
 
 	expect(db.select().from(user).where(eq(user.id, ada.id)).get()).toBeUndefined();
 	expect(db.select().from(deviceKey).where(eq(deviceKey.userId, ada.id)).get()).toBeUndefined();
+	expect(
+		db.select().from(deviceEnrollment).where(eq(deviceEnrollment.userId, ada.id)).get()
+	).toBeUndefined();
 
 	const anonymised = db
 		.select()
@@ -140,7 +144,7 @@ test('deleting someone who is already gone says so', () => {
 	expect(deleteAttendee(crypto.randomUUID())).toBe(false);
 });
 
-test('the list counts scans and says who has a phone linked', () => {
+test('the list counts scans, says who has a phone linked and lists their setups', () => {
 	const lin = someone('Lin');
 	const max = someone('Max');
 	const lecture = someEvent('lecture');
@@ -149,8 +153,23 @@ test('the list counts scans and says who has a phone linked', () => {
 	db.insert(deviceKey)
 		.values({ userId: lin.id, publicKey: { kty: 'EC', crv: 'P-256', x: 'x', y: 'y' } })
 		.run();
+	db.insert(deviceEnrollment)
+		.values([
+			{ userId: lin.id, enrolledAt: new Date('2026-09-01T10:00:00Z'), userAgent: 'Old phone' },
+			{ userId: lin.id, enrolledAt: new Date('2026-09-20T10:00:00Z'), userAgent: 'New phone' }
+		])
+		.run();
 
 	const rows = listAttendees();
-	expect(rows.find((r) => r.id === lin.id)).toMatchObject({ scans: 2, linked: true });
-	expect(rows.find((r) => r.id === max.id)).toMatchObject({ scans: 0, linked: false });
+	expect(rows.find((r) => r.id === lin.id)).toMatchObject({
+		scans: 2,
+		linked: true,
+		// Newest first.
+		enrollments: [{ userAgent: 'New phone' }, { userAgent: 'Old phone' }]
+	});
+	expect(rows.find((r) => r.id === max.id)).toMatchObject({
+		scans: 0,
+		linked: false,
+		enrollments: []
+	});
 });
