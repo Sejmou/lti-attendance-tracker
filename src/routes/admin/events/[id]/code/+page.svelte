@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { fly } from 'svelte/transition';
 	import QrScreen from '$lib/components/qr-screen.svelte';
+	import { eventWhen } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
@@ -76,13 +77,13 @@
 <svelte:head><title>{m.show_code()}</title></svelte:head>
 
 <QrScreen
-	title={m.qr_heading()}
+	title={data.event.title}
+	subtitle={eventWhen(data.event)}
 	qr={data.qr}
 	msUntilNextBucket={data.msUntilNextBucket}
 	expanded={!showScans}
 	oncollapse={toggleScans}
 >
-	<p class="text-xl font-medium">{data.event.title}</p>
 	<p class="text-gray-600">
 		{m.qr_present({ count: present })}
 		{m.qr_keep_open()}

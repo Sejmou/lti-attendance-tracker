@@ -6,8 +6,8 @@
 	import * as Table from '$lib/components/ui/table';
 	import { deviceName } from '$lib/device-name';
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { formatDateTime, wallClock } from '$lib/time';
+	import { day, eventWhen, time } from '$lib/event-when';
+	import { wallClock } from '$lib/time';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -15,27 +15,13 @@
 	const event = $derived(data.event);
 	const scannedOut = $derived(data.attendance.filter((row) => row.scannedOut).length);
 
-	const day = (at: Date) =>
-		formatDateTime(at, getLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-	const time = (at: Date) =>
-		formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
 	// Scan times on the event's own day need no date; anything else does.
 	const at = (moment: Date) =>
 		wallClock(moment).date === wallClock(event.startsAt).date
 			? time(moment)
 			: `${day(moment)}, ${time(moment)}`;
 
-	const when = $derived.by(() => {
-		if (event.allDay) {
-			const last = new Date(event.endsAt.getTime() - 1);
-			return wallClock(last).date === wallClock(event.startsAt).date
-				? `${day(event.startsAt)} · ${m.events_all_day()}`
-				: `${day(event.startsAt)} – ${day(last)} · ${m.events_all_day()}`;
-		}
-		return wallClock(event.startsAt).date === wallClock(event.endsAt).date
-			? `${day(event.startsAt)}, ${time(event.startsAt)}–${time(event.endsAt)}`
-			: `${day(event.startsAt)}, ${time(event.startsAt)} – ${day(event.endsAt)}, ${time(event.endsAt)}`;
-	});
+	const when = $derived(eventWhen(event));
 
 	const methods = {
 		device: m.scans_method_device,

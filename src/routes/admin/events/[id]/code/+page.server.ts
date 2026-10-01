@@ -12,7 +12,13 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const event = db
-		.select({ id: eventTable.id, title: eventTable.title })
+		.select({
+			id: eventTable.id,
+			title: eventTable.title,
+			startsAt: eventTable.startsAt,
+			endsAt: eventTable.endsAt,
+			allDay: eventTable.allDay
+		})
 		.from(eventTable)
 		.where(eq(eventTable.id, params.id))
 		.get();

@@ -8,6 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
 	import type { EventFields } from '$lib/event-form';
+	import { eventWhen } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
@@ -60,26 +61,6 @@
 			endTime: end.time
 		};
 		editorOpen = true;
-	}
-
-	const day = (at: Date) =>
-		formatDateTime(at, getLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-	const time = (at: Date) =>
-		formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
-
-	function when(row: Row) {
-		if (row.allDay) {
-			// The end of a whole-day event is the midnight after it.
-			const last = new Date(row.endsAt.getTime() - 1);
-			const days =
-				wallClock(last).date === wallClock(row.startsAt).date
-					? day(row.startsAt)
-					: `${day(row.startsAt)} – ${day(last)}`;
-			return `${days} · ${m.events_all_day()}`;
-		}
-		return wallClock(row.startsAt).date === wallClock(row.endsAt).date
-			? `${day(row.startsAt)}, ${time(row.startsAt)}–${time(row.endsAt)}`
-			: `${day(row.startsAt)}, ${time(row.startsAt)} – ${day(row.endsAt)}, ${time(row.endsAt)}`;
 	}
 
 	const ongoing = (row: Row) => row.startsAt <= data.now && data.now < row.endsAt;
@@ -163,7 +144,7 @@
 			<Table.Body>
 				{#each data.events as row (row.id)}
 					<Table.Row class={[past(row) && 'text-muted-foreground']}>
-						<Table.Cell class="whitespace-nowrap">{when(row)}</Table.Cell>
+						<Table.Cell class="whitespace-nowrap">{eventWhen(row)}</Table.Cell>
 						<Table.Cell class="whitespace-normal">
 							<a
 								href={resolve('/admin/events/[id]', { id: row.id })}

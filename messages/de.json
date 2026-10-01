@@ -127,7 +127,6 @@
 	"attendance_col_in": "Eingescannt",
 	"attendance_col_out": "Ausgescannt",
 	"attendance_footnote": "Der erste Scan einer Person zählt als Einscannen, ihr letzter als Ausscannen – sofern es mindestens zwei sind. Scans dazwischen zählen für keins von beiden.",
-	"qr_heading": "Hier scannen",
 	"qr_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],

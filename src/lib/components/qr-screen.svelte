@@ -5,6 +5,7 @@
 
 	let {
 		title,
+		subtitle,
 		qr,
 		msUntilNextBucket,
 		expanded = false,
@@ -12,6 +13,7 @@
 		children
 	}: {
 		title: string;
+		subtitle?: string;
 		qr: string;
 		msUntilNextBucket: number;
 		/** The code alone, as large as the screen allows; `children` aren't shown. */
@@ -55,11 +57,12 @@
 	<main
 		class="grid w-full flex-1 content-start justify-items-center gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_1fr] lg:content-center"
 	>
-		<h1
-			class="text-center text-3xl font-semibold lg:col-start-2 lg:justify-self-start lg:text-left"
-		>
-			{title}
-		</h1>
+		<hgroup class="text-center lg:col-start-2 lg:justify-self-start lg:text-left">
+			<h1 class="text-3xl font-semibold">{title}</h1>
+			{#if subtitle}
+				<p class="mt-1 text-lg text-gray-600">{subtitle}</p>
+			{/if}
+		</hgroup>
 
 		<!-- The full width, but never taller than the viewport (less the padding and the footer). -->
 		{@render code(
