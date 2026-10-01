@@ -122,12 +122,7 @@ Worked out when a scan is published, so it follows attendees being added and del
 `firstName` and `lastName`, so the full name never reaches the screen's browser.
 The admin event page keeps full names and email. A unit-tested pure function.
 
-### 6. Backup rotation
-
-Delete backups older than a retention period (`scripts/backup.js` or a cron job), and
-document it in the README.
-
-### 7. README
+### 6. README
 
 Update the schema notes (`scan` columns, `device_enrollment`, `anonymous_id`,
 `last_seen_at`), "What stops abuse", "Things that undo it", and add a section on

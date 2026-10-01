@@ -723,8 +723,12 @@ The record isn't published; the supervisory authority can ask to see it.
 behalf and needs a data processing agreement (Art. 28 GDPR). If it is outside the EEA,
 the notice has to say so.
 
-**Backups.** Members who were deleted stay in backups until those are deleted, so decide
-how long backups are kept and put it in the notice.
+**Backups.** `pnpm db:backup` never deletes old snapshots, so deleted members, and IP
+hashes, user agents and phone setups older than 12 months, stay in every backup made
+before. Decide how long backups are kept, put it in the notice, and delete them by hand
+once they are older than that: the `*.bak` files next to the database (on the volume,
+under Docker), including the `*.pre-restore.bak` files `pnpm db:restore` leaves, and every
+copy taken off the server.
 
 ## License
 
