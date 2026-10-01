@@ -1,6 +1,7 @@
 import { and, asc, countDistinct, eq } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import { direction as directionOf, scanner } from '$lib/server/attendance';
+import { displayNames } from '$lib/server/display-name';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
 import { ipHash } from '$lib/server/ip-hash';
@@ -49,7 +50,7 @@ export function recordScan(
 	// One transaction, so the event can't be deleted between looking and writing.
 	const outcome = db.transaction((tx) => {
 		const attendee = tx
-			.select({ firstName: user.firstName, lastName: user.lastName })
+			.select({ firstName: user.firstName })
 			.from(user)
 			.where(eq(user.id, proof.userId))
 			.get();
@@ -116,9 +117,21 @@ export function recordScan(
 			.from(scan)
 			.where(eq(scan.eventId, eventId))
 			.get()!;
-		publishScan({ ...attendee, eventId, id: row.id, at: row.at.getTime(), direction, present });
+		// Worked out now, so it follows attendees being added and deleted.
+		const names = displayNames();
+		publishScan({
+			id: row.id,
+			eventId,
+			at: row.at.getTime(),
+			displayName: names.get(proof.userId)!,
+			direction,
+			present
+		});
 		// Only ever their first for the event: see hostScan.
-		if (host) publishScan({ ...host, direction: 'in', present });
+		if (host) {
+			const { id, at } = host;
+			publishScan({ id, eventId, at, displayName: names.get(hostId)!, direction: 'in', present });
+		}
 	}
 	const early = direction === 'out' && Date.now() < event!.endsAt.getTime() - EARLY_OUT_MS;
 	return { firstName: attendee.firstName, eventTitle: event!.title, direction, early };

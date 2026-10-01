@@ -77,11 +77,9 @@ test("the first attendee through an organizer's code files a scan for that organ
 			.from(scan)
 			.where(and(eq(scan.userId, host.id), eq(scan.eventId, eventId)));
 
-	expect(hostScan(host.id, party.id, 'scan-three')).toMatchObject({
-		firstName: 'Ops',
-		eventId: party.id
-	});
+	const filed = hostScan(host.id, party.id, 'scan-three');
 	const [row] = await hostRows(party.id);
+	expect(filed).toEqual({ id: row.id, at: row.scannedAt.getTime() });
 	expect(row).toMatchObject({ method: 'host', codeScanId: 'scan-three', ipHash: null });
 
 	// The next attendee through the same screen doesn't add another: it would

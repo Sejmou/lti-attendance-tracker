@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { env } from '$env/dynamic/private';
 import { resolve } from '$app/paths';
 import { scanner } from '$lib/server/attendance';
+import { displayNames } from '$lib/server/display-name';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import { bucketToken, msUntilNextBucket } from '$lib/server/scan-token';
@@ -35,8 +36,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			.select({
 				id: scan.id,
 				at: scan.scannedAt,
-				firstName: user.firstName,
-				lastName: user.lastName,
+				userId: user.id,
 				// As the live feed says it: out if they have an earlier scan here.
 				direction: sql<'in' | 'out'>`case when exists (
 					select 1 from ${scan} as earlier
@@ -52,7 +52,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			.limit(5)
 	]);
 
+	// The same short names the live feed sends: the full name never reaches
+	// this screen. Null for a deleted attendee.
+	const names = displayNames();
+	const arrivals = recent.map(({ userId, ...arrival }) => ({
+		...arrival,
+		displayName: userId ? names.get(userId)! : null
+	}));
+
 	// No "of how many": there is no attendee list, only whoever has opened the
 	// Moodle activity so far, which says nothing about who is coming.
-	return { event, qr, present, recent, msUntilNextBucket: msUntilNextBucket() };
+	return { event, qr, present, recent: arrivals, msUntilNextBucket: msUntilNextBucket() };
 };
