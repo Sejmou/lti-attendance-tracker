@@ -2,6 +2,8 @@
 
 This notice explains which personal data [Name of the Verein] processes when recording attendance at its events, why, and for how long.
 
+This is a translation of the German Datenschutzerklärung. If the two differ, the German version takes precedence.
+
 ## Controller
 
 [Name of the Verein]
