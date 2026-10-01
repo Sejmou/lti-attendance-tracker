@@ -669,3 +669,15 @@ for what it does and doesn't prove.
 `ip_address` comes from `event.getClientAddress()`. Behind a reverse proxy that is the
 proxy unless adapter-node is told otherwise — set `ADDRESS_HEADER=x-forwarded-for` (and
 `XFF_DEPTH`) or the column records one address for the whole event.
+
+## License
+
+Copyright (C) 2026 Sejmou
+
+This program is licensed under the GNU Affero General Public License, version 3 only
+(AGPL-3.0-only). See [LICENSE](LICENSE).
+
+As permitted by section 14 of the license, the person registered as holder of the
+domain koltergeist.at with nic.at on 1 October 2026 (who publishes as "Sejmou") is
+designated as the proxy who may decide whether future versions of the GNU Affero
+General Public License can be used for this program.
