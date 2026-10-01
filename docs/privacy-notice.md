@@ -11,7 +11,10 @@ Email: [contact address for data protection requests]
 
 ## Where the data comes from
 
-Attendance tracking is reached through the Verein's Moodle course, which only active members can open. When you first open the activity, Moodle passes your first name, last name, email address and Moodle user ID to the app.
+Attendance tracking is reached through the Verein's Moodle course, which only active members can open. The data comes from two sources:
+
+- **Moodle:** when you open the activity, Moodle passes your first name, last name, email address, Moodle user ID and login data such as your role and course.
+- **Your device:** when you set up a device or scan a QR code, your browser sends your IP address, its identifier (user agent) and, when setting up, the public device key. The app itself records the time and event of each scan.
 
 ## What we process and why
 

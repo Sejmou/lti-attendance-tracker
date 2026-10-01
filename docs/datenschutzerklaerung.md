@@ -11,7 +11,10 @@ E-Mail: [Kontaktadresse für Datenschutzanfragen]
 
 ## Woher die Daten stammen
 
-Die Anwesenheitserfassung ist über den Moodle-Kurs des Vereins erreichbar, der nur aktiven Mitgliedern offensteht. Wenn du die Aktivität zum ersten Mal öffnest, übermittelt Moodle deinen Vornamen, Nachnamen, deine E-Mail-Adresse und deine Moodle-Benutzerkennung an die Anwendung.
+Die Anwesenheitserfassung ist über den Moodle-Kurs des Vereins erreichbar, der nur aktiven Mitgliedern offensteht. Die Daten stammen aus zwei Quellen:
+
+- **Moodle:** wenn du die Aktivität öffnest, übermittelt Moodle deinen Vornamen, Nachnamen, deine E-Mail-Adresse, deine Moodle-Benutzerkennung sowie Anmeldedaten wie Rolle und Kurs.
+- **Dein Gerät:** wenn du ein Gerät einrichtest oder einen QR-Code scannst, sendet dein Browser deine IP-Adresse, seine Kennung (User-Agent) und beim Einrichten den öffentlichen Geräteschlüssel. Zeitpunkt und Veranstaltung eines Scans hält die Anwendung selbst fest.
 
 ## Welche Daten wir verarbeiten und wozu
 
