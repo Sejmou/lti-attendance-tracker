@@ -345,14 +345,16 @@ function scan(token: string, code: string) {
 	return actions.scan({ request, getClientAddress: () => '10.0.0.7' } as never);
 }
 
+// Under way whenever the tests run, with well over the early scan-out window
+// left: what counts as early is measured from the clock, not from fixed dates.
 const party = () =>
 	db
 		.insert(event)
 		.values({
 			source: 'manual',
 			title: 'launch.spec party',
-			startsAt: new Date('2026-10-05T16:00:00Z'),
-			endsAt: new Date('2026-10-05T18:00:00Z')
+			startsAt: new Date(Date.now() - 60 * 60_000),
+			endsAt: new Date(Date.now() + 2 * 60 * 60_000)
 		})
 		.returning()
 		.get();

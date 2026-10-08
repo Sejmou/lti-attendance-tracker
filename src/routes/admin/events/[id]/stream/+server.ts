@@ -4,7 +4,8 @@ import type { RequestHandler } from './$types';
 
 /**
  * Server-sent events, one per new scan for this event, for its code screen's live
- * audit. Guarded here rather than by the admin layout, which only runs for pages.
+ * audit. handleAdminSession turns away anyone who isn't an organizer; checked
+ * here too, as the admin layout, which only runs for pages, can't back it up.
  */
 export const GET: RequestHandler = ({ locals, params, request }) => {
 	if (!locals.admin) error(403, 'Forbidden');
