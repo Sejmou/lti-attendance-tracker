@@ -2,10 +2,11 @@ import { sequence } from '@sveltejs/kit/hooks';
 import { dev } from '$app/environment';
 import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
-import type { Handle } from '@sveltejs/kit';
+import { error, type Handle } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
 import { ADMIN_SESSION_COOKIE, verifyAdminSession } from '$lib/server/scan-token';
+import { m } from '$lib/paraglide/messages';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 
@@ -63,9 +64,10 @@ const handleParaglide: Handle = ({ event, resolve }) =>
  * The organizer signed in by launching the admin tool, if any. Attendees never
  * have a session: their phone's device key is all they need.
  *
- * Anything but a read under /admin needs one, and is turned away here. The
- * admin layout's check only guards what pages load: a form action runs before
- * any load, so it would otherwise run for anyone, signed in or not.
+ * Everything under /admin needs one, and is turned away here: pages, form
+ * actions and endpoints alike, so a new one is covered without anyone
+ * remembering to. The admin layout's own check isn't enough on its own: a
+ * form action runs before any load, and an endpoint never runs the layout.
  */
 const handleAdminSession: Handle = ({ event, resolve }) => {
 	const userId = verifyAdminSession(event.cookies.get(ADMIN_SESSION_COOKIE));
@@ -85,10 +87,9 @@ const handleAdminSession: Handle = ({ event, resolve }) => {
 	// The route, not the URL: no base path or locale prefix to get around it.
 	const route = event.route.id;
 	const underAdmin = route === '/admin' || Boolean(route?.startsWith('/admin/'));
-	const reads = event.request.method === 'GET' || event.request.method === 'HEAD';
-	if (underAdmin && !reads && !event.locals.admin) {
-		return new Response('Sign in by opening the admin tool from your course', { status: 401 });
-	}
+	// Thrown rather than returned, so SvelteKit answers in kind: its error
+	// page for a browser, JSON for a data request.
+	if (underAdmin && !event.locals.admin) error(401, m.admin_open_from_lms_text());
 	return resolve(event);
 };
 
