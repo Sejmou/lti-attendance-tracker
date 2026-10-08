@@ -79,6 +79,11 @@
 					<Table.Row>
 						<Table.Cell class="whitespace-normal">
 							<span class="font-medium">{row.firstName} {row.lastName}</span>
+							{#if row.manualEntry}
+								<Badge variant="outline" title={m.attendees_manual_hint()}>
+									{m.scans_method_manual()}
+								</Badge>
+							{/if}
 							<span class="block text-xs text-muted-foreground">{row.email}</span>
 						</Table.Cell>
 						<Table.Cell class="tabular-nums">{date(row.createdAt)}</Table.Cell>

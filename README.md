@@ -356,6 +356,46 @@ allow the camera, the page says so and offers **Continue in a new tab**.
 The one catch is the 15 minutes: a page opened at home has expired by the time the
 attendee gets to the code, and the page tells them to open the activity again.
 
+### Entering details by hand
+
+The last resort, for someone who scanned the code with their camera but can't confirm
+either way above: their phone isn't linked or its key is turned down, and Moodle isn't
+working for them. Only then does `/scan` show a link that opens a form for email, first
+and last name, which asks them to use it only if the organizers agreed. The code scan
+still shows they were at the door; nothing shows who they are. The scan is written with
+`method = 'manual'` (`manualEntry` in `src/routes/scan/+page.server.ts`).
+
+Each address typed in gets a `user` of its own, with `lti_subject = ["manual","<email>"]`
+(no platform's URL is `manual`, so no launch finds it) and the address lowercased. Typing
+it in again, to scan out, finds the same row and counts as them being seen. It is never
+the Moodle account with that address, even when there is one: anyone can type anyone's,
+and a scan filed under the account would count as theirs. The name typed the first time
+stays.
+
+On the event's page, an organizer links such a person's scans for that event to the
+Moodle account with their address, if there is one: **Link** moves the scans' `user_id`
+to the account, and `reported_as` keeps who was typed in, so **Unlink** puts them back.
+The scans stay `manual`. Linking is per event, since what the organizer confirms is that
+this person was at this event.
+
+What keeps it honest:
+
+- one code scan confirms one person: a second person typed in on the same presence cookie
+  is turned away, and the attendee has to scan the code again
+- the log flags `same browser` when one browser confirmed more than one person at the
+  event, and `<name>'s phone` when details were typed in on a phone linked to someone
+  else (its device key signs the code scan along, and `device_key_user_id` records whose
+  it was); the attendance list flags both people
+- the browser is told apart by a random ID in a server-set, `httpOnly` cookie (`browser`,
+  12 months, renewed on each scan; `src/lib/server/browser-id.ts`). A scan never stores
+  the ID, only `browser_hash`, a per-event hash of it, like `ip_hash` (see [`scan`](#scan))
+
+None of this stops someone determined: a private window is a new browser. It makes the
+easy kind of abuse, a friend typing in a group on one phone, show up.
+
+The details typed in are kept in the browser's `localStorage`, so scanning out is not
+typing them all again.
+
 ### Scan-in and scan-out
 
 Every scan puts a row in `scan`. Re-entry is normal, so an attendee may have several
@@ -419,10 +459,16 @@ What catches the rest is the code screen. Every scan shows up there as it
 happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
 visible to everyone around it. Since everyone around it can read it, it is the shortest
-name that tells the attendee apart, not the full one: the first name, plus as much of the
+name that tells the attendee apart, not the full one: the first name (only its first
+word, so a second name like "Anna Maria" stays off the screen), plus as much of the
 last name as it takes among those sharing that first name ("Anna B."), or the whole last
-name when every start of it is shared. Worked out when each scan is published, so it
-follows attendees being added and deleted (`src/lib/server/display-name.ts`). The full name
+name when every start of it is shared. Namesakes with exactly the same name are numbered
+in the order they came instead ("Lukas", "Lukas (2)"): no part of the name tells them
+apart, so showing more of it would only reveal more, and typing in one's details under
+another address makes such a twin easily. Worked out when each scan is published, so it
+follows attendees being added and deleted (`src/lib/server/display-name.ts`). A scan
+entered by hand carries a pen icon, explained in a line under the list whenever one is in
+it. The full name
 never reaches the screen's browser. The toasts come over server-sent events from
 `/admin/events/<id>/stream`, fanned out in-process, so they reach screens on the same
 server only. Each carries the event's count along, so the number on the screen keeps up
@@ -433,7 +479,8 @@ seeing at a glance flagged. `again` is an attendee who had already scanned earli
 `shared` is an address more than one attendee scanned from, matched by its hash (see
 [`scan`](#scan)). Neither is wrong on its own
 — people step out for air, and many share one hotspot — but a code that leaked
-looks like several attendees on one address who were never there in person.
+looks like several attendees on one address who were never there in person. Details
+typed in by hand have two flags of their own (see [Entering details by hand](#entering-details-by-hand)).
 
 ### What the QR code actually proves
 
@@ -460,17 +507,22 @@ prefix of its own, so neither token passes for the other —
 **Attendees page.** `/admin/attendees` lists everyone who has launched either tool,
 organizers included: name, email, first and last launch (`user.created_at`,
 `user.last_seen_at`), number of scans, whether a phone is linked, and every phone setup in
-the log. Sorted by last launch, those who stopped coming are at the top.
+the log. Sorted by last launch, those who stopped coming are at the top. People who only
+entered their details by hand are listed too, marked as such, with their first and latest
+entry as their launches.
 
 **Deleting an attendee** removes everything that identifies them but keeps their
 attendance for the events' statistics. In one transaction:
 
 1. each event they have scans for gets one random `anonymous_id`, set on all their scans
    for it, so their scan-in, scan-out and scan count there survive
-2. on those scans, `user_id`, `ip_hash` and `user_agent` are cleared, and `code_scan_id`
-   is replaced with a random value, since it would pair the row with the host scan riding
-   the same code scan
-3. the `user` row is deleted; `device_key` and `device_enrollment` go with it by cascade
+2. on those scans, `user_id`, `ip_hash`, `user_agent`, `browser_hash`, `reported_as` and
+   `device_key_user_id` are cleared, and `code_scan_id` is replaced with a random value,
+   since it would pair the row with the host scan riding the same code scan
+3. on other people's scans, what points at them is cleared: `reported_as` on details typed
+   in as them and since linked to a Moodle account (which can then no longer be unlinked),
+   and `device_key_user_id` on details typed in on their phone
+4. the `user` row is deleted; `device_key` and `device_enrollment` go with it by cascade
 
 A different `anonymous_id` per event means nothing links their scans across events.
 Scan times stay exact. Wherever scans are counted or grouped by person, it is by
@@ -482,8 +534,8 @@ Scans are anonymised only on deletion, never after a fixed period: until someone
 deleted, on request or by an organizer, their scans stay theirs.
 
 **Retention.** What is only kept against abuse goes after 12 months: scans older than that
-lose their `ip_hash` and `user_agent` (the scans stay), and older `device_enrollment` rows
-are deleted. ltijs's store keeps each launch's `id_token` claims (name, email, role,
+lose their `ip_hash`, `user_agent`, `browser_hash` and `device_key_user_id` (the scans
+stay), and older `device_enrollment` rows are deleted. ltijs's store keeps each launch's `id_token` claims (name, email, role,
 course) for 23 hours, and its nonces for 10 minutes.
 
 All of it is pruned when the server starts and then every hour (`scheduleRetention` in
@@ -686,7 +738,9 @@ Besides the log and `event` (see [Events](#events)), `device_key` (see [Setting 
 pairs in `lti_registration` and ltijs's `lti_*` tables (see [LTI platforms](#lti-platforms)),
 there is `user`: everyone who has launched either tool. Its `lti_subject` — the LMS
 account, `["<iss>","<sub>"]`, unique — is how every launch finds them. `last_seen_at` is
-set on every launch, so organizers can spot attendees who stopped coming.
+set on every launch, so organizers can spot attendees who stopped coming. People who only
+entered their details by hand are `user` rows too, with `["manual","<email>"]` (see
+[Entering details by hand](#entering-details-by-hand)).
 
 `device_enrollment` logs every phone setup, replaced ones included, with the browser's user
 agent and no address: phones are mostly set up at home. Kept 12 months, or until the
@@ -708,13 +762,20 @@ Deliberately absent:
 
 One row per scan, filed under an `event` (`event_id`):
 
-| Column                  | Why it's there                                                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `user_id`, `scanned_at` | who and when; `user_id` is null once the attendee is deleted                                                                     |
-| `anonymous_id`          | null while the attendee exists; for a deleted one, random, one per attendee and event, so their attendance there still adds up   |
-| `method`                | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page) or `host` (see below), as verified server-side then |
-| `ip_hash`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's. Cleared after 12 months          |
-| `code_scan_id`          | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many   |
+| Column                  | Why it's there                                                                                                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_id`, `scanned_at` | who and when; `user_id` is null once the attendee is deleted                                                                                                          |
+| `anonymous_id`          | null while the attendee exists; for a deleted one, random, one per attendee and event, so their attendance there still adds up                                        |
+| `method`                | `device` (the phone's key), `lti` (a Moodle launch and a scan from its page), `host` (see below) or `manual` (details typed in by hand), as verified server-side then |
+| `ip_hash`, `user_agent` | a code photographed and passed around shows up as scans from addresses that aren't the venue's. Cleared after 12 months                                               |
+| `code_scan_id`          | a non-secret handle for one code scan; one device working through borrowed accounts shows up as one `code_scan_id` across many                                        |
+| `browser_hash`          | a per-event hash of the browser's ID cookie, like `ip_hash`: one browser confirming several people shows up. Cleared after 12 months                                  |
+| `reported_as`           | for `manual`: who was typed in, kept when an organizer links the scan to a Moodle account, so it can be unlinked                                                      |
+| `device_key_user_id`    | for `manual`: whose linked phone it was typed in on, if any. Cleared after 12 months                                                                                  |
+
+`reported_as` and `device_key_user_id` hold user IDs without a foreign key: SQLite can
+only add one by rebuilding the table, which drizzle-kit 0.31's push gets wrong (it creates
+every index twice and fails halfway). Deleting an attendee clears them instead.
 
 `method = 'host'` marks the organizer who was signed in on the code screen, filed
 automatically when the first attendee got in through their code. It has no `ip_hash`
@@ -765,7 +826,7 @@ the organisation.
   privacy, and expect that a member may object (Art. 21), after which their attendance
   can't be recorded without compelling reasons.
 
-The data kept against abuse (IP address, user agent, phone setups) is Art. 6(1)(f)
+The data kept against abuse (IP address, user agent, browser ID, phone setups) is Art. 6(1)(f)
 either way. Consent (Art. 6(1)(a)) fits poorly: it can be withdrawn at any time, and
 within a membership it is hard to show it was given freely.
 
@@ -793,7 +854,7 @@ behalf and needs a data processing agreement (Art. 28 GDPR). If it is outside th
 the notice has to say so.
 
 **Backups.** `pnpm db:backup` never deletes old snapshots, so deleted members, and IP
-hashes, user agents and phone setups older than 12 months, stay in every backup made
+and browser hashes, user agents and phone setups older than 12 months, stay in every backup made
 before. Decide how long backups are kept, put it in the notice, and delete them by hand
 once they are older than that: the `*.bak` files next to the database (on the volume,
 under Docker), including the `*.pre-restore.bak` files `pnpm db:restore` leaves, and every

@@ -13,10 +13,23 @@ import { env } from '$env/dynamic/private';
  * matched any more.
  */
 export function ipHash(eventId: string, ip: string) {
+	return perEventHash('ip-hash', eventId, ip);
+}
+
+/**
+ * The same for the browser's ID (see browser-id), under a prefix of its own:
+ * one browser's scans for an event can be told to be one browser's, but
+ * neither across events nor against its address.
+ */
+export function browserHash(eventId: string, browserId: string) {
+	return perEventHash('browser-hash', eventId, browserId);
+}
+
+function perEventHash(purpose: string, eventId: string, value: string) {
 	// Checked at startup by scan-token, which signs everything else with it.
 	const secret = env.SIGNING_SECRET;
 	if (!secret) throw new Error('SIGNING_SECRET is not set');
 
-	const key = createHmac('sha256', secret).update(`ip-hash:${eventId}`).digest();
-	return createHmac('sha256', key).update(ip).digest('base64url');
+	const key = createHmac('sha256', secret).update(`${purpose}:${eventId}`).digest();
+	return createHmac('sha256', key).update(value).digest('base64url');
 }

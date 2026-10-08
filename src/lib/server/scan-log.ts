@@ -1,21 +1,27 @@
 // `scanner`, not a user ID: a deleted attendee's rows still need telling apart.
-type Row = { scanner: string; ipHash: string | null };
+type Row = {
+	scanner: string;
+	ipHash: string | null;
+	browserHash?: string | null;
+	deviceKeyUserId?: string | null;
+};
 
 /**
  * Marks the two things worth seeing at a glance in the log. Neither is wrong on
  * its own — attendees step out for air, and a whole table shares one hotspot — but
  * a code that leaked shows up as one of them.
  *
+ * And two that are about who scanned: one browser behind more than one
+ * person (`sharedBrowser`), and details typed in on a phone set up for
+ * someone else (`otherPersonsPhone`). Unlike a shared address, a shared
+ * browser rarely has an innocent reason — though people do lend a phone to a
+ * friend whose battery died.
+ *
  * Rows go in newest first and come back in the same order.
  */
 export function annotate<T extends Row>(rows: T[]) {
-	const usersPerIp = new Map<string, Set<string>>();
-	for (const { ipHash, scanner } of rows) {
-		if (!ipHash) continue;
-		let seen = usersPerIp.get(ipHash);
-		if (!seen) usersPerIp.set(ipHash, (seen = new Set()));
-		seen.add(scanner);
-	}
+	const usersPerIp = scannersPer(rows, (row) => row.ipHash);
+	const usersPerBrowser = scannersPer(rows, (row) => row.browserHash);
 
 	// Walked oldest first, so the earliest arrival is the one not marked.
 	const arrived = new Set<string>();
@@ -28,10 +34,25 @@ export function annotate<T extends Row>(rows: T[]) {
 			return {
 				...row,
 				repeat,
-				sharedAddress: (usersPerIp.get(row.ipHash ?? '')?.size ?? 0) > 1
+				sharedAddress: (usersPerIp.get(row.ipHash ?? '')?.size ?? 0) > 1,
+				sharedBrowser: (usersPerBrowser.get(row.browserHash ?? '')?.size ?? 0) > 1,
+				otherPersonsPhone: Boolean(row.deviceKeyUserId && row.deviceKeyUserId !== row.scanner)
 			};
 		})
 		.reverse();
 
 	return { rows: marked, attendees: arrived.size, addresses: usersPerIp.size };
+}
+
+/** Who is behind each value of `key`, rows without one left out. */
+function scannersPer<T extends Row>(rows: T[], key: (row: T) => string | null | undefined) {
+	const scanners = new Map<string, Set<string>>();
+	for (const row of rows) {
+		const value = key(row);
+		if (!value) continue;
+		let seen = scanners.get(value);
+		if (!seen) scanners.set(value, (seen = new Set()));
+		seen.add(row.scanner);
+	}
+	return scanners;
 }

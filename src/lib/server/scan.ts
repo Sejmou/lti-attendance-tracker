@@ -1,10 +1,11 @@
-import { and, asc, countDistinct, eq } from 'drizzle-orm';
+import { and, asc, countDistinct, eq, ne } from 'drizzle-orm';
 import type { RequestEvent } from '@sveltejs/kit';
 import { direction as directionOf, scanner } from '$lib/server/attendance';
+import { browserIdOf } from '$lib/server/browser-id';
 import { displayNames } from '$lib/server/display-name';
 import { publishScan } from '$lib/server/scan-feed';
 import { hostScan } from '$lib/server/scan-host';
-import { ipHash } from '$lib/server/ip-hash';
+import { browserHash, ipHash } from '$lib/server/ip-hash';
 import { pruneExpired } from '$lib/server/retention';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
@@ -36,16 +37,27 @@ const EARLY_OUT_MS = 5 * 60_000;
  * is gone: the attendee (deleting
  * one cascades to their key, so this is a race at most), or the event — a
  * manual one can be deleted while its code is still on a screen, as long as
- * nobody has scanned it yet.
+ * nobody has scanned it yet. Or, for details typed in, that this code scan
+ * already confirmed someone else's: one camera scan, one person.
  */
 export function recordScan(
 	request: RequestEvent,
-	proof: { userId: string; method: 'device' | 'lti'; codeScanId: string; screen: CodeScreen }
+	proof: {
+		userId: string;
+		codeScanId: string;
+		screen: CodeScreen;
+	} & (
+		| { method: 'device' | 'lti' }
+		// Who the browser's device key belongs to, if it has one: see scan.
+		| { method: 'manual'; deviceKeyUserId: string | null }
+	)
 ):
 	| { firstName: string; eventTitle: string; direction: 'in' | 'out'; early: boolean }
 	| { firstName: string; eventTitle: string; alreadyInSince: Date }
-	| { gone: 'attendee' | 'event' } {
+	| { gone: 'attendee' | 'event' }
+	| { used: true } {
 	const { eventId, hostId } = proof.screen;
+	const browserId = browserIdOf(request.cookies);
 
 	// One transaction, so the event can't be deleted between looking and writing.
 	const outcome = db.transaction((tx) => {
@@ -62,6 +74,22 @@ export function recordScan(
 			.where(eq(eventTable.id, eventId))
 			.get();
 		if (!event) return { gone: 'event' as const };
+
+		if (proof.method === 'manual') {
+			const other = tx
+				.select({ id: scan.id })
+				.from(scan)
+				.where(
+					and(
+						eq(scan.codeScanId, proof.codeScanId),
+						eq(scan.method, 'manual'),
+						ne(scan.reportedAs, proof.userId)
+					)
+				)
+				.limit(1)
+				.get();
+			if (other) return { used: true as const };
+		}
 
 		const scanIn = tx
 			.select({ at: scan.scannedAt, codeScanId: scan.codeScanId })
@@ -90,13 +118,19 @@ export function recordScan(
 				method: proof.method,
 				codeScanId: proof.codeScanId,
 				ipHash: ipHash(eventId, request.getClientAddress()),
-				userAgent: request.request.headers.get('user-agent')
+				userAgent: request.request.headers.get('user-agent'),
+				browserHash: browserId && browserHash(eventId, browserId),
+				...(proof.method === 'manual' && {
+					reportedAs: proof.userId,
+					deviceKeyUserId: proof.deviceKeyUserId
+				})
 			})
 			.onConflictDoNothing()
 			.returning({ id: scan.id, at: scan.scannedAt })
 			.get();
 		return { attendee, event, row };
 	});
+	if (outcome.used) return { used: true };
 	if (outcome.gone) return { gone: outcome.gone };
 
 	if (outcome.alreadyInSince) {
@@ -124,13 +158,22 @@ export function recordScan(
 			eventId,
 			at: row.at.getTime(),
 			displayName: names.get(proof.userId)!,
+			manual: proof.method === 'manual',
 			direction,
 			present
 		});
 		// Only ever their first for the event: see hostScan.
 		if (host) {
 			const { id, at } = host;
-			publishScan({ id, eventId, at, displayName: names.get(hostId)!, direction: 'in', present });
+			publishScan({
+				id,
+				eventId,
+				at,
+				displayName: names.get(hostId)!,
+				manual: false,
+				direction: 'in',
+				present
+			});
 		}
 	}
 	const early = direction === 'out' && Date.now() < event!.endsAt.getTime() - EARLY_OUT_MS;

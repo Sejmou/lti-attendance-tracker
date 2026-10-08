@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { fly } from 'svelte/transition';
+	import UserPenIcon from '@lucide/svelte/icons/user-pen';
 	import QrScreen from '$lib/components/qr-screen.svelte';
 	import { eventWhen } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
@@ -52,6 +53,8 @@
 			.sort((a, b) => b.at.getTime() - a.at.getTime())
 			.slice(0, 5)
 	);
+	// The icon alone says little, and nobody hovers over a screen at the door.
+	const showLegend = $derived(recent.some((arrival) => arrival.manual));
 
 	// Every scan, as it happens, on the screen people are standing in front
 	// of. A link used by the wrong person shows a name that isn't theirs.
@@ -102,13 +105,28 @@
 			<ol class="divide-y divide-gray-100 rounded-lg border border-gray-200">
 				{#each recent as arrival (arrival.id)}
 					<li class="flex justify-between gap-4 px-3 py-2">
-						<span>{arrival.displayName ?? m.scans_deleted_attendee()}</span>
+						<span class="inline-flex items-center gap-1.5">
+							{arrival.displayName ?? m.scans_deleted_attendee()}
+							{#if arrival.manual}
+								<UserPenIcon
+									class="size-4 text-gray-500"
+									role="img"
+									aria-label={m.qr_manual_legend()}
+								/>
+							{/if}
+						</span>
 						<span class="text-gray-500 tabular-nums">
 							{arrival.direction === 'in' ? m.qr_in() : m.qr_out()} · {time(arrival.at)}
 						</span>
 					</li>
 				{/each}
 			</ol>
+			{#if showLegend}
+				<p class="mt-2 inline-flex items-center gap-1.5 text-sm text-gray-500">
+					<UserPenIcon class="size-4" aria-hidden="true" />
+					{m.qr_manual_legend()}
+				</p>
+			{/if}
 		{/if}
 	</section>
 
@@ -128,11 +146,14 @@
 	{#each toasts as toast (toast.id)}
 		<div
 			transition:fly={{ x: 80 }}
-			class="rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
+			class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-5 py-3 text-lg text-white shadow-lg"
 		>
 			✓ {(toast.direction === 'in' ? m.qr_scanned_in : m.qr_scanned_out)({
 				name: toast.displayName ?? m.scans_deleted_attendee()
 			})}
+			{#if toast.manual}
+				<UserPenIcon class="size-5" role="img" aria-label={m.qr_manual_legend()} />
+			{/if}
 		</div>
 	{/each}
 </div>

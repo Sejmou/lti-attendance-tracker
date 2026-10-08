@@ -1,6 +1,7 @@
 import { and, count, eq, max, min, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { scan, user } from '$lib/server/db/schema';
+import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 
 /**
  * Whose a scan is, for counting and grouping by person: the attendee's, or
@@ -16,18 +17,27 @@ export const scanner = sql<string>`coalesce(${scan.userId}, ${scan.anonymousId})
  * each load, never stored, so it can't drift from the scans it comes from.
  *
  * A deleted attendee's row is still there, with no name or email.
+ *
+ * `manualScans` counts the ones typed in rather than confirmed, and
+ * `manualEntry` says the person is only someone typed in, not a platform
+ * account (see user). `userId` is null for a deleted attendee.
  */
 export function attendance(eventId: string) {
 	const scannedIn = min(scan.scannedAt);
 	return db
 		.select({
 			scanner,
+			userId: scan.userId,
 			firstName: user.firstName,
 			lastName: user.lastName,
 			email: user.email,
 			scannedIn,
 			last: max(scan.scannedAt),
-			scans: count()
+			scans: count(),
+			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`,
+			manualEntry: sql<boolean>`coalesce(${user.ltiSubject} like ${MANUAL_SUBJECTS}, 0)`.mapWith(
+				Boolean
+			)
 		})
 		.from(scan)
 		.leftJoin(user, eq(user.id, scan.userId))

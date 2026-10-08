@@ -4,7 +4,7 @@
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
 
-	type Scanned = { firstName: string; eventTitle: string } & (
+	type Scanned = { firstName: string; eventTitle: string; manualEntry?: boolean } & (
 		{ direction: 'in' | 'out'; early: boolean } | { alreadyInSince: Date }
 	);
 
@@ -48,3 +48,6 @@
 				: m.scan_out_note()}
 	{/if}
 </p>
+{#if scanned.manualEntry}
+	<p class="text-sm text-gray-600">{m.scan_manual_note()}</p>
+{/if}

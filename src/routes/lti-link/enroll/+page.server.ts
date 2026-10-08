@@ -61,8 +61,11 @@ export const actions: Actions = {
 			codeScanId: launchCodeScanId(token, code),
 			screen
 		});
-		if ('gone' in outcome) {
-			return fail(403, { message: outcome.gone === 'event' ? EVENT_GONE() : SCAN_EXPIRED() });
+		// `used` is only ever for details typed in.
+		if ('gone' in outcome || 'used' in outcome) {
+			return fail(403, {
+				message: 'gone' in outcome && outcome.gone === 'event' ? EVENT_GONE() : SCAN_EXPIRED()
+			});
 		}
 		return { scanned: outcome };
 	},

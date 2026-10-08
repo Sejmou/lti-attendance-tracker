@@ -1,11 +1,13 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { deviceEnrollment, deviceKey, scan, user } from '$lib/server/db/schema';
+import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 
 /**
  * Everyone who has launched either tool, organizers included, with when they
  * first and last did, how many scans they have, whether a phone is linked and
- * every phone setup still in the log, newest first.
+ * every phone setup still in the log, newest first. And everyone who only
+ * typed in their details (`manualEntry`), with their first and latest entry.
  *
  * ponytail: one page, no paging. A club is hundreds of people at most.
  */
@@ -36,7 +38,8 @@ export function listAttendees() {
 			createdAt: user.createdAt,
 			lastSeenAt: user.lastSeenAt,
 			scans: sql<number>`coalesce(${scans.scans}, 0)`,
-			linked: sql<boolean>`${deviceKey.id} is not null`.mapWith(Boolean)
+			linked: sql<boolean>`${deviceKey.id} is not null`.mapWith(Boolean),
+			manualEntry: sql<boolean>`${user.ltiSubject} like ${MANUAL_SUBJECTS}`.mapWith(Boolean)
 		})
 		.from(user)
 		.leftJoin(scans, eq(scans.userId, user.id))
@@ -57,8 +60,12 @@ export function listAttendees() {
  * scans for the events' statistics. Each event's scans of theirs get a random
  * `anonymousId` of their own, so their scan-in, scan-out and count for it
  * survive, but nothing ties those to them or to each other across events.
- * The address and device go, and `codeScanId` is replaced, as it would match
- * the host scan that rode in on the same code scan.
+ * The address, browser and device go, and `codeScanId` is replaced, as it
+ * would match the host scan that rode in on the same code scan.
+ *
+ * Other people's scans can point at them too, and lose that: details typed in
+ * as them and since linked to a platform account (`reportedAs`; the link can't
+ * be undone after), and details typed in on their phone (`deviceKeyUserId`).
  *
  * Their device key goes with the `user` row, by cascade. Returns whether
  * there was anyone to delete.
@@ -78,12 +85,17 @@ export function deleteAttendee(userId: string) {
 					userId: null,
 					ipHash: null,
 					userAgent: null,
+					browserHash: null,
+					reportedAs: null,
+					deviceKeyUserId: null,
 					// Per row, the length of a real one.
 					codeScanId: sql`lower(hex(randomblob(8)))`
 				})
 				.where(and(eq(scan.userId, userId), eq(scan.eventId, eventId)))
 				.run();
 		}
+		tx.update(scan).set({ reportedAs: null }).where(eq(scan.reportedAs, userId)).run();
+		tx.update(scan).set({ deviceKeyUserId: null }).where(eq(scan.deviceKeyUserId, userId)).run();
 		return tx.delete(user).where(eq(user.id, userId)).run().changes > 0;
 	});
 }

@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				id: scan.id,
 				at: scan.scannedAt,
 				userId: user.id,
+				manual: sql<boolean>`${scan.method} = 'manual'`.mapWith(Boolean),
 				// As the live feed says it: out if they have an earlier scan here.
 				direction: sql<'in' | 'out'>`case when exists (
 					select 1 from ${scan} as earlier
