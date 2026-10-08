@@ -11,13 +11,19 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
  * creates the row, from what the platform shares about them, and every later
  * one finds it by `ltiSubject`. Whether someone is an organizer isn't stored
  * here at all — it is which of the two tools they launched (see ltiRegistration).
+ *
+ * Plus everyone who confirmed their attendance by typing in their details
+ * (see `method: 'manual'` on scan): one row per address, and never the same
+ * row as a platform account with that address — anyone can type anyone's. An
+ * organizer links their scans to the platform account by hand (see
+ * `reportedAs`).
  */
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
 	/**
 	 * Whatever the platform profile said on the first launch. Not unique and not
 	 * an identity: the platform may let people change it, and two platforms may
-	 * share one person's address.
+	 * share one person's address. Lowercased when typed in by hand.
 	 */
 	email: text('email').notNull(),
 	firstName: text('first_name').notNull(),
@@ -25,6 +31,12 @@ export const user = sqliteTable('user', {
 	/**
 	 * The platform account, `["<iss>","<sub>"]`: the platform's URL and its
 	 * permanent user ID, which is only unique within that platform.
+	 *
+	 * `["manual","<email>"]` for someone who typed in their details (see
+	 * manual-entry): no platform's URL is `manual`, so no launch finds it, and
+	 * typing the same address in again, to scan out, finds the same person.
+	 * Not null, rather than null for them, because making the column nullable
+	 * means rebuilding the table, which drizzle-kit 0.31 gets wrong on push.
 	 */
 	ltiSubject: text('lti_subject').notNull().unique(),
 	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
@@ -100,17 +112,38 @@ export const scan = sqliteTable(
 		// - host:   they are the admin showing the code, and an attendee just scanned
 		//           it. Nobody confirmed it was them; the attendee's scan says their
 		//           screen is at the door. See hostScan.
-		method: text('method', { enum: ['device', 'lti', 'host'] }).notNull(),
+		// - manual: they scanned the code but typed in who they are. Nothing
+		//           confirmed it; see reportedAs and the flags below.
+		method: text('method', { enum: ['device', 'lti', 'host', 'manual'] }).notNull(),
 		ipAddress: text('ip_address'),
 		userAgent: text('user_agent'),
 		// Which scan of which displayed code this rode in on. A host row shares
 		// the attendee's.
-		codeScanId: text('code_scan_id').notNull()
+		codeScanId: text('code_scan_id').notNull(),
+		// The browser it came from: a random ID in a long-lived cookie (see
+		// browser-id). One browser behind several people's scans is worth a look.
+		// Null where there was no cookie, as inside Moodle's frame, and for host rows.
+		browserId: text('browser_id'),
+		// For `manual`: who they typed in (a user). Stays put when an organizer
+		// links the scan to a platform account by moving `userId`, so it can be
+		// undone.
+		//
+		// This and deviceKeyUserId hold user IDs but have no foreign key: SQLite
+		// can only add one by rebuilding the table, and drizzle-kit 0.31's push
+		// rebuilds it wrongly (it creates every index twice and fails halfway).
+		// The app never deletes users; one deleted by hand leaves these pointing
+		// nowhere, which the admin pages show as unknown.
+		reportedAs: text('reported_as'),
+		// For `manual`: whose device key the browser holds, if it holds one. Someone
+		// other than `userId` means it was typed in on another attendee's phone.
+		deviceKeyUserId: text('device_key_user_id')
 	},
 	(table) => [
 		index('scan_userId_idx').on(table.userId),
 		index('scan_scannedAt_idx').on(table.scannedAt),
 		index('scan_eventId_idx').on(table.eventId),
+		index('scan_browserId_idx').on(table.browserId),
+		index('scan_reportedAs_idx').on(table.reportedAs),
 		unique('scan_user_code_scan_unq').on(table.userId, table.codeScanId)
 	]
 );

@@ -1,12 +1,17 @@
-import { and, count, eq, max, min } from 'drizzle-orm';
+import { and, count, eq, max, min, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { scan, user } from '$lib/server/db/schema';
+import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 
 /**
  * Who came to an event, and when they scanned in and out: an attendee's first
  * scan is their scan-in, their last one their scan-out — if there are two or
  * more. Nobody says which way a scan goes; the order does. Worked out here on
  * each load, never stored, so it can't drift from the scans it comes from.
+ *
+ * `manualScans` counts the ones typed in rather than confirmed, and
+ * `manualEntry` says the person is only someone typed in, not a platform
+ * account (see user).
  */
 export function attendance(eventId: string) {
 	const scannedIn = min(scan.scannedAt);
@@ -18,7 +23,9 @@ export function attendance(eventId: string) {
 			email: user.email,
 			scannedIn,
 			last: max(scan.scannedAt),
-			scans: count()
+			scans: count(),
+			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`,
+			manualEntry: sql<boolean>`${user.ltiSubject} like ${MANUAL_SUBJECTS}`.mapWith(Boolean)
 		})
 		.from(scan)
 		.innerJoin(user, eq(user.id, scan.userId))

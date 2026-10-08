@@ -324,7 +324,11 @@ function scan(token: string, code: string) {
 		method: 'POST',
 		body: new URLSearchParams({ token, code })
 	});
-	return actions.scan({ request, getClientAddress: () => '10.0.0.7' } as never);
+	return actions.scan({
+		request,
+		getClientAddress: () => '10.0.0.7',
+		cookies: { get: () => undefined }
+	} as never);
 }
 
 // Under way whenever the tests run, with well over the early scan-out window

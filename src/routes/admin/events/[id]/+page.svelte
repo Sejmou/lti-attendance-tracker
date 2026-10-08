@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import { Badge } from '$lib/components/ui/badge';
@@ -7,9 +8,9 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
-	import type { PageServerData } from './$types';
+	import type { ActionData, PageServerData } from './$types';
 
-	let { data }: { data: PageServerData } = $props();
+	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
 	const event = $derived(data.event);
 	const scannedOut = $derived(data.attendance.filter((row) => row.scannedOut).length);
@@ -39,12 +40,14 @@
 	const methods = {
 		device: m.scans_method_device,
 		lti: m.scans_method_lti,
-		host: m.scans_method_host
+		host: m.scans_method_host,
+		manual: m.scans_method_manual
 	};
 
 	const hints: Partial<Record<keyof typeof methods, () => string>> = {
 		host: m.scans_host_hint,
-		lti: m.scans_lti_hint
+		lti: m.scans_lti_hint,
+		manual: m.scans_manual_entry_hint
 	};
 
 	// The full string is in the title attribute; the table is for scanning.
@@ -105,7 +108,49 @@
 						<Table.Row>
 							<Table.Cell class="whitespace-normal">
 								<span class="font-medium">{row.firstName} {row.lastName}</span>
+								{#if row.manualScans > 0}
+									<Badge
+										variant="outline"
+										title={m.attendance_manual_hint({ count: row.manualScans, total: row.scans })}
+									>
+										{m.scans_method_manual()}
+									</Badge>
+								{/if}
+								{#if row.flagged}
+									<Badge variant="destructive" title={m.attendance_flagged_hint()}>
+										{m.attendance_flagged()}
+									</Badge>
+								{/if}
 								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#each row.suggestions as account (account.id)}
+									<form
+										method="post"
+										action="?/link"
+										use:enhance
+										class="mt-1 flex flex-wrap items-center gap-2 text-xs"
+									>
+										<input type="hidden" name="reportedAs" value={row.userId} />
+										<input type="hidden" name="userId" value={account.id} />
+										<span>
+											{m.link_suggestion({ name: `${account.firstName} ${account.lastName}` })}
+										</span>
+										<Button type="submit" size="xs" variant="outline" title={m.link_hint()}>
+											{m.link_button()}
+										</Button>
+									</form>
+								{/each}
+								{#each row.linkedFrom as typed (typed.reportedAs)}
+									<form
+										method="post"
+										action="?/unlink"
+										use:enhance
+										class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+									>
+										<input type="hidden" name="reportedAs" value={typed.reportedAs} />
+										<span>{m.linked_from({ email: typed.email })}</span>
+										<Button type="submit" size="xs" variant="ghost">{m.unlink_button()}</Button>
+									</form>
+								{/each}
 							</Table.Cell>
 							<Table.Cell class="tabular-nums">{at(row.scannedIn)}</Table.Cell>
 							<Table.Cell class="tabular-nums">
@@ -116,6 +161,9 @@
 					{/each}
 				</Table.Body>
 			</Table.Root>
+			{#if form && 'linkFailed' in form}
+				<p class="text-sm text-red-600" role="alert">{m.link_failed()}</p>
+			{/if}
 			<p class="text-sm text-muted-foreground">{m.attendance_footnote()}</p>
 		{/if}
 	</section>
@@ -146,7 +194,20 @@
 							<Table.Cell class="whitespace-normal">
 								{row.firstName}
 								{row.lastName}
+								{#if row.otherPersonsPhone}
+									{@const owner = row.keyOwnerFirstName
+										? `${row.keyOwnerFirstName} ${row.keyOwnerLastName}`
+										: '?'}
+									<Badge variant="destructive" title={m.scans_other_phone_hint({ name: owner })}>
+										{m.scans_other_phone({ name: owner })}
+									</Badge>
+								{/if}
 								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.typedEmail && row.reportedAs !== row.userId}
+									<span class="block text-xs text-muted-foreground">
+										{m.linked_from({ email: row.typedEmail })}
+									</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell title={hints[row.method]?.()}>{methods[row.method]()}</Table.Cell>
 							<Table.Cell>
@@ -156,7 +217,14 @@
 									>
 								{/if}
 							</Table.Cell>
-							<Table.Cell title={row.userAgent ?? ''}>{device(row.userAgent)}</Table.Cell>
+							<Table.Cell title={row.userAgent ?? ''}>
+								{device(row.userAgent)}
+								{#if row.sharedBrowser}
+									<Badge variant="destructive" title={m.scans_shared_browser_hint()}>
+										{m.scans_shared_browser()}
+									</Badge>
+								{/if}
+							</Table.Cell>
 							<Table.Cell class="font-mono text-xs text-muted-foreground">
 								{row.codeScanId}
 								{#if row.repeat}

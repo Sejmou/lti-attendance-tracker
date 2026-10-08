@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { loadDeviceKey, scanMessage, sign } from '$lib/device-key';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
+	import ManualEntryForm from '$lib/components/manual-entry-form.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -56,6 +57,11 @@
 		<p class="text-gray-600">
 			{m.scan_set_up_text({ button: m.enroll_set_up() })}
 		</p>
+	{/if}
+
+	<!-- Once the phone's own way is known not to work: not linked, or turned down. -->
+	{#if data.codeScanId && !scanned && (hasDeviceKey === false || form)}
+		<ManualEntryForm {keyId} {signature} />
 	{/if}
 
 	<p class="text-sm text-red-600" role="alert">

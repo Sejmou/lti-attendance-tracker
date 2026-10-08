@@ -32,3 +32,25 @@ test('a missing address is not shared with every other missing one', () => {
 	expect(marked.every((r) => !r.sharedAddress)).toBe(true);
 	expect(addresses).toBe(0);
 });
+
+test('a browser behind two people is flagged on both of their rows, one behind a single person not', () => {
+	const { rows: marked } = annotate([
+		{ userId: 'bob', ipAddress: null, browserId: 'phone-1' }, // typed in on Ada's phone
+		{ userId: 'ada', ipAddress: null, browserId: 'phone-1' },
+		{ userId: 'ada', ipAddress: null, browserId: 'phone-1' },
+		{ userId: 'grace', ipAddress: null, browserId: 'phone-2' },
+		{ userId: 'alan', ipAddress: null, browserId: null }
+	]);
+
+	expect(marked.map((r) => r.sharedBrowser)).toEqual([true, true, true, false, false]);
+});
+
+test("details typed in on a phone set up for someone else are flagged, on one's own phone not", () => {
+	const { rows: marked } = annotate([
+		{ userId: 'bob', ipAddress: null, deviceKeyUserId: 'ada' },
+		{ userId: 'ada', ipAddress: null, deviceKeyUserId: 'ada' },
+		{ userId: 'grace', ipAddress: null, deviceKeyUserId: null }
+	]);
+
+	expect(marked.map((r) => r.otherPersonsPhone)).toEqual([true, false, false]);
+});
