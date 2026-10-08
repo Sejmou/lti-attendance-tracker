@@ -3,8 +3,11 @@ import { EventEmitter } from 'node:events';
 export type FeedScan = {
 	id: string;
 	eventId: string;
-	firstName: string;
-	lastName: string;
+	/**
+	 * The shortest name that tells them apart (see shortNames). Never the full
+	 * name: the screen it goes to is in front of everyone at the door.
+	 */
+	displayName: string;
 	at: number;
 	/** Which way it counts as things stand: see `direction`. */
 	direction: 'in' | 'out';

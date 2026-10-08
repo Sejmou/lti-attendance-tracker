@@ -1,4 +1,5 @@
-type Row = { userId: string; ipAddress: string | null };
+// `scanner`, not a user ID: a deleted attendee's rows still need telling apart.
+type Row = { scanner: string; ipHash: string | null };
 
 /**
  * Marks the two things worth seeing at a glance in the log. Neither is wrong on
@@ -9,11 +10,11 @@ type Row = { userId: string; ipAddress: string | null };
  */
 export function annotate<T extends Row>(rows: T[]) {
 	const usersPerIp = new Map<string, Set<string>>();
-	for (const { ipAddress, userId } of rows) {
-		if (!ipAddress) continue;
-		let seen = usersPerIp.get(ipAddress);
-		if (!seen) usersPerIp.set(ipAddress, (seen = new Set()));
-		seen.add(userId);
+	for (const { ipHash, scanner } of rows) {
+		if (!ipHash) continue;
+		let seen = usersPerIp.get(ipHash);
+		if (!seen) usersPerIp.set(ipHash, (seen = new Set()));
+		seen.add(scanner);
 	}
 
 	// Walked oldest first, so the earliest arrival is the one not marked.
@@ -22,12 +23,12 @@ export function annotate<T extends Row>(rows: T[]) {
 		.slice()
 		.reverse()
 		.map((row) => {
-			const repeat = arrived.has(row.userId);
-			arrived.add(row.userId);
+			const repeat = arrived.has(row.scanner);
+			arrived.add(row.scanner);
 			return {
 				...row,
 				repeat,
-				sharedAddress: (usersPerIp.get(row.ipAddress ?? '')?.size ?? 0) > 1
+				sharedAddress: (usersPerIp.get(row.ipHash ?? '')?.size ?? 0) > 1
 			};
 		})
 		.reverse();

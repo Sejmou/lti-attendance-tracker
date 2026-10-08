@@ -27,7 +27,12 @@ export const user = sqliteTable('user', {
 	 * permanent user ID, which is only unique within that platform.
 	 */
 	ltiSubject: text('lti_subject').notNull().unique(),
-	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+	/**
+	 * Their latest launch of either tool, so organizers can spot attendees who
+	 * have stopped coming and delete them (see /admin/attendees).
+	 */
+	lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }).default(now).notNull()
 });
 
 /**
@@ -73,8 +78,13 @@ export const event = sqliteTable(
  *
  * The trailing columns exist to make abuse visible after the fact: a code
  * photographed and passed around shows up as scans from addresses that
- * aren't the venue's, and one device working through borrowed accounts shows up
+ * aren't the venue's (as hashes, see ipHash), and one device working through borrowed accounts shows up
  * as one userAgent and one codeScanId across many users.
+ *
+ * A deleted attendee's scans stay, for the events' statistics, with nothing
+ * left that says whose they were: `userId` and the trailing columns are
+ * cleared, and `anonymousId` keeps their rows for one event together. See
+ * deleteAttendee.
  */
 export const scan = sqliteTable(
 	'scan',
@@ -82,9 +92,14 @@ export const scan = sqliteTable(
 		id: text('id')
 			.primaryKey()
 			.$defaultFn(() => crypto.randomUUID()),
-		userId: text('user_id')
-			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
+		// Null once the attendee is deleted; anonymousId stands in for it then.
+		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		/**
+		 * Random, one per deleted attendee and event, so their scan-in, scan-out
+		 * and scan count for it survive, while nothing links their scans across
+		 * events. Null while the attendee exists.
+		 */
+		anonymousId: text('anonymous_id'),
 		scannedAt: integer('scanned_at', { mode: 'timestamp_ms' }).default(now).notNull(),
 		// The event the displayed code was for. No cascade: an event with scans
 		// is never deleted (see event), and the database holds that line too.
@@ -101,7 +116,8 @@ export const scan = sqliteTable(
 		//           it. Nobody confirmed it was them; the attendee's scan says their
 		//           screen is at the door. See hostScan.
 		method: text('method', { enum: ['device', 'lti', 'host'] }).notNull(),
-		ipAddress: text('ip_address'),
+		/** Never the address itself: see ipHash. */
+		ipHash: text('ip_hash'),
 		userAgent: text('user_agent'),
 		// Which scan of which displayed code this rode in on. A host row shares
 		// the attendee's.
@@ -136,9 +152,32 @@ export const deviceKey = sqliteTable('device_key', {
 	/** P-256 public key as a JWK: `{ kty, crv, x, y }`. */
 	publicKey: text('public_key', { mode: 'json' }).$type<PublicJwk>().notNull(),
 	/** Enrollment links issued before this are spent. */
-	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull(),
-	userAgent: text('user_agent')
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(now).notNull()
 });
+
+/**
+ * Every phone setup, the replaced ones included, so an organizer can see an
+ * attendee setting up phone after phone (one way to pass scans around). Kept
+ * for 12 months (see cleanup) or until the attendee is deleted. No address:
+ * phones are mostly set up at home, which says nothing.
+ */
+export const deviceEnrollment = sqliteTable(
+	'device_enrollment',
+	{
+		id: text('id')
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		enrolledAt: integer('enrolled_at', { mode: 'timestamp_ms' }).default(now).notNull(),
+		userAgent: text('user_agent')
+	},
+	(table) => [
+		index('device_enrollment_userId_idx').on(table.userId),
+		index('device_enrollment_enrolledAt_idx').on(table.enrolledAt)
+	]
+);
 
 /**
  * One LTI platform's pair of tools, set up in it identically but for the

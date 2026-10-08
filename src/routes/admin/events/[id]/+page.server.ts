@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { desc, eq } from 'drizzle-orm';
-import { attendance } from '$lib/server/attendance';
+import { attendance, scanner } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import { annotate } from '$lib/server/scan-log';
@@ -29,16 +29,16 @@ export const load: PageServerLoad = async ({ params }) => {
 		.select({
 			at: scan.scannedAt,
 			method: scan.method,
-			ipAddress: scan.ipAddress,
+			ipHash: scan.ipHash,
 			userAgent: scan.userAgent,
 			codeScanId: scan.codeScanId,
-			userId: scan.userId,
+			scanner,
 			firstName: user.firstName,
 			lastName: user.lastName,
 			email: user.email
 		})
 		.from(scan)
-		.innerJoin(user, eq(user.id, scan.userId))
+		.leftJoin(user, eq(user.id, scan.userId))
 		.where(eq(scan.eventId, event.id))
 		.orderBy(desc(scan.scannedAt))
 		.all();

@@ -55,7 +55,7 @@ test('a code scan files one scan, a later code scan another', async () => {
 	const arrive = (codeScanId: string) =>
 		db
 			.insert(scan)
-			.values({ userId: attendee.id, eventId, method: 'device', codeScanId, ipAddress: '10.0.0.1' })
+			.values({ userId: attendee.id, eventId, method: 'device', codeScanId, ipHash: 'hash' })
 			.onConflictDoNothing();
 
 	await arrive('scan-one');
@@ -77,12 +77,10 @@ test("the first attendee through an organizer's code files a scan for that organ
 			.from(scan)
 			.where(and(eq(scan.userId, host.id), eq(scan.eventId, eventId)));
 
-	expect(hostScan(host.id, party.id, 'scan-three')).toMatchObject({
-		firstName: 'Ops',
-		eventId: party.id
-	});
+	const filed = hostScan(host.id, party.id, 'scan-three');
 	const [row] = await hostRows(party.id);
-	expect(row).toMatchObject({ method: 'host', codeScanId: 'scan-three', ipAddress: null });
+	expect(filed).toEqual({ id: row.id, at: row.scannedAt.getTime() });
+	expect(row).toMatchObject({ method: 'host', codeScanId: 'scan-three', ipHash: null });
 
 	// The next attendee through the same screen doesn't add another: it would
 	// count as the organizer's scan-out.

@@ -47,12 +47,14 @@ provider.onResourceLink(async (context, _request, response) => {
 	// unique within one platform, hence the issuer alongside it.
 	const ltiSubject = JSON.stringify([platform.url, launcher.id]);
 
-	// One transaction: two launches racing for a new attendee can't both create them.
+	// One transaction: two launches racing for a new attendee can't both create
+	// them. Finding them is marking them seen.
 	const found = db.transaction((tx) => {
 		const existing = tx
-			.select({ id: user.id, firstName: user.firstName })
-			.from(user)
+			.update(user)
+			.set({ lastSeenAt: new Date() })
 			.where(eq(user.ltiSubject, ltiSubject))
+			.returning({ id: user.id, firstName: user.firstName })
 			.get();
 		if (existing) return existing;
 

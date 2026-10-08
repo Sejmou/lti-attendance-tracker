@@ -34,7 +34,7 @@
 
 <svelte:head><title>{m.page_scan()}</title></svelte:head>
 
-<main class="mx-auto flex min-h-svh max-w-sm flex-col justify-center gap-6 p-6">
+<main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
 	{#if scanned}
 		<ScanConfirmation {scanned} />
 	{:else if !data.codeScanId}

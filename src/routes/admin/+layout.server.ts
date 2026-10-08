@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { m } from '$lib/paraglide/messages';
+import { pruneExpired } from '$lib/server/retention';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ locals }) => {
@@ -8,5 +9,7 @@ export const load: LayoutServerLoad = ({ locals }) => {
 	// already turned away anyone else; this is the second line, and what tells
 	// TypeScript `admin` is there.
 	if (!locals.admin) error(401, m.admin_open_from_lms_text());
+	// No timer runs it otherwise; see pruneExpired.
+	pruneExpired();
 	return { admin: locals.admin };
 };

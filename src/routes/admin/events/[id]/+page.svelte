@@ -4,9 +4,10 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Table from '$lib/components/ui/table';
+	import { deviceName } from '$lib/device-name';
 	import { m } from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { formatDateTime, wallClock } from '$lib/time';
+	import { day, eventWhen, time } from '$lib/event-when';
+	import { wallClock } from '$lib/time';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -14,27 +15,13 @@
 	const event = $derived(data.event);
 	const scannedOut = $derived(data.attendance.filter((row) => row.scannedOut).length);
 
-	const day = (at: Date) =>
-		formatDateTime(at, getLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
-	const time = (at: Date) =>
-		formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
 	// Scan times on the event's own day need no date; anything else does.
 	const at = (moment: Date) =>
 		wallClock(moment).date === wallClock(event.startsAt).date
 			? time(moment)
 			: `${day(moment)}, ${time(moment)}`;
 
-	const when = $derived.by(() => {
-		if (event.allDay) {
-			const last = new Date(event.endsAt.getTime() - 1);
-			return wallClock(last).date === wallClock(event.startsAt).date
-				? `${day(event.startsAt)} · ${m.events_all_day()}`
-				: `${day(event.startsAt)} – ${day(last)} · ${m.events_all_day()}`;
-		}
-		return wallClock(event.startsAt).date === wallClock(event.endsAt).date
-			? `${day(event.startsAt)}, ${time(event.startsAt)}–${time(event.endsAt)}`
-			: `${day(event.startsAt)}, ${time(event.startsAt)} – ${day(event.endsAt)}, ${time(event.endsAt)}`;
-	});
+	const when = $derived(eventWhen(event));
 
 	const methods = {
 		device: m.scans_method_device,
@@ -46,20 +33,11 @@
 		host: m.scans_host_hint,
 		lti: m.scans_lti_hint
 	};
-
-	// The full string is in the title attribute; the table is for scanning.
-	const device = (userAgent: string | null) =>
-		userAgent
-			?.match(/\((.*?)\)/)?.[1]
-			?.split(';')[0]
-			?.trim() ??
-		userAgent?.slice(0, 24) ??
-		'—';
 </script>
 
 <svelte:head><title>{event.title} · {m.attendance_title()}</title></svelte:head>
 
-<main class="mx-auto flex min-h-svh max-w-5xl flex-col gap-8 p-6">
+<main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
 	<header class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex flex-col gap-1">
 			<h1 class="text-2xl font-semibold">{event.title}</h1>
@@ -101,11 +79,15 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.attendance as row (row.userId)}
+					{#each data.attendance as row (row.scanner)}
 						<Table.Row>
 							<Table.Cell class="whitespace-normal">
-								<span class="font-medium">{row.firstName} {row.lastName}</span>
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									<span class="font-medium">{row.firstName} {row.lastName}</span>
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell class="tabular-nums">{at(row.scannedIn)}</Table.Cell>
 							<Table.Cell class="tabular-nums">
@@ -140,23 +122,28 @@
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
-					{#each data.log.rows as row (row.codeScanId + row.userId)}
+					{#each data.log.rows as row (row.codeScanId + row.scanner)}
 						<Table.Row>
 							<Table.Cell class="tabular-nums">{at(row.at)}</Table.Cell>
 							<Table.Cell class="whitespace-normal">
-								{row.firstName}
-								{row.lastName}
-								<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{#if row.email === null}
+									<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
+								{:else}
+									{row.firstName}
+									{row.lastName}
+									<span class="block text-xs text-muted-foreground">{row.email}</span>
+								{/if}
 							</Table.Cell>
 							<Table.Cell title={hints[row.method]?.()}>{methods[row.method]()}</Table.Cell>
-							<Table.Cell>
-								{row.ipAddress ?? '—'}
+							<!-- A prefix is plenty to see two match; the full hash says no more. -->
+							<Table.Cell class="font-mono text-xs" title={m.scans_address_hint()}>
+								{row.ipHash?.slice(0, 8) ?? '—'}
 								{#if row.sharedAddress}
 									<Badge variant="secondary" title={m.scans_shared_hint()}>{m.scans_shared()}</Badge
 									>
 								{/if}
 							</Table.Cell>
-							<Table.Cell title={row.userAgent ?? ''}>{device(row.userAgent)}</Table.Cell>
+							<Table.Cell title={row.userAgent ?? ''}>{deviceName(row.userAgent)}</Table.Cell>
 							<Table.Cell class="font-mono text-xs text-muted-foreground">
 								{row.codeScanId}
 								{#if row.repeat}
