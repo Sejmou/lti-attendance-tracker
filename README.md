@@ -459,10 +459,16 @@ What catches the rest is the code screen. Every scan shows up there as it
 happens, as a toast with the attendee's name, and the last five stay listed under the code.
 A name appearing that doesn't belong to the person standing in front of the screen is
 visible to everyone around it. Since everyone around it can read it, it is the shortest
-name that tells the attendee apart, not the full one: the first name, plus as much of the
+name that tells the attendee apart, not the full one: the first name (only its first
+word, so a second name like "Anna Maria" stays off the screen), plus as much of the
 last name as it takes among those sharing that first name ("Anna B."), or the whole last
-name when every start of it is shared. Worked out when each scan is published, so it
-follows attendees being added and deleted (`src/lib/server/display-name.ts`). The full name
+name when every start of it is shared. Namesakes with exactly the same name are numbered
+in the order they came instead ("Lukas", "Lukas (2)"): no part of the name tells them
+apart, so showing more of it would only reveal more, and typing in one's details under
+another address makes such a twin easily. Worked out when each scan is published, so it
+follows attendees being added and deleted (`src/lib/server/display-name.ts`). A scan
+entered by hand carries a pen icon, explained in a line under the list whenever one is in
+it. The full name
 never reaches the screen's browser. The toasts come over server-sent events from
 `/admin/events/<id>/stream`, fanned out in-process, so they reach screens on the same
 server only. Each carries the event's count along, so the number on the screen keeps up

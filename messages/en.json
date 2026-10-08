@@ -151,6 +151,7 @@
 	],
 	"qr_keep_open": "This code changes automatically — leave this page open.",
 	"qr_last_scans": "Last scans",
+	"qr_manual_legend": "entered by hand",
 	"qr_nobody_yet": "Nobody yet.",
 	"qr_scans_hide": "Hide list",
 	"qr_scans_show": "Show list",

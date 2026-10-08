@@ -55,7 +55,7 @@ There are no analytics or advertising cookies and no third-party services.
 ## Who sees the data
 
 - **The Verein's organizers**, meaning whoever can open the admin tool in Moodle: all of the data above, for all events.
-- **People present at the event:** the screen showing the QR code displays a short name for every scan: your first name, and only if another member shares it, as many letters of your last name as needed to tell you apart (e.g. "Anna B.").
+- **People present at the event:** the screen showing the QR code displays a short name for every scan: your first name (only the first one, if you have several), and only if another member shares it, as many letters of your last name as needed to tell you apart (e.g. "Anna B."). If another person has exactly the same name, a number tells you apart instead (e.g. "Anna (2)"). Attendance confirmed by hand is marked with a symbol.
 - **[Hosting provider, location]** as a processor running the server.
 
 We do not pass data to any other third parties or transfer it to countries outside the EEA. [Adjust if the hosting provider is outside the EEA.]

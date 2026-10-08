@@ -8,6 +8,8 @@ export type FeedScan = {
 	 * name: the screen it goes to is in front of everyone at the door.
 	 */
 	displayName: string;
+	/** Typed in by hand rather than confirmed (see manual-entry): marked on the screen. */
+	manual: boolean;
 	at: number;
 	/** Which way it counts as things stand: see `direction`. */
 	direction: 'in' | 'out';

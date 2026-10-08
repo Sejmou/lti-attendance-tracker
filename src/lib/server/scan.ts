@@ -158,13 +158,22 @@ export function recordScan(
 			eventId,
 			at: row.at.getTime(),
 			displayName: names.get(proof.userId)!,
+			manual: proof.method === 'manual',
 			direction,
 			present
 		});
 		// Only ever their first for the event: see hostScan.
 		if (host) {
 			const { id, at } = host;
-			publishScan({ id, eventId, at, displayName: names.get(hostId)!, direction: 'in', present });
+			publishScan({
+				id,
+				eventId,
+				at,
+				displayName: names.get(hostId)!,
+				manual: false,
+				direction: 'in',
+				present
+			});
 		}
 	}
 	const early = direction === 'out' && Date.now() < event!.endsAt.getTime() - EARLY_OUT_MS;

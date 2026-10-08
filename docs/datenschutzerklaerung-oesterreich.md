@@ -53,7 +53,7 @@ Es gibt keine Analyse- oder Werbe-Cookies und keine Einbindung von Drittanbieter
 ## Wer die Daten sieht
 
 - **Organisator:innen des Vereins**, also wer in Moodle Zugriff auf das Admin-Werkzeug hat: alle oben genannten Daten, für alle Veranstaltungen.
-- **Anwesende bei der Veranstaltung:** der Bildschirm mit dem QR-Code zeigt bei jedem Scan einen Kurznamen an: deinen Vornamen, und nur wenn ein anderes Mitglied denselben Vornamen hat, so viele Buchstaben deines Nachnamens wie nötig, um dich zu unterscheiden (z. B. „Anna B.“).
+- **Anwesende bei der Veranstaltung:** der Bildschirm mit dem QR-Code zeigt bei jedem Scan einen Kurznamen an: deinen Vornamen (bei mehreren nur den ersten), und nur wenn ein anderes Mitglied denselben Vornamen hat, so viele Buchstaben deines Nachnamens wie nötig, um dich zu unterscheiden (z. B. „Anna B.“). Hat eine andere Person genau denselben Namen, unterscheidet euch stattdessen eine Nummer (z. B. „Anna (2)“). Von Hand bestätigte Anwesenheit ist mit einem Symbol markiert.
 - **[Hosting-Anbieter, Sitz]** als Auftragsverarbeiter, der den Server betreibt.
 
 Wir geben keine Daten an sonstige Dritte weiter und übermitteln keine Daten in Länder außerhalb des EWR. [Anpassen, falls der Hosting-Anbieter außerhalb des EWR sitzt.]
