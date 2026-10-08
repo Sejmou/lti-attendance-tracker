@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"app_title": "Attendance tool",
 	"language": "Language",
+	"source_code": "Source code",
 	"page_scan": "Scan",
 	"loading": "Loading…",
 	"show_code": "Show the attendance QR code",
@@ -51,8 +52,10 @@
 	"scans_none": "Nobody has scanned yet.",
 	"scans_col_when": "When",
 	"scans_col_attendee": "Attendee",
+	"scans_deleted_attendee": "Deleted attendee",
 	"scans_col_method": "Confirmed with",
 	"scans_col_address": "Address",
+	"scans_address_hint": "The start of a check value of the IP address, not the address itself. The same value means the same address, but only within this event.",
 	"scans_col_device": "Device",
 	"scans_col_scan": "Scan",
 	"scans_method_device": "device",
@@ -136,7 +139,6 @@
 	"attendance_col_in": "Scanned in",
 	"attendance_col_out": "Scanned out",
 	"attendance_footnote": "A person's first scan counts as scanning in, their last as scanning out — if there are at least two. Scans in between count as neither.",
-	"qr_heading": "Scan here",
 	"qr_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -150,7 +152,8 @@
 	"qr_keep_open": "This code changes automatically — leave this page open.",
 	"qr_last_scans": "Last scans",
 	"qr_nobody_yet": "Nobody yet.",
-	"qr_time_until_change": "Time until this code changes",
+	"qr_scans_hide": "Hide list",
+	"qr_scans_show": "Show list",
 
 	"scan_in_heading": "You're scanned in",
 	"scan_out_heading": "You're scanned out",
@@ -218,5 +221,31 @@
 	"enroll_problem_no_profile": "Moodle didn't tell us your name and email address, which we need to set you up. Let the organizers know: the activity's privacy settings in Moodle need to share both.",
 	"enroll_problem_unknown_tool": "This Moodle activity isn't set up yet. Let the organizers know: the tool has to be registered with the attendance tool first.",
 	"enroll_expired": "This setup link has expired or was already used. Open the attendance activity in Moodle again.",
-	"enroll_bad_key": "Something went wrong creating the key. Try again."
+	"enroll_bad_key": "Something went wrong creating the key. Try again.",
+
+	"attendees_title": "Attendees",
+	"attendees_intro": "Everyone who has opened either Moodle activity, organizers included, and everyone who entered their details by hand. Sorted by last launch, those who haven't come for a long time are at the top.",
+	"attendees_manual_hint": "Entered their name and email by hand instead of opening the Moodle activity. Not a Moodle account: first and last launch are their first and latest entry.",
+	"attendees_none": "Nobody has opened either Moodle activity yet.",
+	"attendees_col_name": "Name",
+	"attendees_col_first_seen": "First launch",
+	"attendees_col_last_seen": "Last launch",
+	"attendees_col_phone": "Phone",
+	"attendees_phone_linked": "linked",
+	"attendees_enrollments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} device setup",
+				"countPlural=*": "{count} device setups"
+			}
+		}
+	],
+	"attendees_sort_hint": "Sort by this",
+	"attendees_delete": "Delete",
+	"attendees_delete_title": "Delete attendee?",
+	"attendees_delete_text": "{name} ({email}) will be deleted, along with their linked phone. Their scans stay, without a name, for the events' statistics. This can't be undone; if they open the activity in Moodle again, they are created anew.",
+	"attendees_deleted": "Deleted. Their scans are anonymous now.",
+	"attendees_missing": "This person no longer exists."
 }

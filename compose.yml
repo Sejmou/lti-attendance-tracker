@@ -19,8 +19,10 @@ services:
     restart: unless-stopped
 
   # Dev-dependency image for one-off schema and registration runs against the same volume:
-  #   docker compose run --rm tools pnpm db:push
-  #   docker compose run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+  #   docker compose --profile tools run --rm tools pnpm db:push
+  #   docker compose --profile tools run --rm tools pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+  # Build it with `docker compose --profile tools build`: a plain `build` skips it,
+  # and `run` then reuses the stale image, schema and all, from the last build.
   tools:
     build:
       context: .

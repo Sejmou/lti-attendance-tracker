@@ -3,10 +3,10 @@ import { annotate } from './scan-log';
 
 // Newest first, the order the page shows them in.
 const rows = [
-	{ userId: 'ada', ipAddress: '10.0.0.9' }, // came back
-	{ userId: 'bob', ipAddress: '10.0.0.7' }, // ...on Grace's phone
-	{ userId: 'grace', ipAddress: '10.0.0.7' },
-	{ userId: 'ada', ipAddress: '10.0.0.9' }
+	{ scanner: 'ada', ipHash: '10.0.0.9' }, // came back
+	{ scanner: 'bob', ipHash: '10.0.0.7' }, // ...on Grace's phone
+	{ scanner: 'grace', ipHash: '10.0.0.7' },
+	{ scanner: 'ada', ipHash: '10.0.0.9' }
 ];
 
 test('the first arrival is not a repeat and a later one is', () => {
@@ -25,8 +25,8 @@ test('an address covering two attendees is flagged on both of their rows', () =>
 
 test('a missing address is not shared with every other missing one', () => {
 	const { rows: marked, addresses } = annotate([
-		{ userId: 'ada', ipAddress: null },
-		{ userId: 'bob', ipAddress: null }
+		{ scanner: 'ada', ipHash: null },
+		{ scanner: 'bob', ipHash: null }
 	]);
 
 	expect(marked.every((r) => !r.sharedAddress)).toBe(true);
@@ -35,11 +35,11 @@ test('a missing address is not shared with every other missing one', () => {
 
 test('a browser behind two people is flagged on both of their rows, one behind a single person not', () => {
 	const { rows: marked } = annotate([
-		{ userId: 'bob', ipAddress: null, browserId: 'phone-1' }, // typed in on Ada's phone
-		{ userId: 'ada', ipAddress: null, browserId: 'phone-1' },
-		{ userId: 'ada', ipAddress: null, browserId: 'phone-1' },
-		{ userId: 'grace', ipAddress: null, browserId: 'phone-2' },
-		{ userId: 'alan', ipAddress: null, browserId: null }
+		{ scanner: 'bob', ipHash: null, browserHash: 'phone-1' }, // typed in on Ada's phone
+		{ scanner: 'ada', ipHash: null, browserHash: 'phone-1' },
+		{ scanner: 'ada', ipHash: null, browserHash: 'phone-1' },
+		{ scanner: 'grace', ipHash: null, browserHash: 'phone-2' },
+		{ scanner: 'alan', ipHash: null, browserHash: null }
 	]);
 
 	expect(marked.map((r) => r.sharedBrowser)).toEqual([true, true, true, false, false]);
@@ -47,9 +47,9 @@ test('a browser behind two people is flagged on both of their rows, one behind a
 
 test("details typed in on a phone set up for someone else are flagged, on one's own phone not", () => {
 	const { rows: marked } = annotate([
-		{ userId: 'bob', ipAddress: null, deviceKeyUserId: 'ada' },
-		{ userId: 'ada', ipAddress: null, deviceKeyUserId: 'ada' },
-		{ userId: 'grace', ipAddress: null, deviceKeyUserId: null }
+		{ scanner: 'bob', ipHash: null, deviceKeyUserId: 'ada' },
+		{ scanner: 'ada', ipHash: null, deviceKeyUserId: 'ada' },
+		{ scanner: 'grace', ipHash: null, deviceKeyUserId: null }
 	]);
 
 	expect(marked.map((r) => r.otherPersonsPhone)).toEqual([true, false, false]);

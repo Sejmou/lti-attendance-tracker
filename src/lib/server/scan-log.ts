@@ -1,7 +1,8 @@
+// `scanner`, not a user ID: a deleted attendee's rows still need telling apart.
 type Row = {
-	userId: string;
-	ipAddress: string | null;
-	browserId?: string | null;
+	scanner: string;
+	ipHash: string | null;
+	browserHash?: string | null;
 	deviceKeyUserId?: string | null;
 };
 
@@ -19,8 +20,8 @@ type Row = {
  * Rows go in newest first and come back in the same order.
  */
 export function annotate<T extends Row>(rows: T[]) {
-	const usersPerIp = usersPer(rows, (row) => row.ipAddress);
-	const usersPerBrowser = usersPer(rows, (row) => row.browserId);
+	const usersPerIp = scannersPer(rows, (row) => row.ipHash);
+	const usersPerBrowser = scannersPer(rows, (row) => row.browserHash);
 
 	// Walked oldest first, so the earliest arrival is the one not marked.
 	const arrived = new Set<string>();
@@ -28,14 +29,14 @@ export function annotate<T extends Row>(rows: T[]) {
 		.slice()
 		.reverse()
 		.map((row) => {
-			const repeat = arrived.has(row.userId);
-			arrived.add(row.userId);
+			const repeat = arrived.has(row.scanner);
+			arrived.add(row.scanner);
 			return {
 				...row,
 				repeat,
-				sharedAddress: (usersPerIp.get(row.ipAddress ?? '')?.size ?? 0) > 1,
-				sharedBrowser: (usersPerBrowser.get(row.browserId ?? '')?.size ?? 0) > 1,
-				otherPersonsPhone: Boolean(row.deviceKeyUserId && row.deviceKeyUserId !== row.userId)
+				sharedAddress: (usersPerIp.get(row.ipHash ?? '')?.size ?? 0) > 1,
+				sharedBrowser: (usersPerBrowser.get(row.browserHash ?? '')?.size ?? 0) > 1,
+				otherPersonsPhone: Boolean(row.deviceKeyUserId && row.deviceKeyUserId !== row.scanner)
 			};
 		})
 		.reverse();
@@ -44,14 +45,14 @@ export function annotate<T extends Row>(rows: T[]) {
 }
 
 /** Who is behind each value of `key`, rows without one left out. */
-function usersPer<T extends Row>(rows: T[], key: (row: T) => string | null | undefined) {
-	const users = new Map<string, Set<string>>();
+function scannersPer<T extends Row>(rows: T[], key: (row: T) => string | null | undefined) {
+	const scanners = new Map<string, Set<string>>();
 	for (const row of rows) {
 		const value = key(row);
 		if (!value) continue;
-		let seen = users.get(value);
-		if (!seen) users.set(value, (seen = new Set()));
-		seen.add(row.userId);
+		let seen = scanners.get(value);
+		if (!seen) scanners.set(value, (seen = new Set()));
+		seen.add(row.scanner);
 	}
-	return users;
+	return scanners;
 }

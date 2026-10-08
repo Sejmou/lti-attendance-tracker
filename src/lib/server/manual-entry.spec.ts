@@ -1,11 +1,13 @@
 import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { eq, like } from 'drizzle-orm';
+import { eq, inArray, like } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { attendance } from './attendance';
+import { deleteAttendee, listAttendees } from './attendees';
 import { db } from './db';
 import { event, scan, user } from './db/schema';
 import { link, linkSuggestions, parseDetails, manualEntryUser, unlink } from './manual-entry';
+import { pruneExpired } from './retention';
 
 const DOMAIN = 'manual-entry.test';
 
@@ -15,11 +17,19 @@ beforeAll(() => {
 		stdio: 'ignore',
 		env: { ...process.env, DATABASE_URL: env.DATABASE_URL }
 	});
-	// Platform accounts and typed-in people alike; their scans cascade.
+	// Platform accounts and typed-in people alike.
 	db.delete(user)
 		.where(like(user.email, `%@${DOMAIN}`))
 		.run();
-	db.delete(event).where(like(event.title, 'manual-entry.spec %')).run();
+	// Anonymised scans no longer cascade with anyone, so they go by event.
+	const events = db
+		.select({ id: event.id })
+		.from(event)
+		.where(like(event.title, 'manual-entry.spec %'))
+		.all()
+		.map((e) => e.id);
+	db.delete(scan).where(inArray(scan.eventId, events)).run();
+	db.delete(event).where(inArray(event.id, events)).run();
 });
 
 const form = (fields: Record<string, string>) => {
@@ -55,17 +65,26 @@ function someEvent(title: string) {
 		.get();
 }
 
-function manualScan(userId: string, eventId: string) {
-	db.insert(scan)
+function manualScan(
+	userId: string,
+	eventId: string,
+	extra: Partial<typeof scan.$inferInsert> = {}
+) {
+	return db
+		.insert(scan)
 		.values({
 			userId,
 			eventId,
 			method: 'manual',
 			reportedAs: userId,
-			codeScanId: crypto.randomUUID()
+			codeScanId: crypto.randomUUID(),
+			...extra
 		})
-		.run();
+		.returning()
+		.get();
 }
+
+const scanRow = (id: string) => db.select().from(scan).where(eq(scan.id, id)).get()!;
 
 test('details are trimmed and the address lowercased; anything missing or implausible is turned down', () => {
 	expect(
@@ -140,4 +159,78 @@ test('scans are only ever linked to a platform account', () => {
 
 	expect(link(talk.id, typed, otherTyped)).toBe(false);
 	expect(attendance(talk.id)).toMatchObject([{ userId: typed }]);
+});
+
+test('typing the same address in again counts as being seen, and the attendees page marks them', () => {
+	const id = manualEntryUser({ email: `lin@${DOMAIN}`, firstName: 'Lin', lastName: 'C' });
+	db.update(user)
+		.set({ lastSeenAt: new Date('2026-01-01T00:00:00Z') })
+		.where(eq(user.id, id))
+		.run();
+
+	manualEntryUser({ email: `lin@${DOMAIN}`, firstName: 'Lin', lastName: 'C' });
+	const seen = db.select().from(user).where(eq(user.id, id)).get()!.lastSeenAt;
+	expect(Date.now() - seen.getTime()).toBeLessThan(60_000);
+
+	const moodle = account('Ida', `ida@${DOMAIN}`);
+	const listed = listAttendees();
+	expect(listed.find((row) => row.id === id)).toMatchObject({ manualEntry: true });
+	expect(listed.find((row) => row.id === moodle.id)).toMatchObject({ manualEntry: false });
+});
+
+test('deleting someone typed in anonymises their scans and forgets them on scans since linked', () => {
+	const talk = someEvent('deleting the one typed in');
+	const moodle = account('Mary', `mary@${DOMAIN}`);
+	const typed = manualEntryUser({ email: `mary@${DOMAIN}`, firstName: 'Mary', lastName: 'S' });
+	const kept = manualScan(typed, talk.id, { browserHash: 'b', deviceKeyUserId: moodle.id });
+	const linked = manualScan(typed, someEvent('linked').id);
+	link(linked.eventId, typed, moodle.id);
+
+	expect(deleteAttendee(typed)).toBe(true);
+
+	expect(scanRow(kept.id)).toMatchObject({
+		userId: null,
+		reportedAs: null,
+		browserHash: null,
+		deviceKeyUserId: null
+	});
+	// Still the account's scan, but no longer undoable: who it was typed in as is gone.
+	expect(scanRow(linked.id)).toMatchObject({ userId: moodle.id, reportedAs: null });
+});
+
+test("deleting someone forgets them on scans typed in on their phone, which stay the other person's", () => {
+	const talk = someEvent('deleting the phone owner');
+	const owner = account('Owen', `owen@${DOMAIN}`);
+	const typed = manualEntryUser({ email: `tess@${DOMAIN}`, firstName: 'Tess', lastName: 'T' });
+	const onTheirPhone = manualScan(typed, talk.id, { deviceKeyUserId: owner.id });
+
+	deleteAttendee(owner.id);
+
+	expect(scanRow(onTheirPhone.id)).toMatchObject({
+		userId: typed,
+		reportedAs: typed,
+		deviceKeyUserId: null
+	});
+});
+
+test('after 12 months, a scan typed in forgets its browser and whose phone it was, not who it was', () => {
+	const talk = someEvent('retention');
+	const owner = account('Pia', `pia@${DOMAIN}`);
+	const typed = manualEntryUser({ email: `paul@${DOMAIN}`, firstName: 'Paul', lastName: 'P' });
+	const old = manualScan(typed, talk.id, {
+		browserHash: 'b',
+		deviceKeyUserId: owner.id,
+		scannedAt: new Date('2025-01-01T00:00:00Z')
+	});
+	const recent = manualScan(typed, talk.id, { browserHash: 'b', deviceKeyUserId: owner.id });
+
+	pruneExpired();
+
+	expect(scanRow(old.id)).toMatchObject({
+		userId: typed,
+		reportedAs: typed,
+		browserHash: null,
+		deviceKeyUserId: null
+	});
+	expect(scanRow(recent.id)).toMatchObject({ browserHash: 'b', deviceKeyUserId: owner.id });
 });

@@ -38,15 +38,17 @@ export function parseDetails(form: FormData): Details | null {
  * two by hand (see `link`).
  *
  * The name they typed the first time stays; a later one is ignored, so
- * someone else typing the same address can't rename them.
+ * someone else typing the same address can't rename them. Each entry counts
+ * as them being seen, as a launch does for everyone else (see lastSeenAt).
  */
 export function manualEntryUser(details: Details) {
 	return db.transaction((tx) => {
 		const ltiSubject = manualSubject(details.email);
 		const found = tx
-			.select({ id: user.id })
-			.from(user)
+			.update(user)
+			.set({ lastSeenAt: new Date() })
 			.where(eq(user.ltiSubject, ltiSubject))
+			.returning({ id: user.id })
 			.get();
 		if (found) return found.id;
 		return tx

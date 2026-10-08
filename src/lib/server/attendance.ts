@@ -4,19 +4,29 @@ import { scan, user } from '$lib/server/db/schema';
 import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 
 /**
+ * Whose a scan is, for counting and grouping by person: the attendee's, or
+ * for a deleted one, the stand-in their scans for that event share (see
+ * deleteAttendee). Never a user ID to look anyone up by.
+ */
+export const scanner = sql<string>`coalesce(${scan.userId}, ${scan.anonymousId})`;
+
+/**
  * Who came to an event, and when they scanned in and out: an attendee's first
  * scan is their scan-in, their last one their scan-out — if there are two or
  * more. Nobody says which way a scan goes; the order does. Worked out here on
  * each load, never stored, so it can't drift from the scans it comes from.
  *
+ * A deleted attendee's row is still there, with no name or email.
+ *
  * `manualScans` counts the ones typed in rather than confirmed, and
  * `manualEntry` says the person is only someone typed in, not a platform
- * account (see user).
+ * account (see user). `userId` is null for a deleted attendee.
  */
 export function attendance(eventId: string) {
 	const scannedIn = min(scan.scannedAt);
 	return db
 		.select({
+			scanner,
 			userId: scan.userId,
 			firstName: user.firstName,
 			lastName: user.lastName,
@@ -25,12 +35,14 @@ export function attendance(eventId: string) {
 			last: max(scan.scannedAt),
 			scans: count(),
 			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`,
-			manualEntry: sql<boolean>`${user.ltiSubject} like ${MANUAL_SUBJECTS}`.mapWith(Boolean)
+			manualEntry: sql<boolean>`coalesce(${user.ltiSubject} like ${MANUAL_SUBJECTS}, 0)`.mapWith(
+				Boolean
+			)
 		})
 		.from(scan)
-		.innerJoin(user, eq(user.id, scan.userId))
+		.leftJoin(user, eq(user.id, scan.userId))
 		.where(eq(scan.eventId, eventId))
-		.groupBy(scan.userId)
+		.groupBy(scanner)
 		.orderBy(scannedIn)
 		.all()
 		.map(({ last, ...row }) => ({

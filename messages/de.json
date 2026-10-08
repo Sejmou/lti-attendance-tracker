@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"app_title": "Anwesenheitstool",
 	"language": "Sprache",
+	"source_code": "Quellcode",
 	"page_scan": "Scannen",
 	"loading": "Wird geladen…",
 	"show_code": "Anwesenheits-QR-Code anzeigen",
@@ -54,8 +55,10 @@
 	"scans_none": "Noch hat niemand gescannt.",
 	"scans_col_when": "Zeitpunkt",
 	"scans_col_attendee": "Teilnehmer:in",
+	"scans_deleted_attendee": "Gelöschte:r Teilnehmer:in",
 	"scans_col_method": "Bestätigt mit",
 	"scans_col_address": "Adresse",
+	"scans_address_hint": "Der Anfang eines Prüfwerts der IP-Adresse, nicht die Adresse selbst. Gleicher Wert heißt gleiche Adresse, aber nur innerhalb dieser Veranstaltung.",
 	"scans_col_device": "Gerät",
 	"scans_col_scan": "Scan",
 	"scans_method_device": "Gerät",
@@ -139,7 +142,6 @@
 	"attendance_col_in": "Eingescannt",
 	"attendance_col_out": "Ausgescannt",
 	"attendance_footnote": "Der erste Scan einer Person zählt als Einscannen, ihr letzter als Ausscannen – sofern es mindestens zwei sind. Scans dazwischen zählen für keins von beiden.",
-	"qr_heading": "Hier scannen",
 	"qr_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -153,7 +155,8 @@
 	"qr_keep_open": "Dieser Code ändert sich automatisch – lass diese Seite geöffnet.",
 	"qr_last_scans": "Letzte Scans",
 	"qr_nobody_yet": "Noch niemand.",
-	"qr_time_until_change": "Zeit bis zum nächsten Code",
+	"qr_scans_hide": "Liste ausblenden",
+	"qr_scans_show": "Liste anzeigen",
 
 	"scan_in_heading": "Du bist eingescannt",
 	"scan_out_heading": "Du bist ausgescannt",
@@ -221,5 +224,31 @@
 	"enroll_problem_no_profile": "Moodle hat uns deinen Namen und deine E-Mail-Adresse nicht übermittelt, die wir für die Einrichtung brauchen. Bitte gib dem Organisationsteam Bescheid: Die Datenschutzeinstellungen der Aktivität in Moodle müssen beides freigeben.",
 	"enroll_problem_unknown_tool": "Diese Moodle-Aktivität ist noch nicht eingerichtet. Bitte gib dem Organisationsteam Bescheid: Das Tool muss zuerst im Anwesenheitstool registriert werden.",
 	"enroll_expired": "Dieser Einrichtungslink ist abgelaufen oder wurde bereits verwendet. Öffne die Anwesenheits-Aktivität in Moodle noch einmal.",
-	"enroll_bad_key": "Beim Erstellen des Schlüssels ist etwas schiefgelaufen. Bitte versuch es noch einmal."
+	"enroll_bad_key": "Beim Erstellen des Schlüssels ist etwas schiefgelaufen. Bitte versuch es noch einmal.",
+
+	"attendees_title": "Teilnehmer:innen",
+	"attendees_intro": "Alle, die eine der beiden Moodle-Aktivitäten geöffnet haben, Organisator:innen eingeschlossen, und alle, die ihre Daten von Hand eingegeben haben. Wer lange nicht mehr da war, steht nach „Zuletzt geöffnet“ sortiert oben.",
+	"attendees_manual_hint": "Hat Name und E-Mail von Hand eingegeben, statt die Moodle-Aktivität zu öffnen. Kein Moodle-Konto: „Zuerst geöffnet“ und „Zuletzt geöffnet“ sind die erste und die letzte Eingabe.",
+	"attendees_none": "Noch hat niemand eine der Moodle-Aktivitäten geöffnet.",
+	"attendees_col_name": "Name",
+	"attendees_col_first_seen": "Zuerst geöffnet",
+	"attendees_col_last_seen": "Zuletzt geöffnet",
+	"attendees_col_phone": "Handy",
+	"attendees_phone_linked": "verknüpft",
+	"attendees_enrollments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Geräteeinrichtung",
+				"countPlural=*": "{count} Geräteeinrichtungen"
+			}
+		}
+	],
+	"attendees_sort_hint": "Danach sortieren",
+	"attendees_delete": "Löschen",
+	"attendees_delete_title": "Teilnehmer:in löschen?",
+	"attendees_delete_text": "{name} ({email}) wird gelöscht, samt verknüpftem Handy. Die Scans bleiben ohne Namen für die Statistik der Veranstaltungen erhalten. Das lässt sich nicht rückgängig machen; öffnet die Person die Aktivität in Moodle wieder, wird sie neu angelegt.",
+	"attendees_deleted": "Gelöscht. Die Scans sind jetzt anonym.",
+	"attendees_missing": "Diese Person gibt es nicht mehr."
 }

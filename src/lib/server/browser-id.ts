@@ -3,7 +3,8 @@ import { resolve } from '$app/paths';
 
 /**
  * A random ID for each browser that scans a code, so one browser behind
- * several people's scans shows up in the log. Not proof of anything: clearing
+ * several people's scans shows up in the log. Scans store only a per-event
+ * hash of it (see browserHash), never the ID. Not proof of anything: clearing
  * the browser's data, or a private window, makes a new one. It only makes the
  * easy kind of abuse — typing in friends' details on one phone — visible.
  *
@@ -28,8 +29,9 @@ export function keepBrowserId(cookies: Cookies) {
 		path: resolve('/'),
 		httpOnly: true,
 		sameSite: 'lax',
-		// The longest Chrome keeps a cookie; every scan starts the clock again.
-		maxAge: 400 * 24 * 60 * 60
+		// Twelve months, like everything kept against abuse (see retention);
+		// every scan starts the clock again.
+		maxAge: 365 * 24 * 60 * 60
 	});
 	return id;
 }

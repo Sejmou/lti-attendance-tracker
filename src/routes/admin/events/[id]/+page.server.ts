@@ -1,11 +1,11 @@
 import { error, fail } from '@sveltejs/kit';
 import { desc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
-import { attendance } from '$lib/server/attendance';
+import { attendance, scanner } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
-import { annotate } from '$lib/server/scan-log';
 import { link, linkSuggestions, unlink } from '$lib/server/manual-entry';
+import { annotate } from '$lib/server/scan-log';
 import type { Actions, PageServerLoad } from './$types';
 
 const typedIn = alias(user, 'typed_in');
@@ -34,14 +34,15 @@ export const load: PageServerLoad = async ({ params }) => {
 		.select({
 			at: scan.scannedAt,
 			method: scan.method,
-			ipAddress: scan.ipAddress,
+			ipHash: scan.ipHash,
 			userAgent: scan.userAgent,
 			codeScanId: scan.codeScanId,
+			scanner,
 			userId: scan.userId,
 			firstName: user.firstName,
 			lastName: user.lastName,
 			email: user.email,
-			browserId: scan.browserId,
+			browserHash: scan.browserHash,
 			reportedAs: scan.reportedAs,
 			// What was typed in, for a scan since linked to a platform account.
 			typedEmail: typedIn.email,
@@ -50,7 +51,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			keyOwnerLastName: keyOwner.lastName
 		})
 		.from(scan)
-		.innerJoin(user, eq(user.id, scan.userId))
+		.leftJoin(user, eq(user.id, scan.userId))
 		.leftJoin(typedIn, eq(typedIn.id, scan.reportedAs))
 		.leftJoin(keyOwner, eq(keyOwner.id, scan.deviceKeyUserId))
 		.where(eq(scan.eventId, event.id))
@@ -63,25 +64,25 @@ export const load: PageServerLoad = async ({ params }) => {
 	const flagged = new Set<string>();
 	const linked = new Map<string, Map<string, string>>();
 	for (const row of log.rows) {
-		if (row.sharedBrowser || row.otherPersonsPhone) flagged.add(row.userId);
+		if (row.sharedBrowser || row.otherPersonsPhone) flagged.add(row.scanner);
 		if (row.reportedAs && row.reportedAs !== row.userId && row.typedEmail) {
-			if (!linked.has(row.userId)) linked.set(row.userId, new Map());
-			linked.get(row.userId)!.set(row.reportedAs, row.typedEmail);
+			if (!linked.has(row.scanner)) linked.set(row.scanner, new Map());
+			linked.get(row.scanner)!.set(row.reportedAs, row.typedEmail);
 		}
 	}
 
 	const rowsOfAttendees = attendance(event.id);
 	const suggestions = linkSuggestions(
-		rowsOfAttendees.filter((row) => row.manualEntry).map((row) => row.userId)
+		rowsOfAttendees.flatMap((row) => (row.manualEntry && row.userId ? [row.userId] : []))
 	);
 
 	return {
 		event,
 		attendance: rowsOfAttendees.map((row) => ({
 			...row,
-			flagged: flagged.has(row.userId),
-			suggestions: suggestions.get(row.userId) ?? [],
-			linkedFrom: [...(linked.get(row.userId) ?? [])].map(([reportedAs, email]) => ({
+			flagged: flagged.has(row.scanner),
+			suggestions: (row.userId && suggestions.get(row.userId)) || [],
+			linkedFrom: [...(linked.get(row.scanner) ?? [])].map(([reportedAs, email]) => ({
 				reportedAs,
 				email
 			}))
@@ -90,9 +91,9 @@ export const load: PageServerLoad = async ({ params }) => {
 	};
 };
 
+// Only for organizers, like every admin action: see handleAdminSession.
 export const actions: Actions = {
 	/** Files what someone typed in under a platform account: see `link`. */
-	// Only for organizers, like every admin action: see handleAdminSession.
 	link: async ({ params, request }) => {
 		const form = await request.formData();
 		const reportedAs = form.get('reportedAs');
