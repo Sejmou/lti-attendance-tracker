@@ -62,6 +62,10 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 /**
  * The organizer signed in by launching the admin tool, if any. Attendees never
  * have a session: their phone's device key is all they need.
+ *
+ * Anything but a read under /admin needs one, and is turned away here. The
+ * admin layout's check only guards what pages load: a form action runs before
+ * any load, so it would otherwise run for anyone, signed in or not.
  */
 const handleAdminSession: Handle = ({ event, resolve }) => {
 	const userId = verifyAdminSession(event.cookies.get(ADMIN_SESSION_COOKIE));
@@ -76,6 +80,14 @@ const handleAdminSession: Handle = ({ event, resolve }) => {
 			.from(user)
 			.where(eq(user.id, userId))
 			.get();
+	}
+
+	// The route, not the URL: no base path or locale prefix to get around it.
+	const route = event.route.id;
+	const underAdmin = route === '/admin' || Boolean(route?.startsWith('/admin/'));
+	const reads = event.request.method === 'GET' || event.request.method === 'HEAD';
+	if (underAdmin && !reads && !event.locals.admin) {
+		return new Response('Sign in by opening the admin tool from your course', { status: 401 });
 	}
 	return resolve(event);
 };
