@@ -3,6 +3,9 @@
 # Moodle's two tools, then the server. All of it is idempotent, so it runs on
 # every start. Runs in the `build` stage image, which still has drizzle-kit and
 # the script loader that the production image leaves out.
+#
+# `app-start.sh dev` (compose.dev.yml) serves the bind-mounted source with
+# Vite's dev server instead of the built app.
 set -eu
 
 pnpm --silent db:push --force
@@ -16,4 +19,7 @@ pnpm --silent lti:register-platform \
 	--admin-client-id "$ADMIN_CLIENT_ID" \
 	--attendee-client-id "$ATTENDEE_CLIENT_ID"
 
+if [ "${1:-}" = dev ]; then
+	exec pnpm exec vite dev --host 0.0.0.0 --port 3000 --strictPort
+fi
 exec node build
