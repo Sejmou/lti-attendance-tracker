@@ -188,4 +188,9 @@ foreach ($tools as $tool) {
 
 rebuild_course_cache($course->id, true);
 
+// Moodle's guided tours of its own interface: in the way of testers, who know
+// it, and of browser automation, whose clicks they block. Every start, as an
+// upgrade can bring new ones. init.sh purges the caches that hold them next.
+$DB->set_field('tool_usertours_tours', 'enabled', 0);
+
 cli_writeln("testenv: course ATTENDANCE ready at {$CFG->wwwroot}/course/view.php?id={$course->id}");

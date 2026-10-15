@@ -73,6 +73,8 @@ A course (`ATTENDANCE`) with an activity for each tool. Their names follow
 Changing `TESTENV_LOCALE` renames them on the next start of `moodle`. Only these
 names: Moodle's own interface stays English.
 
+Moodle's guided tours of its interface are switched off, on every start.
+
 Both tools are course tools with the privacy settings the app needs, opening
 in a new window. Their client IDs are fixed (`attendance-admin`,
 `attendance-attendee`), so the app registers them without reading anything back.
