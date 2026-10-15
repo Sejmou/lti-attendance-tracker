@@ -110,3 +110,35 @@ takes it over.
 The app runs from the image's `build` stage rather than the production one:
 `app-start.sh` needs drizzle-kit and the script loader, which the production
 image leaves out. It is the same built app either way.
+
+## Developing against it
+
+`compose.dev.yml` swaps the built app for Vite's dev server, running on the
+source in this checkout. Edits under `src/`, `static/`, `messages/` and
+`scripts/` show up right away, with hot reload through your proxy as well:
+
+```sh
+podman compose -f testenv/compose.yml -f testenv/compose.dev.yml up -d --build
+podman compose -f testenv/compose.yml -f testenv/compose.dev.yml logs -f app
+```
+
+- **Same database** as the built app (volume `appdata`): the dev server runs
+  as the image's `node` user, just like the built one.
+- **Paraglide's output stays in the container.** It compiles `messages/` into
+  `src/lib/paraglide`, which a volume of its own keeps out of the bind mount,
+  so the dev server only reads your checkout and never writes to it.
+- **Rebuild for everything else:** `package.json`, `vite.config.ts`, the
+  `drizzle` config and the like come from the image, as does `node_modules`.
+  `up -d --build app` with both files after changing them. After a schema
+  change, restart `app` so `app-start.sh` pushes it.
+- **Client addresses:** the scan log gets the same address for every scan. Say
+  a phone at `203.0.113.7` scans. Its request reaches the app through your
+  proxy and Podman's port forwarding, so the connection the app sees comes
+  from that forwarding, with rootless Podman from the container's own address
+  (e.g. `10.89.3.3`). `203.0.113.7` only survives in the `X-Forwarded-For`
+  header the proxy adds. The built app reads that header, because
+  `ADDRESS_HEADER` (an adapter-node setting) tells it to. The dev server
+  doesn't know that setting and logs `10.89.3.3`.
+- **Switching** between the two: `up -d` with the other set of files.
+  podman-compose recreates every container for it, Moodle's too, but the
+  volumes and with them all data stay.

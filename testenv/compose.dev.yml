@@ -1,0 +1,24 @@
+# Hot reload for the app: layered over compose.yml, it serves the source from
+# this checkout with Vite's dev server instead of the built app. See
+# "Developing against it" in testenv/README.md.
+#
+#   podman compose -f testenv/compose.yml -f testenv/compose.dev.yml up -d --build
+
+services:
+  app:
+    command: ['sh', 'testenv/app-start.sh', 'dev']
+    environment:
+      # Vite turns away Host headers it doesn't know.
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${APP_HOST}
+    volumes:
+      # Only what changes while developing. node_modules stays the image's
+      # (better-sqlite3 is built for its Node); a change to package.json,
+      # vite.config.ts and the like needs `up -d --build app`.
+      - ../src:/app/src
+      - ../static:/app/static
+      - ../messages:/app/messages
+      - ../scripts:/app/scripts
+      # Paraglide compiles messages/ into here. The container's own copy, so
+      # the dev server never writes to the checkout: the files there belong to
+      # another uid than the container's `node`, which only needs to read them.
+      - /app/src/lib/paraglide
