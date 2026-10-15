@@ -43,6 +43,12 @@ export default defineConfig(({ mode }) => ({
 			strategy: ['cookie', 'baseLocale']
 		})
 	],
+	optimizeDeps: {
+		// The dev server's scan for dependencies to pre-bundle misses dynamic
+		// imports. Found later, on the first page that loads one, it re-bundles
+		// them all, and that page breaks: it ends up with two copies of Svelte.
+		include: ['jsqr']
+	},
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

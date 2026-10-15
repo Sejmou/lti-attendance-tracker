@@ -73,6 +73,8 @@ A course (`ATTENDANCE`) with an activity for each tool. Their names follow
 Changing `TESTENV_LOCALE` renames them on the next start of `moodle`. Only these
 names: Moodle's own interface stays English.
 
+Moodle's guided tours of its interface are switched off, on every start.
+
 Both tools are course tools with the privacy settings the app needs, opening
 in a new window. Their client IDs are fixed (`attendance-admin`,
 `attendance-attendee`), so the app registers them without reading anything back.
@@ -139,6 +141,15 @@ podman compose -f testenv/compose.yml -f testenv/compose.dev.yml logs -f app
   header the proxy adds. The built app reads that header, because
   `ADDRESS_HEADER` (an adapter-node setting) tells it to. The dev server
   doesn't know that setting and logs `10.89.3.3`.
+- **Caching:** the dev server tells browsers which files they may keep, and
+  nothing between them may change that. A proxy or CDN that caches
+  responses, or rewrites `Cache-Control` with a lifetime of its own, leaves
+  browsers with files from before the dev server last re-bundled its
+  dependencies. A page then loads two copies of Svelte and fails to
+  hydrate (`Cannot read properties of undefined (reading 'call')`) until
+  the browser's cache is emptied; a hard reload isn't enough. With
+  Cloudflare, add a Cache Rule for `APP_HOST`: bypass the cache, and leave
+  the browser TTL to the origin. The built app doesn't need this.
 - **Switching** between the two: `up -d` with the other set of files.
   podman-compose recreates every container for it, Moodle's too, but the
   volumes and with them all data stay.
