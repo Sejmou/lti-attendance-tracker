@@ -132,10 +132,6 @@
 
 	<div class="flex flex-wrap justify-center gap-4 lg:justify-start">
 		<a href={resolve('/admin/code')} class="text-blue-600 underline">{m.code_other_event()}</a>
-		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
-		<a href={resolve('/admin/events/[id]', { id: data.event.id })} class="text-blue-600 underline">
-			{m.attendance_title()}
-		</a>
 	</div>
 </QrScreen>
 

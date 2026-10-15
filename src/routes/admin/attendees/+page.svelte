@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { resolve } from '$app/paths';
 	import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Badge } from '$lib/components/ui/badge';
@@ -121,8 +120,6 @@
 			</Table.Body>
 		</Table.Root>
 	{/if}
-
-	<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
 </main>
 
 <AlertDialog.Root bind:open={() => deleting !== null, (open) => !open && (deleting = null)}>

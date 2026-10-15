@@ -64,9 +64,10 @@
 			{/if}
 		</hgroup>
 
-		<!-- The full width, but never taller than the viewport (less the padding and the footer). -->
+		<!-- The full width, but never taller than the viewport (less the
+		     breadcrumb trail above, the padding and the footer). -->
 		{@render code(
-			'w-[min(100%,calc(100svh-5.5rem))] lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center'
+			'w-[min(100%,calc(100svh-7.5rem))] lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:self-center'
 		)}
 
 		<div

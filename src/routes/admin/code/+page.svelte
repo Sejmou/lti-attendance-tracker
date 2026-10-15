@@ -68,9 +68,4 @@
 			</section>
 		{/if}
 	{/if}
-
-	<div class="flex gap-4">
-		<a href={resolve('/admin/events')} class="text-blue-600 underline">{m.events_title()}</a>
-		<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
-	</div>
 </main>
