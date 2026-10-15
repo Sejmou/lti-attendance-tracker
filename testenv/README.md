@@ -131,8 +131,14 @@ podman compose -f testenv/compose.yml -f testenv/compose.dev.yml logs -f app
   `drizzle` config and the like come from the image, as does `node_modules`.
   `up -d --build app` with both files after changing them. After a schema
   change, restart `app` so `app-start.sh` pushes it.
-- **Client addresses:** the dev server ignores `X-Forwarded-For`, so the scan
-  log records your proxy's address.
+- **Client addresses:** the scan log gets the same address for every scan. Say
+  a phone at `203.0.113.7` scans. Its request reaches the app through your
+  proxy and Podman's port forwarding, so the connection the app sees comes
+  from that forwarding, with rootless Podman from the container's own address
+  (e.g. `10.89.3.3`). `203.0.113.7` only survives in the `X-Forwarded-For`
+  header the proxy adds. The built app reads that header, because
+  `ADDRESS_HEADER` (an adapter-node setting) tells it to. The dev server
+  doesn't know that setting and logs `10.89.3.3`.
 - **Switching** between the two: `up -d` with the other set of files.
   podman-compose recreates every container for it, Moodle's too, but the
   volumes and with them all data stay.
