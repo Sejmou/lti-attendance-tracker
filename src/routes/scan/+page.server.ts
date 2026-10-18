@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { scanMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
 import { keepBrowserId } from '$lib/server/browser-id';
-import { recordScan } from '$lib/server/scan';
+import { clientOf, recordScan } from '$lib/server/scan';
 import { parseDetails, manualEntryUser } from '$lib/server/manual-entry';
 import { db } from '$lib/server/db';
 import { deviceKey } from '$lib/server/db/schema';
@@ -75,7 +75,7 @@ export const actions: Actions = {
 			return fail(403, { message: NOT_FRESH() });
 		}
 
-		const outcome = recordScan(event, {
+		const outcome = recordScan(clientOf(event), {
 			userId: key.userId,
 			method: 'device',
 			codeScanId: codeScanId(presence!),
@@ -109,7 +109,7 @@ export const actions: Actions = {
 		const details = parseDetails(form);
 		if (!details) return fail(400, { message: INVALID_DETAILS() });
 
-		const outcome = recordScan(event, {
+		const outcome = recordScan(clientOf(event), {
 			userId: manualEntryUser(details),
 			method: 'manual',
 			deviceKeyUserId: deviceKeyOwner(form, codeScanId(presence!)),

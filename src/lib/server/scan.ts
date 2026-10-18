@@ -26,6 +26,28 @@ export const SCAN_IN_GRACE_MS = 5 * 60_000;
 const EARLY_OUT_MS = 5 * 60_000;
 
 /**
+ * Where a scan came from, as far as the scan log cares. `address` is read
+ * only when a scan is written: behind a proxy, adapter-node throws when the
+ * header it reads the address from is missing (see ADDRESS_HEADER).
+ */
+export type Client = {
+	readonly address: string;
+	userAgent: string | null;
+	browserId: string | null;
+};
+
+/** The client a request came from. */
+export function clientOf(request: RequestEvent): Client {
+	return {
+		get address() {
+			return request.getClientAddress();
+		},
+		userAgent: request.request.headers.get('user-agent'),
+		browserId: browserIdOf(request.cookies)
+	};
+}
+
+/**
  * Writes the scan for an attendee whose proof has already been checked, under
  * the event the code was for, tells the screens at the door, and files a scan
  * for the admin whose code it came through.
@@ -41,7 +63,7 @@ const EARLY_OUT_MS = 5 * 60_000;
  * already confirmed someone else's: one camera scan, one person.
  */
 export function recordScan(
-	request: RequestEvent,
+	client: Client,
 	proof: {
 		userId: string;
 		codeScanId: string;
@@ -57,7 +79,7 @@ export function recordScan(
 	| { gone: 'attendee' | 'event' }
 	| { used: true } {
 	const { eventId, hostId } = proof.screen;
-	const browserId = browserIdOf(request.cookies);
+	const { browserId } = client;
 
 	// One transaction, so the event can't be deleted between looking and writing.
 	const outcome = db.transaction((tx) => {
@@ -117,8 +139,8 @@ export function recordScan(
 				eventId,
 				method: proof.method,
 				codeScanId: proof.codeScanId,
-				ipHash: ipHash(eventId, request.getClientAddress()),
-				userAgent: request.request.headers.get('user-agent'),
+				ipHash: ipHash(eventId, client.address),
+				userAgent: client.userAgent,
 				browserHash: browserId && browserHash(eventId, browserId),
 				...(proof.method === 'manual' && {
 					reportedAs: proof.userId,

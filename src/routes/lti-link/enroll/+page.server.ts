@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { enrollMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { recordScan } from '$lib/server/scan';
+import { clientOf, recordScan } from '$lib/server/scan';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
 import { enrollDevice } from '$lib/server/enrollment';
 import { launchCodeScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
@@ -52,7 +52,7 @@ export const actions: Actions = {
 		const screen = verifyBucketToken(code);
 		if (!screen) return fail(403, { message: CODE_EXPIRED() });
 
-		const outcome = recordScan(event, {
+		const outcome = recordScan(clientOf(event), {
 			userId: enrollment.userId,
 			method: 'lti',
 			codeScanId: launchCodeScanId(token, code),
