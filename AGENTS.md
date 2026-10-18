@@ -3,6 +3,7 @@
 - **Language**: TypeScript
 - **Package Manager**: pnpm
 - **Add-ons**: prettier, eslint, vitest, playwright, tailwindcss, sveltekit-adapter, drizzle, paraglide, ai-tools
+- **Tests**: before writing or changing one, read the testing notes at the end of the README's "Commands" section — they keep tests independent of copy, `BASE_PATH`, the local `.env` and the clock
 
 ---
 

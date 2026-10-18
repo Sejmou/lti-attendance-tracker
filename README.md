@@ -732,6 +732,24 @@ Tests read `.env.test`, which points `DATABASE_URL` at a scratch database. Vite 
 `.env.test` precedence over `.env` in test mode, and `$env/dynamic/private` reads what
 Vite loaded — so overriding `process.env` from inside a spec does **not** work.
 
+A test should pass whatever the copy says, wherever the app is served from and whatever
+the developer's `.env` holds:
+
+- Expected text comes from the messages (`m.admin_title()`), not spelled out in German or
+  English, unless the wording itself is what the test is about.
+- Expected paths come from `resolve()`, not `'/admin'`: with `BASE_PATH` set, every path
+  the app makes starts with it.
+- A setting a test relies on is set in `.env.test`, as `PUBLIC_TIMEZONE` is, rather than
+  left to the default in code, which a `.env` would override. Only a variable exported
+  in the shell beats `.env.test`.
+- Where a function takes the time (`at`, `now`), pass it. Where it doesn't, as in the form
+  actions, freeze the clock (`vi.useFakeTimers({ toFake: ['Date'] })`) around anything
+  that must fall in a given window: a QR code rotates every 30 seconds, also between
+  making a code and checking it.
+
+To check, run the suite once with `BASE_PATH=/att` and once with another `PUBLIC_TIMEZONE`
+in `.env`; both should pass.
+
 ## Schema notes
 
 Besides the log and `event` (see [Events](#events)), `device_key` (see [Setting up a phone](#setting-up-a-phone)), the tool
