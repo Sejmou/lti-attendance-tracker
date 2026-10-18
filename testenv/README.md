@@ -98,6 +98,33 @@ only takes a private tab per student (or signing out of Moodle in between). A
 linked phone belongs to one student at a time: linking it again for another
 takes it over.
 
+## Made-up data
+
+With `TESTENV_SEED` set in `.env` (any number), the app's database starts out with
+half a year of made-up use: 80 attendees and 3 organizers, 31 events with their scans,
+phone setups, details typed in by hand and linked, and a few attendees deleted (see
+"Data to develop against" in the main README). Events span the six months before the day
+it's seeded and the four weeks after, and one of them is that evening, so the
+organizer's code screen suggests it.
+
+It only seeds a database that isn't there yet: on the app's first start, or after
+starting over. The test users are not among the made-up people. They appear
+next to them once they open a tool, as on any other platform. The made-up
+people come from a platform URL of their own, so no login is ever mistaken
+for one of them.
+
+To seed again, or for the first time, without losing Moodle, delete only the
+app's volume:
+
+```sh
+podman compose -f testenv/compose.yml down              # containers only; data stays
+podman volume rm attendance-testenv_appdata             # the app's database
+podman compose -f testenv/compose.yml up -d
+```
+
+The seed is applied with the image's dependencies, so rebuild (`up -d --build app`)
+if the image is older than the seeder.
+
 ## Changing things
 
 - **Setup:** `moodle/testenv_setup.php` runs on every start of `moodle`. It
@@ -107,7 +134,8 @@ takes it over.
 - **Hostnames:** starting over is the reliable way (below). Both sides keep URLs
   in their databases.
 - **Start over:** `podman compose -f testenv/compose.yml down -v` deletes Moodle,
-  its database and the app's database.
+  its database and the app's database. With `TESTENV_SEED` set, the next start
+  seeds the app's database anew (see [Made-up data](#made-up-data)).
 
 The app runs from the image's `build` stage rather than the production one:
 `app-start.sh` needs drizzle-kit and the script loader, which the production
