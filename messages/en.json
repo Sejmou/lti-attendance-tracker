@@ -11,6 +11,8 @@
 	"home_intro": "Open the attendance activity in your Moodle course on your phone and tap \"{button}\". At the event, scan the attendance QR code with that phone.",
 
 	"admin_title": "Organizer",
+	"admin_breadcrumb_label": "Breadcrumb",
+	"admin_breadcrumb_code": "QR code",
 	"admin_launch_expired": "This link from Moodle has expired. Open the organizer activity in Moodle again.",
 	"admin_embedded_text": "Moodle opened this inside its own page, where your browser won't keep you signed in. Continue in a tab of its own.",
 	"admin_open_from_lms_text": "Organizers get in by opening the organizer activity in their Moodle course. There is nothing to sign in with here.",

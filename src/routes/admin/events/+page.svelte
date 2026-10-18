@@ -197,8 +197,6 @@
 			</Table.Body>
 		</Table.Root>
 	{/if}
-
-	<a href={resolve('/admin')} class="text-blue-600 underline">{m.admin_title()}</a>
 </main>
 
 <EventDialog bind:open={editorOpen} id={editingId} bind:fields />

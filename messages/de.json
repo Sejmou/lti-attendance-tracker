@@ -11,6 +11,8 @@
 	"home_intro": "Öffne auf deinem Handy die Anwesenheits-Aktivität in deinem Moodle-Kurs und tippe auf „{button}“. Scanne bei der Veranstaltung mit diesem Handy den Anwesenheits-QR-Code.",
 
 	"admin_title": "Organisation",
+	"admin_breadcrumb_label": "Navigationspfad",
+	"admin_breadcrumb_code": "QR-Code",
 	"admin_launch_expired": "Dieser Link aus Moodle ist abgelaufen. Öffne die Organisations-Aktivität in Moodle erneut.",
 	"admin_embedded_text": "Moodle hat diese Seite innerhalb seiner eigenen geöffnet, wo dein Browser dich nicht angemeldet hält. Mach in einem eigenen Tab weiter.",
 	"admin_open_from_lms_text": "Organisator:innen kommen über die Organisations-Aktivität in ihrem Moodle-Kurs hierher. Hier gibt es nichts, womit man sich anmelden könnte.",
