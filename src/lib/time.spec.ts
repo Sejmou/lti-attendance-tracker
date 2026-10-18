@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { formatDateTime, fromWallClock, TIMEZONE, wallClock } from './time';
 
-// The default, and what .env.test leaves it at.
+// The default, and what .env.test sets it to.
 test('times are in Vienna', () => {
 	expect(TIMEZONE).toBe('Europe/Vienna');
 });

@@ -1,10 +1,12 @@
-import { beforeAll, expect, test } from 'vitest';
+import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createSign, generateKeyPairSync } from 'node:crypto';
 import { and, desc, eq, like } from 'drizzle-orm';
 import { IdTokenValidationMethod } from 'ltijs';
+import { resolve } from '$app/paths';
 import { env } from '$env/dynamic/private';
 import { enrollMessage, scanMessage } from '$lib/device-key';
+import { m } from '$lib/paraglide/messages';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { db } from '../db';
@@ -44,7 +46,7 @@ const ADA = JSON.stringify([MOODLE, '42']);
 const platformKeys = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
 beforeAll(async () => {
-	// See auth.spec.ts.
+	// See scan-host.spec.ts.
 	execFileSync('pnpm', ['exec', 'drizzle-kit', 'push', '--force'], {
 		stdio: 'ignore',
 		env: { ...process.env, DATABASE_URL: env.DATABASE_URL }
@@ -175,9 +177,13 @@ async function enroll(token: string) {
 function tokenFrom(response: Response | null) {
 	expect(response?.status).toBe(303);
 	const location = new URL(response!.headers.get('location')!, TOOL);
-	expect(location.pathname).toBe('/lti-link/enroll');
+	expect(location.pathname).toBe(resolve('/lti-link/enroll'));
 	return location.hash.slice(1);
 }
+
+afterEach(() => {
+	vi.useRealTimers();
+});
 
 const attendee = () => db.select().from(user).where(eq(user.ltiSubject, ADA)).get();
 
@@ -230,7 +236,9 @@ test('an id_token not signed by the platform is turned down', async () => {
 test('a new attendee Moodle shares no email or name for is told so, and not created', async () => {
 	for (const missing of [{ email: undefined }, { given_name: undefined }, { family_name: '' }]) {
 		const response = await launch({ sub: 'private', ...missing });
-		expect(response?.headers.get('location')).toBe('/lti-link/enroll?problem=no-profile');
+		expect(response?.headers.get('location')).toBe(
+			`${resolve('/lti-link/enroll')}?problem=no-profile`
+		);
 	}
 	expect(await db.$count(user, eq(user.ltiSubject, JSON.stringify([MOODLE, 'private'])))).toBe(0);
 });
@@ -244,14 +252,16 @@ test('an email some other account already has is no reason to turn anyone away',
 
 test("a launch of a tool that is in no registered pair isn't let in as anything", async () => {
 	const response = await launch({ aud: LONE_CLIENT_ID });
-	expect(response?.headers.get('location')).toBe('/lti-link/enroll?problem=unknown-tool');
+	expect(response?.headers.get('location')).toBe(
+		`${resolve('/lti-link/enroll')}?problem=unknown-tool`
+	);
 });
 
 test('the admin tool signs the same person in as an organizer, not an attendee to set up', async () => {
 	const response = await launch({ aud: ADMIN_CLIENT_ID });
 	expect(response?.status).toBe(303);
 	const location = new URL(response!.headers.get('location')!, TOOL);
-	expect(location.pathname).toBe('/lti-link/admin');
+	expect(location.pathname).toBe(resolve('/lti-link/admin'));
 
 	const token = location.hash.slice(1);
 	expect(verifyAdminLaunch(token)).toBe(attendee()!.id);
@@ -274,7 +284,10 @@ test('the admin tool signs the same person in as an organizer, not an attendee t
 	expect(set.size).toBe(0);
 
 	// Signing in answers with a redirect to /admin, which SvelteKit throws.
-	await expect(signIn(token)).rejects.toMatchObject({ status: 303, location: '/admin' });
+	await expect(signIn(token)).rejects.toMatchObject({
+		status: 303,
+		location: resolve('/admin')
+	});
 	expect(verifyAdminSession(set.get(ADMIN_SESSION_COOKIE))).toBe(attendee()!.id);
 });
 
@@ -395,10 +408,14 @@ test('scanning inside the launched page files a scan, no phone set up', async ()
 			.run();
 
 	// Scanning again right away, unsure the first one worked: they are told
-	// they're in, and nothing is written that would count as leaving.
+	// they're in, and nothing is written that would count as leaving. The
+	// clock stands still meanwhile: a rotation before the scan is checked would
+	// make the previous window's code two windows old, and turn it down.
+	vi.useFakeTimers({ toFake: ['Date'] });
 	expect(await scan(token, bucketToken(SCREEN, Date.now() - BUCKET_MS))).toMatchObject({
 		scanned: { firstName: 'Ada', alreadyInSince: rows[0].scannedAt }
 	});
+	vi.useRealTimers();
 	expect(await count()).toBe(1);
 
 	// Past the grace period, a scan is a scan: for now, the scan-out. Well
@@ -462,7 +479,7 @@ test('a code for an event deleted since it went up files nothing, and says why',
 	const result = await scan(token, bucketToken({ hostId: 'no-such-organizer', eventId: gone.id }));
 	expect(result).toMatchObject({
 		status: 403,
-		data: { message: expect.stringMatching(/Veranstaltung/) }
+		data: { message: m.scan_event_gone() }
 	});
 	expect(await db.$count(scanRow, eq(scanRow.userId, id))).toBe(before);
 });
