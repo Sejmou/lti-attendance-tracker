@@ -2,10 +2,11 @@ import { resolve } from '$app/paths';
 import { and, eq, or } from 'drizzle-orm';
 import { Provider } from 'ltijs';
 import { db } from '$lib/server/db';
-import { ltiRegistration, user } from '$lib/server/db/schema';
+import { ltiRegistration } from '$lib/server/db/schema';
 import { issueAdminLaunch, issueEnrollment } from '$lib/server/scan-token';
 import { DrizzleDatabaseManager } from './database-manager';
 import { SvelteKitHttpHandler } from './http-handler';
+import { platformUser } from './platform-user';
 
 export const httpHandler = new SvelteKitHttpHandler();
 
@@ -28,9 +29,10 @@ export const provider = new Provider({
 
 /**
  * The platform has just vouched for who this is. Find them by their platform
- * account, creating them on their first launch, and send them on with that
- * proof in the URL fragment: to the admin pages if they launched the admin
- * tool, to set up this browser if they launched the attendee tool.
+ * account, creating them on their first launch (see platformUser), and send
+ * them on with that proof in the URL fragment: to the admin pages if they
+ * launched the admin tool, to set up this browser if they launched the
+ * attendee tool.
  *
  * There is no attendee list and no list of organizers: whoever the platform lets
  * open a tool is let in as what that tool is for. The roles claim is ignored —
@@ -43,33 +45,7 @@ provider.onResourceLink(async (context, _request, response) => {
 	const tool = toolFor(platform.url, platform.clientId);
 	if (!tool) return response.redirect(`${enroll}?problem=unknown-tool`);
 
-	// `sub` is the platform's user ID: permanent, unlike the email, and only
-	// unique within one platform, hence the issuer alongside it.
-	const ltiSubject = JSON.stringify([platform.url, launcher.id]);
-
-	// One transaction: two launches racing for a new attendee can't both create
-	// them. Finding them is marking them seen.
-	const found = db.transaction((tx) => {
-		const existing = tx
-			.update(user)
-			.set({ lastSeenAt: new Date() })
-			.where(eq(user.ltiSubject, ltiSubject))
-			.returning({ id: user.id, firstName: user.firstName })
-			.get();
-		if (existing) return existing;
-
-		// Only there if the tool's privacy settings on the platform share them.
-		const email = launcher.email?.trim().toLowerCase();
-		const firstName = launcher.givenName?.trim();
-		const lastName = launcher.familyName?.trim();
-		if (!email || !firstName || !lastName) return null;
-
-		return tx
-			.insert(user)
-			.values({ id: crypto.randomUUID(), email, firstName, lastName, ltiSubject })
-			.returning({ id: user.id, firstName: user.firstName })
-			.get();
-	});
+	const found = platformUser(platform.url, launcher);
 	if (!found) return response.redirect(`${enroll}?problem=no-profile`);
 
 	if (tool === 'admin') {
