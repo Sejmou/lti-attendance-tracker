@@ -732,8 +732,9 @@ Tests read `.env.test`, which points `DATABASE_URL` at a scratch database. Vite 
 `.env.test` precedence over `.env` in test mode, and `$env/dynamic/private` reads what
 Vite loaded — so overriding `process.env` from inside a spec does **not** work.
 
-A test should pass whatever the wording of the UI text (`messages/*.json`), wherever the
-app is served from and whatever the developer's `.env` holds:
+A test should not fail just because something it isn't about changed: the wording of the
+UI text (`messages/*.json`), where the app is served from, what the developer's `.env`
+holds, or the moment it runs:
 
 - Expected text comes from the messages (`m.admin_title()`), not spelled out in German or
   English, unless the wording itself is what the test is about.

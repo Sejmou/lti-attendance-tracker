@@ -3,7 +3,7 @@
 - **Language**: TypeScript
 - **Package Manager**: pnpm
 - **Add-ons**: prettier, eslint, vitest, playwright, tailwindcss, sveltekit-adapter, drizzle, paraglide, ai-tools
-- **Tests**: before writing or changing one, read the testing notes at the end of the README's "Commands" section — they keep tests independent of the UI text's wording, `BASE_PATH`, the local `.env` and the clock
+- **Tests**: before writing or changing one, read the testing notes at the end of the README's "Commands" section — they keep tests from failing over things they aren't about: the UI text's wording, `BASE_PATH`, the local `.env` or the clock
 
 ---
 
