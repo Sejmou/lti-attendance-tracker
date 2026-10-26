@@ -8,7 +8,7 @@ import { pruneExpired } from '$lib/server/retention';
  * Stores and logs a browser's new key. The caller must already have checked
  * the setup link and the browser's proof of the key (see the enroll action).
  * Null if the link is spent (a key was set up since `issuedAt`) or the
- * attendee is gone.
+ * attendee was deleted.
  */
 export function enrollDevice(setup: {
 	userId: string;
