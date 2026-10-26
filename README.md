@@ -585,8 +585,8 @@ see [Data protection](#data-protection).
 
 Every scan belongs to an event, and an attendee's first and last scan of it are their
 scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events are
-synced from a public Google Calendar (`source` `calendar`) or created by organizers on
-the Events page (`source` `manual`). Both kinds are stored in the same `event` table.
+synced from an iCal feed (`source` `calendar`) or created by organizers on the Events page
+(`source` `manual`). Both kinds are stored in the same `event` table.
 
 ### Calendar sync
 
