@@ -170,7 +170,7 @@ compiled into the **build**, so changing it means `pnpm build` or
 | `ORIGIN`            | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone))                                 |
 | `SIGNING_SECRET`    | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens, and keys the IP address hashes. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones. Changed during an event, `shared` can't match scans from before the change with scans after it |
 | `BASE_PATH`         | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                                                       |
-| `CALENDAR_ICS_URL`  | no       | start        | A public Google Calendar's iCal address, whose events are synced in. See [Events](#events)                                                                                                                                                                                                                         |
+| `CALENDAR_ICS_URL`  | no       | start        | An iCal feed (`.ics` URL) whose events are synced in, e.g. a Google Calendar's public address. See [Events](#events)                                                                                                                                                                                               |
 | `PUBLIC_TIMEZONE`   | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                                                |
 | `PUBLIC_SOURCE_URL` | no       | start        | Where the "Source code" link at the bottom of every page points. Defaults to https://github.com/Sejmou/lti-attendance-tracker. If you run a modified version, the AGPL requires pointing it at your version's source                                                                                               |
 | `ADDRESS_HEADER`    | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_hash` hashes the proxy's address for everyone                                                                                                                                                                                                         |
@@ -590,11 +590,21 @@ the Events page (`source` `manual`). Both kinds are stored in the same `event` t
 
 ### Calendar sync
 
-`CALENDAR_ICS_URL` is the calendar's **Public address in iCal format** (Google
-Calendar → Settings → the calendar → **Integrate calendar**). The calendar has to be
-public; no Google Cloud project or API key is involved. The sync fetches that file,
-parses it with [ical.js](https://www.npmjs.com/package/ical.js) and upserts every event
-starting from 30 days ago to 180 days ahead. Recurring events are expanded into one row
+`CALENDAR_ICS_URL` is a calendar's iCal feed. For Google Calendar, that's Settings → the
+calendar → **Integrate calendar** → **Public address in iCal format**; no Google Cloud
+project or API key is involved. Other providers that publish iCal (Outlook, iCloud,
+Nextcloud) should work too, but only Google's feeds have been tried.
+
+The server fetches the URL with a plain `GET`, without credentials, cookies or headers
+(credentials in the URL, `https://user:pass@…`, are refused), so the URL alone has to
+return the feed: a public calendar's address, or a secret one such as Google's **Secret
+address in iCal format**. A secret address lets anyone who has it read the calendar, so
+treat it like a password: keep it in `.env`, out of issues and screenshots. `webcal://`
+is read as `https://`. The server must also be able to reach the URL, which matters for
+a calendar on an internal network.
+
+The sync fetches that file, parses it with [ical.js](https://www.npmjs.com/package/ical.js)
+and upserts every event starting from 30 days ago to 180 days ahead. Recurring events are expanded into one row
 per occurrence, less excluded and cancelled ones.
 
 There is no timer. Opening the events page or the event picker (`/admin/code`) syncs if
@@ -607,8 +617,10 @@ opened after a restart syncs.
 
 Rows are matched by `calendar_key`: the event's iCal `UID`, plus for an occurrence of a
 recurring event its `RECURRENCE-ID` — the start it originally had, which stays the same
-when the occurrence is moved. Google keeps both through edits, so a resync updates the
-rows it already has. Scans point at the app's own `event.id`, never at these keys, so no
+when the occurrence is moved. [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545) requires
+both to stay the same through edits (§3.8.4.7 and §3.8.4.4), and Google Calendar keeps
+them, so a resync updates the rows it already has; check a feed from another provider
+before relying on it. Scans point at the app's own `event.id`, never at these keys, so no
 resync can move them. A few things in Google Calendar do make new keys:
 
 - editing a series with "this and following events", which splits it in two
@@ -621,11 +633,12 @@ reappears. So a changed key costs at most a second row next to the old one; noth
 recorded is lost. Only rows in the window are checked, so events older than 30 days are
 never touched.
 
-Times with a zone are read in it (Google includes a `VTIMEZONE` for each); floating ones
-in the calendar's zone (`X-WR-TIMEZONE`), or `PUBLIC_TIMEZONE`. An all-day event is that
-calendar day in `PUBLIC_TIMEZONE`, whatever zone the calendar declares — Google's holiday
-calendars say UTC, which would otherwise make a holiday run from 02:00 to 02:00 in Vienna.
-Google may serve a change to the calendar some time after it was made.
+Times with a zone are read in it (feeds usually include a `VTIMEZONE` for each; Google's
+do); floating ones in the calendar's zone (`X-WR-TIMEZONE`), or `PUBLIC_TIMEZONE`. An
+all-day event is that calendar day in `PUBLIC_TIMEZONE`, whatever zone the calendar
+declares — Google's holiday calendars say UTC, which would otherwise make a holiday run
+from 02:00 to 02:00 in Vienna. Google may serve a change to the calendar some time after
+it was made.
 
 ## LTI platforms
 

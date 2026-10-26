@@ -27,8 +27,8 @@ beforeEach(() => {
 	db.delete(event).where(ours).run();
 });
 
-// What Google serves for a public calendar, cut down: its own VTIMEZONE for
-// every zone it uses, and X-WR-TIMEZONE for the calendar's.
+// Written by hand, modelled on what Google serves for a public calendar: its
+// own VTIMEZONE for every zone it uses, and X-WR-TIMEZONE for the calendar's.
 const VIENNA = `BEGIN:VTIMEZONE
 TZID:Europe/Vienna
 X-LIC-LOCATION:Europe/Vienna
