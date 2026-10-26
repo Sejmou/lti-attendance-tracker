@@ -98,6 +98,24 @@ only takes a private tab per student (or signing out of Moodle in between). A
 linked phone belongs to one student at a time: linking it again for another
 takes it over.
 
+## Made-up data
+
+With `TESTENV_SEED` set in `.env` (any number), the app's database starts out with
+half a year of made-up use (see "Data to develop against" in the main README). It only
+seeds a database that doesn't exist yet. The made-up people come from a platform URL of
+their own, so no test user's login is mistaken for one of them. Leave `CALENDAR_ICS_URL`
+unset to keep it all made up: otherwise the calendar's events are synced in alongside the
+seeded ones, which are all created on the Events page.
+
+To seed again without losing Moodle, delete only the app's volume, then rebuild so the
+image has the current seeder:
+
+```sh
+podman compose -f testenv/compose.yml down              # containers only; data stays
+podman volume rm attendance-testenv_appdata             # the app's database
+podman compose -f testenv/compose.yml up -d --build
+```
+
 ## Changing things
 
 - **Setup:** `moodle/testenv_setup.php` runs on every start of `moodle`. It
@@ -107,7 +125,8 @@ takes it over.
 - **Hostnames:** starting over is the reliable way (below). Both sides keep URLs
   in their databases.
 - **Start over:** `podman compose -f testenv/compose.yml down -v` deletes Moodle,
-  its database and the app's database.
+  its database and the app's database. With `TESTENV_SEED` set, the next start
+  seeds the app's database anew (see [Made-up data](#made-up-data)).
 
 The app runs from the image's `build` stage rather than the production one:
 `app-start.sh` needs drizzle-kit and the script loader, which the production

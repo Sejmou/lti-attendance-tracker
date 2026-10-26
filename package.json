@@ -22,12 +22,14 @@
 		"lti:register-platform": "node scripts/run.js scripts/register-platform.ts",
 		"db:backup": "node --env-file-if-exists=.env scripts/backup.js",
 		"db:restore": "node --env-file-if-exists=.env scripts/restore.js",
+		"db:seed-synthetic": "node scripts/run.js scripts/seed-synthetic.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@faker-js/faker": "^10.6.0",
 		"@fontsource-variable/roboto": "^5.3.0",
 		"@fontsource-variable/source-sans-3": "^5.3.0",
 		"@inlang/paraglide-js": "^2.18.2",

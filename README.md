@@ -30,6 +30,39 @@ There are no accounts to create here. Organizers and attendees alike come from t
 whoever it lets open the admin tool is an organizer, and whoever it lets open the
 attendee tool is an attendee.
 
+### Data to develop against
+
+`pnpm db:seed-synthetic [seed] [--as-of YYYY-MM-DD]` makes a new database at
+`DATABASE_URL` (which must not exist yet) with half a year of made-up use. Nobody real
+is in it, so use it instead of a copy of production, which holds everyone's real details.
+
+```sh
+DATABASE_URL=dev.db pnpm db:seed-synthetic
+DATABASE_URL=dev.db pnpm lti:register-platform --url https://moodle.example.com --admin-client-id <id> --attendee-client-id <id>
+DATABASE_URL=dev.db pnpm dev
+```
+
+It replays the app being used through the app's own code (`platformUser`, `enrollDevice`,
+`recordScan`, `manualEntryUser`, `link`, `deleteAttendee`), so every row is one the app
+could have written: 3 organizers, 31 events from six months back to four weeks ahead (one
+that evening), 80 attendees scanning by phone, from the launched page or by typing in
+their details, links made the next morning, and a few attendees deleted.
+
+The replay has its own clock (`Date`, and SQLite's `unixepoch` on the app's connection)
+and its own random values, so the same seed on the same day gives the same database;
+`--as-of` fixes the day. Names come from [Faker](https://fakerjs.dev)'s German locale,
+and email addresses are on `example.invalid`, which is reserved and can never be anyone's.
+
+`src/lib/server/seed-synthetic.spec.ts` checks the result keeps the app's rules: no phone
+scan without a key, an organizer's scan for every event with scans, hashes on every
+attendee's scan, nothing dated after the day.
+
+Every seeded event is one an organizer created on the Events page (`source` `manual`).
+None are synced from a calendar (`source` `calendar`) yet. The LTI tables stay empty on
+purpose: register your own Moodle with `lti:register-platform`, as above. In the
+[test environment](testenv/README.md#made-up-data), `TESTENV_SEED` seeds the app's
+database on its first start.
+
 ## Containers (Docker or Podman)
 
 ```sh
@@ -551,9 +584,9 @@ see [Data protection](#data-protection).
 ## Events
 
 Every scan belongs to an event, and an attendee's first and last scan of it are their
-scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events come
-from a public Google Calendar, or are created by hand; the two live side by side in
-`event`, told apart by `source`.
+scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events are
+synced from a public Google Calendar (`source` `calendar`) or created by organizers on
+the Events page (`source` `manual`). Both kinds are stored in the same `event` table.
 
 ### Calendar sync
 
