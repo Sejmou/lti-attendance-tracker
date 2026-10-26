@@ -50,9 +50,16 @@ their details, links made the next morning, and a few attendees deleted.
 
 The replay has its own clock (`Date`, and SQLite's `unixepoch` on the app's connection)
 and its own random values, so the same seed on the same day gives the same database;
-`--as-of` fixes the day. Not covered yet: calendar events and the LTI tables, which
-`lti:register-platform` fills. In the [test environment](testenv/README.md#made-up-data),
-`TESTENV_SEED` seeds the app's database on its first start.
+`--as-of` fixes the day. Names come from [Faker](https://fakerjs.dev)'s German locale,
+and email addresses are on `example.invalid`, which is reserved and can never be anyone's.
+
+`src/lib/server/seed-synthetic.spec.ts` checks the result keeps the app's rules: no phone
+scan without a key, an organizer's scan for every event with scans, hashes on every
+attendee's scan, nothing dated after the day.
+
+Not covered yet: calendar events and the LTI tables, which `lti:register-platform` fills.
+In the [test environment](testenv/README.md#made-up-data), `TESTENV_SEED` seeds the app's
+database on its first start.
 
 ## Containers (Docker or Podman)
 
