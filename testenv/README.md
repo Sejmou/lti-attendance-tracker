@@ -104,8 +104,8 @@ With `TESTENV_SEED` set in `.env` (any number), the app's database starts out wi
 half a year of made-up use (see "Data to develop against" in the main README). It only
 seeds a database that doesn't exist yet. The made-up people come from a platform URL of
 their own, so no test user's login is mistaken for one of them. Leave `CALENDAR_ICS_URL`
-unset to keep it all made up: a calendar's events would be synced in next to the seeded
-ones, which are all made by hand.
+unset to keep it all made up: otherwise the calendar's events are synced in alongside the
+seeded ones, which are all created on the Events page.
 
 To seed again without losing Moodle, delete only the app's volume, then rebuild so the
 image has the current seeder:

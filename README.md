@@ -57,8 +57,10 @@ and email addresses are on `example.invalid`, which is reserved and can never be
 scan without a key, an organizer's scan for every event with scans, hashes on every
 attendee's scan, nothing dated after the day.
 
-Not covered yet: calendar events and the LTI tables, which `lti:register-platform` fills.
-In the [test environment](testenv/README.md#made-up-data), `TESTENV_SEED` seeds the app's
+Every seeded event is one an organizer created on the Events page (`source` `manual`).
+None are synced from a calendar (`source` `calendar`) yet. The LTI tables stay empty on
+purpose: register your own Moodle with `lti:register-platform`, as above. In the
+[test environment](testenv/README.md#made-up-data), `TESTENV_SEED` seeds the app's
 database on its first start.
 
 ## Containers (Docker or Podman)
@@ -582,9 +584,9 @@ see [Data protection](#data-protection).
 ## Events
 
 Every scan belongs to an event, and an attendee's first and last scan of it are their
-scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events come
-from a public Google Calendar, or are created by hand; the two live side by side in
-`event`, told apart by `source`.
+scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)). Events are
+synced from a public Google Calendar (`source` `calendar`) or created by organizers on
+the Events page (`source` `manual`). Both kinds are stored in the same `event` table.
 
 ### Calendar sync
 
