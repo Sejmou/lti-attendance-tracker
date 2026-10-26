@@ -1,15 +1,14 @@
 #!/bin/sh
-# The app's start in the test environment: made-up data on a fresh database if
-# TESTENV_SEED asks for it, schema, registration of the test Moodle's two
-# tools, then the server. All of it is idempotent, so it runs on every start. Runs in the `build` stage image, which still has drizzle-kit and
-# the script loader that the production image leaves out.
+# The app's start in the test environment: made-up data if TESTENV_SEED is
+# set and there's no database yet, schema, registration of the test Moodle's
+# two tools, then the server. All of it is idempotent, so it runs on every
+# start. Runs in the `build` stage image, which still has drizzle-kit and the
+# script loader that the production image leaves out.
 #
 # `app-start.sh dev` (compose.dev.yml) serves the bind-mounted source with
 # Vite's dev server instead of the built app.
 set -eu
 
-# Only into a database that isn't there yet: the seeder writes a new one and
-# never adds to one in use. See "Made-up data" in testenv/README.md.
 if [ -n "${TESTENV_SEED:-}" ] && [ ! -e "$DATABASE_URL" ]; then
 	pnpm --silent db:seed-synthetic "$TESTENV_SEED"
 fi

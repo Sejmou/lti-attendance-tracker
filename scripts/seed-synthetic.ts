@@ -1,32 +1,9 @@
 /**
- * Writes a database of made-up people, events and scans, for development:
- * nobody real is in it, so it can go anywhere. It isn't generated row by
- * row: it replays half a year of the app being used, through the app's own
- * code, so every row is one the app would have written.
+ * Writes a new database of made-up use, by replaying half a year of the app
+ * being used through the app's own code, so every row is one the app could
+ * have written. See "Data to develop against" in the README.
  *
  *   DATABASE_URL=dev.db pnpm db:seed-synthetic [seed] [--as-of YYYY-MM-DD]
- *
- * DATABASE_URL must not exist yet: this makes a new database and never
- * writes into one in use. The same seed and day give the same database.
- *
- * Dated around `--as-of` (today, unless given): events over the six months
- * before it and the four weeks after, one of them that evening. What
- * happens, in order of when it happens:
- *
- * - organizers launch the admin tool and create the events
- * - attendees launch the attendee tool, most set up a phone, some later a
- *   new one
- * - at each event, an organizer shows the code; attendees scan in with their
- *   phone, inside the launched page, or by typing in their details, some on
- *   a friend's phone; most scan out, some step out and back in
- * - the next morning, an organizer links details typed in to the Moodle
- *   account the event page suggests, about half of them
- * - a few who stopped coming are deleted
- *
- * The app's clocks follow the replay: `Date` here, and SQLite's `unixepoch`
- * (the column defaults) on the app's connection. So do its random values,
- * from `crypto.randomUUID` and SQLite's `randomblob`, which is what makes the
- * same seed give the same database.
  */
 import { execFileSync } from 'node:child_process';
 import { createECDH } from 'node:crypto';
@@ -50,14 +27,13 @@ if (existsSync(dest)) throw new Error(`${dest} already exists: this only makes n
 
 const DAY = 86_400_000;
 const MINUTE = 60_000;
-// Midnight UTC, so the whole of one day replays the same.
 const asOf = values['as-of'] ? Date.parse(`${values['as-of']}T00:00:00Z`) : Date.now();
 if (Number.isNaN(asOf)) throw new Error(usage);
+// Midnight UTC, so a run at any time of the day gives the same database.
 const today = asOf - (asOf % DAY);
 const day = (offset: number) => new Date(today + offset * DAY).toISOString().slice(0, 10);
 
-// mulberry32: small and seedable. One stream for what happens, one for IDs,
-// so a change to one doesn't reshuffle the other.
+// mulberry32. A separate stream for IDs, so adding an ID doesn't change what happens.
 function rng(state: number) {
 	return () => {
 		state = (state + 0x6d2b79f5) | 0;
@@ -76,11 +52,9 @@ const uuid = () =>
 	);
 faker.seed(seed);
 
-// The replay's clock, for everything the app reads the time from.
+// The replay's clock. Dates are still real ones, so `instanceof Date` holds.
 let now = today;
 const RealDate = Date;
-// The real Date, but "now" is the replay's: `new Date()`, `Date()` and
-// `Date.now()`. Dates it makes are real ones, so `instanceof` holds.
 globalThis.Date = new Proxy(RealDate, {
 	construct: (target, args: ConstructorParameters<DateConstructor>) =>
 		args.length ? new target(...args) : new target(now),
@@ -90,7 +64,7 @@ globalThis.Date = new Proxy(RealDate, {
 });
 crypto.randomUUID = uuid as typeof crypto.randomUUID;
 
-// The schema first; the app's modules open the database as they load.
+// Schema first: the app's modules open the database as they load.
 execFileSync('pnpm', ['exec', 'drizzle-kit', 'push', '--force'], { stdio: 'ignore' });
 const { db } = await import('$lib/server/db');
 const { event: eventTable } = await import('$lib/server/db/schema');
@@ -103,8 +77,8 @@ const { parseEventForm } = await import('$lib/server/events');
 const { bucketToken, codeScanId, issueEnrollment, issuePresence, launchCodeScanId } =
 	await import('$lib/server/scan-token');
 
-// The column defaults' clock. Only the app's connection is the app's, and a
-// function of its own in a column default needs trusted_schema.
+// The column defaults' clock and deleteAttendee's random IDs. A function used
+// in a column default needs trusted_schema.
 if (db.$client.pragma('trusted_schema', { simple: true }) !== 1) {
 	throw new Error("trusted_schema is off: the column defaults wouldn't follow the replay");
 }
@@ -114,15 +88,13 @@ db.$client.function('unixepoch', { varargs: true, deterministic: false }, (...ar
 	}
 	return now / 1000;
 });
-// deleteAttendee's new code scan IDs.
 db.$client.function('randomblob', { deterministic: false }, (length) =>
 	Buffer.from(Array.from({ length: Number(length) }, () => Math.floor(idRandom() * 256)))
 );
 
-// What happens, and when; run in order of when.
-const timeline: { at: number; order: number; run: () => void }[] = [];
-const at = (time: number, run: () => void) =>
-	timeline.push({ at: Math.round(time), order: timeline.length, run });
+// Run in order of time; the sort is stable, so ties run in the order added.
+const timeline: { at: number; run: () => void }[] = [];
+const at = (time: number, run: () => void) => timeline.push({ at: Math.round(time), run });
 
 const PLATFORM = 'https://moodle.example';
 const VENUE_ADDRESS = '203.0.113.10';
@@ -140,12 +112,10 @@ type Person = {
 	firstName: string;
 	lastName: string;
 	email: string;
-	// Filled in as the replay gets to them.
 	userId?: string;
 	phone?: { userAgent: string; browserId: string; enrolled: boolean };
 };
 
-/** Moodle's launch: found or created, and seen. */
 const launch = (person: Person) => {
 	const found = platformUser(PLATFORM, {
 		id: person.sub,
@@ -157,7 +127,7 @@ const launch = (person: Person) => {
 	return found;
 };
 
-/** A phone's key pair from the seed, as a browser would make one. */
+/** A key pair from the seed, as a browser would make one. */
 function publicKey(): PublicJwk {
 	const ecdh = createECDH('prime256v1');
 	ecdh.setPrivateKey(Buffer.from(Array.from({ length: 32 }, () => Math.floor(random() * 256))));
@@ -174,7 +144,7 @@ function person(sub: number): Person {
 		.replace(/\p{Diacritic}/gu, '')
 		.toLowerCase()
 		.replace(/[^a-z0-9.]/g, '');
-	// .invalid is reserved, so no address here can ever be somebody's.
+	// .invalid is reserved, so no address here can be anyone's.
 	return { sub: String(sub), firstName, lastName, email: `${local}@example.invalid` };
 }
 
@@ -183,8 +153,6 @@ for (const organizer of organizers)
 	at(today - 200 * DAY + between(0, 5) * DAY, () => launch(organizer));
 const organizerLaunch = () => launch(pick(organizers));
 
-// Attendees: when they first open the activity, how often they come, whether
-// they set up a phone, and whether they stop coming.
 const attendees = Array.from({ length: 80 }, (_, i) => ({
 	...person(i + 5),
 	joins: today - between(10, 190) * DAY,
@@ -192,35 +160,26 @@ const attendees = Array.from({ length: 80 }, (_, i) => ({
 	setsUpPhone: random() < 0.75,
 	newPhoneAt: random() < 0.15 ? today - between(5, 90) * DAY : null,
 	mobileAddress: `198.51.100.${i + 5}`,
-	// Typed in, they mostly give the address Moodle has for them.
 	typesOwnAddress: random() < 0.6,
 	typesLowerCase: random() < 0.3
 }));
 const leavers = new Set(attendees.filter(() => random() < 0.05));
 
-function setUpPhone(attendee: (typeof attendees)[number]) {
+function usePhone(attendee: Person, setUp: boolean) {
 	const { id: userId } = launch(attendee);
 	const userAgent = pick(PHONES);
-	enrollDevice({ userId, issuedAt: Date.now(), publicKey: publicKey(), userAgent });
-	attendee.phone = { userAgent, browserId: uuid(), enrolled: true };
+	if (setUp) enrollDevice({ userId, issuedAt: Date.now(), publicKey: publicKey(), userAgent });
+	attendee.phone = { userAgent, browserId: uuid(), enrolled: setUp };
 }
 
 for (const attendee of attendees) {
-	at(attendee.joins, () => {
-		if (attendee.setsUpPhone) setUpPhone(attendee);
-		else {
-			launch(attendee);
-			attendee.phone = { userAgent: pick(PHONES), browserId: uuid(), enrolled: false };
-		}
-	});
+	at(attendee.joins, () => usePhone(attendee, attendee.setsUpPhone));
 	if (attendee.newPhoneAt && attendee.newPhoneAt > attendee.joins) {
-		at(attendee.newPhoneAt, () => setUpPhone(attendee));
+		at(attendee.newPhoneAt, () => usePhone(attendee, true));
 	}
 }
 
-// The events: created a week or three ahead, from six months back to four
-// weeks on, one of them tonight. Wall-clock times in PUBLIC_TIMEZONE, as the
-// events page takes them.
+// Wall-clock times in PUBLIC_TIMEZONE, as the events page takes them.
 const offsets = new Set<number>([0]);
 while (offsets.size < 31) offsets.add(Math.round(between(-180, 28)));
 const events = [...offsets]
@@ -239,7 +198,7 @@ const events = [...offsets]
 		const form = new FormData();
 		for (const [name, value] of Object.entries(fields)) form.set(name, value);
 		const { values: parsed } = parseEventForm(form);
-		// Not after the day itself: the replay ends where it begins.
+		// Created a week or three ahead, but not after the day itself.
 		const createdAt = Math.min(
 			today + offset * DAY - between(7, 21) * DAY,
 			today - between(1, 72) * 60 * MINUTE
@@ -278,20 +237,16 @@ for (const e of events.filter((e) => e.endsAt.getTime() <= today)) {
 	const end = e.endsAt.getTime();
 	let screen: CodeScreen;
 
-	// The code goes up shortly before the start.
 	at(start - 15 * MINUTE, () => {
-		const host = organizerLaunch();
-		screen = { hostId: host.id, eventId: e.id };
+		screen = { hostId: organizerLaunch().id, eventId: e.id };
 	});
 
 	const present = attending(e);
-	const typedIn: string[] = [];
+	const typedIn = new Set<string>();
 	for (const attendee of present) {
-		const arrives = start + between(-10, 20) * MINUTE;
-		const times = [arrives];
+		const times = [start + between(-10, 20) * MINUTE];
 		if (random() < 0.1) times.push(start + between(0.3, 0.6) * (end - start));
 		if (random() < 0.8) times.push(end - between(-5, 30) * MINUTE);
-		// Now and then, someone's phone and Moodle both let them down.
 		const types = random() < 0.05;
 		const onFriendsPhone = types && random() < 0.2;
 		const viaLaunch = !types && random() < 0.08;
@@ -304,32 +259,26 @@ for (const e of events.filter((e) => e.endsAt.getTime() <= today)) {
 				const presence = () => codeScanId(issuePresence(screen));
 
 				if (types) {
-					const email = attendee.typesOwnAddress
-						? attendee.email
-						: attendee.email.replace('@', '.privat@');
 					const name = (value: string) => (attendee.typesLowerCase ? value.toLowerCase() : value);
 					const userId = manualEntryUser({
-						email,
+						email: attendee.typesOwnAddress
+							? attendee.email
+							: attendee.email.replace('@', '.privat@'),
 						firstName: name(attendee.firstName),
 						lastName: name(attendee.lastName)
 					});
-					// On a friend's phone: theirs is the key the browser holds.
+					// On a friend's phone, the browser holds the friend's key.
 					const friend = onFriendsPhone
 						? present.find((p) => p !== attendee && p.phone?.enrolled && p.userId)
 						: undefined;
-					const friendsPhone = friend?.phone && {
-						...client,
-						userAgent: friend.phone.userAgent,
-						browserId: friend.phone.browserId
-					};
-					recordScan(friendsPhone || client, {
+					recordScan(friend ? { ...client, ...friend.phone } : client, {
 						userId,
 						method: 'manual',
 						deviceKeyUserId: friend?.userId ?? null,
 						codeScanId: presence(),
 						screen
 					});
-					if (!typedIn.includes(userId)) typedIn.push(userId);
+					typedIn.add(userId);
 				} else if (phone.enrolled && !viaLaunch) {
 					recordScan(client, {
 						userId: attendee.userId!,
@@ -338,11 +287,11 @@ for (const e of events.filter((e) => e.endsAt.getTime() <= today)) {
 						screen
 					});
 				} else {
-					// The attendee tool, opened at the door; its page scans the code.
+					// The attendee tool opened at the door: its page scans the code.
 					const found = launch(attendee);
 					const token = issueEnrollment({ userId: found.id, firstName: found.firstName });
+					// Inside Moodle's page there's no browser ID cookie.
 					recordScan(
-						// Inside Moodle's page, there's no browser ID cookie.
 						{ ...client, browserId: null },
 						{
 							userId: found.id,
@@ -356,39 +305,41 @@ for (const e of events.filter((e) => e.endsAt.getTime() <= today)) {
 		}
 	}
 
-	// The next morning: link what the event page suggests, about half of it.
+	// The next morning, an organizer links about half of what the event page suggests.
 	const review = end + 14 * 60 * MINUTE;
 	if (review < today) {
 		at(review, () => {
-			if (typedIn.length === 0) return;
+			if (typedIn.size === 0) return;
 			organizerLaunch();
-			for (const [reportedAs, suggestions] of linkSuggestions(typedIn)) {
+			for (const [reportedAs, suggestions] of linkSuggestions([...typedIn])) {
 				if (suggestions.length > 0 && random() < 0.5) link(e.id, reportedAs, suggestions[0].id);
 			}
 		});
 	}
 }
 
-// Those who stopped coming, deleted a few weeks before the day.
 at(today - 20 * DAY, () => {
 	organizerLaunch();
 	for (const leaver of leavers) if (leaver.userId) deleteAttendee(leaver.userId);
 });
 
-timeline.sort((a, b) => a.at - b.at || a.order - b.order);
+timeline.sort((a, b) => a.at - b.at);
 for (const { at: time, run } of timeline) {
 	now = time;
 	run();
 }
 
-const count = (table: string) =>
-	(db.$client.prepare(`select count(*) as n from ${table}`).get() as { n: number }).n;
-const scans = (where: string) =>
-	(db.$client.prepare(`select count(*) as n from scan where ${where}`).get() as { n: number }).n;
+const count = (table: string) => db.$client.prepare(`select count(*) from ${table}`).pluck().get();
+const methods = (
+	db.$client.prepare('select method, count(*) from scan group by method').raw().all() as [
+		string,
+		number
+	][]
+)
+	.map(([method, n]) => `${n} ${method}`)
+	.join(', ');
 console.log(
 	`Wrote ${dest} as of ${day(0)}: ${count('user')} people, ${count('event')} events, ` +
-		`${count('scan')} scans (${scans("method = 'device'")} by phone, ${scans("method = 'lti'")} ` +
-		`in the launched page, ${scans("method = 'manual'")} typed in, ${scans("method = 'host'")} ` +
-		`by organizers showing the code), ${count('device_enrollment')} phone setups, ` +
+		`${count('scan')} scans (${methods}), ${count('device_enrollment')} phone setups, ` +
 		`${leavers.size} deleted`
 );

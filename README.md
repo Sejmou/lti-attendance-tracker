@@ -33,9 +33,8 @@ attendee tool is an attendee.
 ### Data to develop against
 
 `pnpm db:seed-synthetic [seed] [--as-of YYYY-MM-DD]` makes a new database at
-`DATABASE_URL`, which must not exist yet, with half a year of made-up use in it. Nobody
-real is in it, so it can go anywhere: CI, demos, screenshots, issues. Prefer it to a copy
-of production: a backup holds everyone's real details.
+`DATABASE_URL` (which must not exist yet) with half a year of made-up use. Nobody real
+is in it, so use it instead of a copy of production, which holds everyone's real details.
 
 ```sh
 DATABASE_URL=dev.db pnpm db:seed-synthetic
@@ -43,35 +42,17 @@ DATABASE_URL=dev.db pnpm lti:register-platform --url https://moodle.example.com 
 DATABASE_URL=dev.db pnpm dev
 ```
 
-It isn't generated row by row. It replays the app being used, through the app's own
-code (`platformUser`, `enrollDevice`, `recordScan`, `manualEntryUser`, `link`,
-`deleteAttendee`), so every row is one the app would have written:
+It replays the app being used through the app's own code (`platformUser`, `enrollDevice`,
+`recordScan`, `manualEntryUser`, `link`, `deleteAttendee`), so every row is one the app
+could have written: 3 organizers, 31 events from six months back to four weeks ahead (one
+that evening), 80 attendees scanning by phone, from the launched page or by typing in
+their details, links made the next morning, and a few attendees deleted.
 
-- 3 organizers create 31 events, from six months before the day to four weeks after,
-  one of them that evening; each past one, one of them shows the code
-- 80 attendees launch the attendee tool; most set up a phone, a few later a new one
-- at each event, attendees scan in with their phone, from the launched page, or now and
-  then by typing in their details, some on a friend's phone; most scan out, some step
-  out and back in
-- the next morning, an organizer links details typed in to the Moodle account the
-  event page suggests, about half of them
-- a few who stopped coming are deleted
-
-The replay runs on a clock of its own: JavaScript's `Date`, and SQLite's `unixepoch`,
-which the column defaults use, overridden on the app's connection. So do its random
-values (`crypto.randomUUID`, SQLite's `randomblob`), so the same seed on the same day
-gives the same database; `--as-of` picks the day, for CI, say. Names come from
-[Faker](https://fakerjs.dev)'s German locale, and addresses are on `example.invalid`,
-which is reserved and can never be anyone's. Most scans share the venue's address, as a
-venue with Wi-Fi would, so the scan log marks most of them as shared.
-
-`src/lib/server/seed-synthetic.spec.ts` checks the database keeps the rules the app
-keeps: no phone scan without a key, an organizer's scan for every event with scans,
-hashes on every attendee's scan, `last_seen_at` set only by launches and typed-in entries,
-nothing dated after the day. What it doesn't make yet: calendar events and anything
-from the LTI tables, which `lti:register-platform` fills. In the
-[test environment](testenv/README.md#made-up-data), `TESTENV_SEED` seeds the app's
-database on its first start.
+The replay has its own clock (`Date`, and SQLite's `unixepoch` on the app's connection)
+and its own random values, so the same seed on the same day gives the same database;
+`--as-of` fixes the day. Not covered yet: calendar events and the LTI tables, which
+`lti:register-platform` fills. In the [test environment](testenv/README.md#made-up-data),
+`TESTENV_SEED` seeds the app's database on its first start.
 
 ## Containers (Docker or Podman)
 

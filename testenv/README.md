@@ -101,29 +101,18 @@ takes it over.
 ## Made-up data
 
 With `TESTENV_SEED` set in `.env` (any number), the app's database starts out with
-half a year of made-up use: 80 attendees and 3 organizers, 31 events with their scans,
-phone setups, details typed in by hand and linked, and a few attendees deleted (see
-"Data to develop against" in the main README). Events span the six months before the day
-it's seeded and the four weeks after, and one of them is that evening, so the
-organizer's code screen suggests it.
+half a year of made-up use (see "Data to develop against" in the main README). It only
+seeds a database that doesn't exist yet. The made-up people come from a platform URL of
+their own, so no test user's login is mistaken for one of them.
 
-It only seeds a database that isn't there yet: on the app's first start, or after
-starting over. The test users are not among the made-up people. They appear
-next to them once they open a tool, as on any other platform. The made-up
-people come from a platform URL of their own, so no login is ever mistaken
-for one of them.
-
-To seed again, or for the first time, without losing Moodle, delete only the
-app's volume:
+To seed again without losing Moodle, delete only the app's volume, then rebuild so the
+image has the current seeder:
 
 ```sh
 podman compose -f testenv/compose.yml down              # containers only; data stays
 podman volume rm attendance-testenv_appdata             # the app's database
-podman compose -f testenv/compose.yml up -d
+podman compose -f testenv/compose.yml up -d --build
 ```
-
-The seed is applied with the image's dependencies, so rebuild (`up -d --build app`)
-if the image is older than the seeder.
 
 ## Changing things
 
