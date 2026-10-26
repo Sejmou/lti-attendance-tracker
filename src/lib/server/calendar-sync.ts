@@ -241,7 +241,7 @@ export function syncCalendarNow() {
 		try {
 			const url = env.CALENDAR_ICS_URL;
 			if (!url) throw new Error('CALENDAR_ICS_URL is not set');
-			// Google hands out webcal:// links too; they are https underneath.
+			// Calendars hand out webcal:// links too; they are https underneath.
 			const response = await fetch(url.replace(/^webcal:/i, 'https:'), {
 				signal: AbortSignal.timeout(15_000)
 			});
