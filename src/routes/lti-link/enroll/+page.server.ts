@@ -1,12 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import { enrollMessage } from '$lib/device-key';
 import { m } from '$lib/paraglide/messages';
-import { recordScan } from '$lib/server/scan';
-import { db } from '$lib/server/db';
-import { deviceEnrollment, deviceKey, user } from '$lib/server/db/schema';
+import { clientOf, recordScan } from '$lib/server/scan';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
-import { pruneExpired } from '$lib/server/retention';
+import { enrollDevice } from '$lib/server/enrollment';
 import { launchCodeScanId, verifyBucketToken, verifyEnrollment } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -55,7 +52,7 @@ export const actions: Actions = {
 		const screen = verifyBucketToken(code);
 		if (!screen) return fail(403, { message: CODE_EXPIRED() });
 
-		const outcome = recordScan(event, {
+		const outcome = recordScan(clientOf(event), {
 			userId: enrollment.userId,
 			method: 'lti',
 			codeScanId: launchCodeScanId(token, code),
@@ -91,45 +88,13 @@ export const actions: Actions = {
 			return fail(400, { message: BAD_KEY() });
 		}
 
-		// One transaction: two tabs racing with the same link can't both find it unspent.
-		const outcome = db.transaction((tx) => {
-			const attendee = tx
-				.select({ id: user.id })
-				.from(user)
-				.where(eq(user.id, enrollment.userId))
-				.get();
-			if (!attendee) return EXPIRED();
-
-			const existing = tx
-				.select({ createdAt: deviceKey.createdAt })
-				.from(deviceKey)
-				.where(eq(deviceKey.userId, attendee.id))
-				.get();
-			// A key set up since this link was issued spent it.
-			if (existing && existing.createdAt.getTime() >= enrollment.issuedAt) return EXPIRED();
-
-			// Replaces any earlier key, and gives it a new id, so the browser that
-			// held the old one is no longer set up.
-			const createdAt = new Date();
-			const values = { id: crypto.randomUUID(), publicKey, createdAt };
-			// The key forgets the phone it replaced; the log doesn't.
-			tx.insert(deviceEnrollment)
-				.values({
-					userId: attendee.id,
-					enrolledAt: createdAt,
-					userAgent: event.request.headers.get('user-agent')
-				})
-				.run();
-			return tx
-				.insert(deviceKey)
-				.values({ ...values, userId: attendee.id })
-				.onConflictDoUpdate({ target: deviceKey.userId, set: values })
-				.returning({ keyId: deviceKey.id })
-				.get();
+		const outcome = enrollDevice({
+			userId: enrollment.userId,
+			issuedAt: enrollment.issuedAt,
+			publicKey,
+			userAgent: event.request.headers.get('user-agent')
 		});
-
-		if (typeof outcome === 'string') return fail(403, { message: outcome });
-		pruneExpired();
+		if (!outcome) return fail(403, { message: EXPIRED() });
 		return outcome;
 	}
 };
