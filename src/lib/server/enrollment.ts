@@ -5,13 +5,10 @@ import type { PublicJwk } from '$lib/server/device-key';
 import { pruneExpired } from '$lib/server/retention';
 
 /**
- * Stores the public key a browser just made for an attendee, whose launch
- * and whose browser's proof of the private half have already been checked
- * (see the enroll action), and logs the setup. `issuedAt` is when the launch
- * issued its setup link: a key set up since then spent it.
- *
- * Returns the key's ID, or null for a link that is spent or an attendee who
- * is gone.
+ * Stores and logs a browser's new key. The caller must already have checked
+ * the setup link and the browser's proof of the key (see the enroll action).
+ * Null if the link is spent (a key was set up since `issuedAt`) or the
+ * attendee is gone.
  */
 export function enrollDevice(setup: {
 	userId: string;
@@ -19,7 +16,6 @@ export function enrollDevice(setup: {
 	publicKey: PublicJwk;
 	userAgent: string | null;
 }) {
-	// One transaction: two tabs racing with the same link can't both find it unspent.
 	const outcome = db.transaction((tx) => {
 		const attendee = tx.select({ id: user.id }).from(user).where(eq(user.id, setup.userId)).get();
 		if (!attendee) return null;
@@ -29,14 +25,12 @@ export function enrollDevice(setup: {
 			.from(deviceKey)
 			.where(eq(deviceKey.userId, attendee.id))
 			.get();
-		// A key set up since this link was issued spent it.
 		if (existing && existing.createdAt.getTime() >= setup.issuedAt) return null;
 
 		// Replaces any earlier key, and gives it a new id, so the browser that
 		// held the old one is no longer set up.
 		const createdAt = new Date();
 		const values = { id: crypto.randomUUID(), publicKey: setup.publicKey, createdAt };
-		// The key forgets the phone it replaced; the log doesn't.
 		tx.insert(deviceEnrollment)
 			.values({ userId: attendee.id, enrolledAt: createdAt, userAgent: setup.userAgent })
 			.run();

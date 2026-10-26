@@ -6,20 +6,16 @@ import { user } from '$lib/server/db/schema';
 export type Launcher = { id: string; email?: string; givenName?: string; familyName?: string };
 
 /**
- * The person a platform has just vouched for: found by their platform
- * account, created on their first launch, and marked seen either way. Null
- * for someone new the platform shares no email or name for.
- *
- * Apart from the provider, so it can be called without ltijs: the provider
- * only hands it what the launch said (see onResourceLink).
+ * Finds the launcher by their platform account, or creates them on their
+ * first launch, and marks them seen. Null for someone new the platform
+ * shares no email or name for.
  */
 export function platformUser(platformUrl: string, launcher: Launcher) {
 	// `sub` is the platform's user ID: permanent, unlike the email, and only
 	// unique within one platform, hence the issuer alongside it.
 	const ltiSubject = JSON.stringify([platformUrl, launcher.id]);
 
-	// One transaction: two launches racing for a new attendee can't both create
-	// them. Finding them is marking them seen.
+	// Finding them is marking them seen.
 	return db.transaction((tx) => {
 		const existing = tx
 			.update(user)

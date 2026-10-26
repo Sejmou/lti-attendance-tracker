@@ -36,7 +36,6 @@ export type Client = {
 	browserId: string | null;
 };
 
-/** The client a request came from. */
 export function clientOf(request: RequestEvent): Client {
 	return {
 		get address() {
