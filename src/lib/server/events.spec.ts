@@ -47,11 +47,12 @@ test('an event has to end after it starts', () => {
 	).toBeNull();
 });
 
-const at = (hhmm: string) => new Date(`2026-10-05T${hhmm}:00Z`);
+const at = (hhmm: string, date = '2026-10-05') => new Date(`${date}T${hhmm}:00Z`);
 const e = (name: string, start: string, end: string, removed = false) => ({
 	name,
 	startsAt: at(start),
 	endsAt: at(end),
+	allDay: false,
 	removedAt: removed ? at('00:00') : null
 });
 
@@ -75,4 +76,38 @@ test('an event removed from the calendar is never suggested, and nothing is when
 	const later = e('later', '15:00', '16:00');
 	expect(suggestEvent([gone, later], at('10:30'))?.name).toBe('later');
 	expect(suggestEvent([gone], at('10:30'))).toBeNull();
+});
+
+test('specific events today come before a block of days around them, even between them', () => {
+	// A weekend blocked in the calendar, whole days and timed, with talks entered inside it.
+	const weekend = {
+		...e('weekend', '00:00', '00:00'),
+		startsAt: at('00:00', '2026-10-03'),
+		endsAt: at('00:00', '2026-10-07'),
+		allDay: true
+	};
+	const retreat = {
+		...e('retreat', '00:00', '00:00'),
+		startsAt: at('08:00', '2026-10-04'),
+		endsAt: at('16:00', '2026-10-06')
+	};
+	const talk = e('talk', '09:00', '10:00');
+	const workshop = e('workshop', '11:00', '12:00');
+	const events = [weekend, retreat, talk, workshop];
+
+	// Mid-day in UTC, so the same date in whichever TIMEZONE the tests run in.
+	expect(suggestEvent(events, at('09:30'))?.name).toBe('talk');
+	// Before the first, between them and after the last: the nearest of them, not the block.
+	expect(suggestEvent(events, at('08:30'))?.name).toBe('talk');
+	expect(suggestEvent(events, at('10:45'))?.name).toBe('workshop');
+	expect(suggestEvent(events, at('13:00'))?.name).toBe('workshop');
+	// A day of the block with nothing entered in it: the block, the latest to start.
+	expect(suggestEvent(events, at('10:00', '2026-10-04'))?.name).toBe('retreat');
+	// A talk next week doesn't beat the block running now.
+	const nextWeek = {
+		...e('next week', '00:00', '00:00'),
+		startsAt: at('10:00', '2026-10-12'),
+		endsAt: at('11:00', '2026-10-12')
+	};
+	expect(suggestEvent([weekend, nextWeek], at('10:00', '2026-10-04'))?.name).toBe('weekend');
 });
