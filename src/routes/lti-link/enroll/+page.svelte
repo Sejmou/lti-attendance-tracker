@@ -211,7 +211,7 @@
 	}
 </script>
 
-<svelte:head><title>{m.enroll_title()}</title></svelte:head>
+<svelte:head><title>{m.app_title()}</title></svelte:head>
 
 <main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
 	{#if data.problem}

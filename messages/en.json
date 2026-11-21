@@ -211,7 +211,6 @@
 	"scan_manual_used": "This scan has already been used to confirm someone's attendance. Scan the code again.",
 	"scan_manual_note": "You confirmed with your details, so the organizers may check this entry.",
 
-	"enroll_title": "Set up attendance",
 	"enroll_problem_heading": "We couldn't set you up",
 	"enroll_open_from_moodle_heading": "Open this from Moodle",
 	"enroll_open_from_moodle_text": "Open the attendance activity in your Moodle course. It sends you here, ready to set up this phone.",
@@ -321,7 +320,7 @@
 	"enroll_setup_benefit_view": "you can see your attendance at {address}",
 	"enroll_setup_browser_heading": "Only in this browser",
 	"enroll_setup_what_heading": "What happens",
-	"enroll_setup_what": "Your browser creates a key we recognise it by, and stores it. Anyone using this browser sees your attendance, so only set it up on your own device. To undo it, clear the site data or set up another browser.",
+	"enroll_setup_what": "Your browser creates a key the attendance tool recognises it by, and stores it. Anyone using this browser sees your attendance, so only set it up on your own device. To undo it, clear the site data or set up another browser.",
 	"enroll_setup_done": "Set up",
 	"enroll_setup_done_text": "At the event, your camera is now all it takes to scan.",
 	"enroll_link_browser": "Use the one that opens when you scan a QR code with your camera, usually Safari on an iPhone, Chrome on Android.",

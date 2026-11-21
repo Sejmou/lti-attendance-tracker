@@ -214,7 +214,6 @@
 	"scan_manual_used": "Mit diesem Scan wurde bereits eine Anwesenheit bestätigt. Scanne den Code noch einmal.",
 	"scan_manual_note": "Du hast mit deinen Daten bestätigt, daher kann das Organisationsteam diesen Eintrag überprüfen.",
 
-	"enroll_title": "Anwesenheit einrichten",
 	"enroll_problem_heading": "Wir konnten dich nicht einrichten",
 	"enroll_open_from_moodle_heading": "Bitte über Moodle öffnen",
 	"enroll_open_from_moodle_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs. Sie leitet dich hierher weiter, um dieses Handy einzurichten.",
@@ -324,7 +323,7 @@
 	"enroll_setup_benefit_view": "siehst du deine Anwesenheit unter {address}",
 	"enroll_setup_browser_heading": "Nur in diesem Browser",
 	"enroll_setup_what_heading": "Was dabei passiert",
-	"enroll_setup_what": "Dein Browser erzeugt einen Schlüssel, an dem wir ihn wiedererkennen, und speichert ihn. Wer diesen Browser benutzt, sieht deine Anwesenheit – richte ihn nur auf deinem eigenen Gerät ein. Rückgängig machst du es, indem du die Websitedaten löschst oder einen anderen Browser einrichtest.",
+	"enroll_setup_what": "Dein Browser erzeugt einen Schlüssel, an dem das Anwesenheitstool ihn wiedererkennt, und speichert ihn. Wer diesen Browser benutzt, sieht deine Anwesenheit – richte ihn nur auf deinem eigenen Gerät ein. Rückgängig machst du es, indem du die Websitedaten löschst oder einen anderen Browser einrichtest.",
 	"enroll_setup_done": "Eingerichtet",
 	"enroll_setup_done_text": "Bei der Veranstaltung genügt jetzt deine Kamera zum Scannen.",
 	"enroll_link_browser": "Nimm den, der sich öffnet, wenn du mit der Kamera einen QR-Code scannst – meist Safari auf dem iPhone, Chrome auf Android.",
