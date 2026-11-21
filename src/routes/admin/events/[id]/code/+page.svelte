@@ -132,6 +132,12 @@
 
 	<div class="flex flex-wrap justify-center gap-4 lg:justify-start">
 		<a href={resolve('/admin/code')} class="text-blue-600 underline">{m.code_other_event()}</a>
+		<!-- A tab of its own, so the code keeps running here. -->
+		<a
+			href={resolve('/admin/events/[id]', { id: data.event.id })}
+			target="_blank"
+			class="text-blue-600 underline">{m.code_attendance()}</a
+		>
 	</div>
 </QrScreen>
 
