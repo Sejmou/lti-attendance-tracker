@@ -64,6 +64,20 @@ export async function saveDeviceKey(key: DeviceKey) {
 	await navigator.storage?.persist?.().catch(() => false);
 }
 
+/**
+ * Forgets the key in this browser, for someone who set up one that isn't
+ * theirs alone. The server's public half stays until another browser is set
+ * up: without the private half nobody can sign with it.
+ */
+export async function deleteDeviceKey() {
+	const db = await open();
+	try {
+		await request(db.transaction(STORE, 'readwrite').objectStore(STORE).delete(RECORD));
+	} finally {
+		db.close();
+	}
+}
+
 function open() {
 	const opening = indexedDB.open(DB_NAME, 1);
 	opening.onupgradeneeded = () => opening.result.createObjectStore(STORE);

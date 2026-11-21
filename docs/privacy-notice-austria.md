@@ -46,7 +46,7 @@ We also record when you set up a device for scanning, with its browser identifie
 
 The app only stores what it technically needs to work:
 
-- the device key (see above) in your browser's storage (IndexedDB), once you tap "Set up this browser", until you clear the site data or set up another device
+- the device key (see above) in your browser's storage (IndexedDB), once you tap "Set up this browser", until you remove it on the start page ("Remove from this browser"), clear the site data or set up another browser
 - after a scan, a cookie confirming for 10 minutes that you scanned a valid code
 - after a scan, a cookie with a random browser ID, valid for 12 months and renewed with every scan, so that several people confirmed from one browser stand out (see [Preventing abuse](#what-we-process-and-why))
 - if you confirm your attendance by hand, the name and email address you entered, in your browser's storage (localStorage), so you don't have to enter them again; until you clear the site data

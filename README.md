@@ -316,6 +316,9 @@ A browser whose data was cleared looks the same to the server.
 
 The key lives in one browser on one phone. The attendee has to open Moodle again if:
 
+- they remove it themselves: **Remove from this browser** on `/` deletes the key from the
+  browser, for someone who set up one that isn't theirs alone. The public key stays on the
+  server until another browser is set up, harmless without the private half
 - they clear that browser's website data, or used a private window
 - they set up another phone or browser — there is one key per attendee, and the old one stops
   working. Every setup stays in the log, so an attendee setting up phone after phone shows

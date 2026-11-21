@@ -44,7 +44,7 @@ Außerdem speichern wir, wann du ein Gerät für das Scannen eingerichtet hast, 
 
 Die Anwendung legt nur ab, was für ihre Funktion technisch notwendig ist:
 
-- den Geräteschlüssel (siehe oben) im Speicher deines Browsers (IndexedDB), sobald du auf „Diesen Browser einrichten“ tippst, bis du die Websitedaten löschst oder ein anderes Gerät einrichtest
+- den Geräteschlüssel (siehe oben) im Speicher deines Browsers (IndexedDB), sobald du auf „Diesen Browser einrichten“ tippst, bis du ihn auf der Startseite entfernst („Aus diesem Browser entfernen“), die Websitedaten löschst oder einen anderen Browser einrichtest
 - nach einem Scan ein Cookie, das 10 Minuten lang bestätigt, dass du einen gültigen Code gescannt hast
 - nach einem Scan ein Cookie mit einer zufälligen Browser-ID, gültig für 12 Monate und mit jedem Scan erneuert, damit auffällt, wenn mehrere Personen vom selben Browser aus bestätigt werden (siehe [Schutz vor Missbrauch](#welche-daten-wir-verarbeiten-und-wozu))
 - wenn du deine Anwesenheit von Hand bestätigst, den eingegebenen Namen und die E-Mail-Adresse im Speicher deines Browsers (localStorage), damit du sie nicht noch einmal eingeben musst; bis du die Websitedaten löschst
