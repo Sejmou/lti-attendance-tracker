@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 </script>
 
 <svelte:head><title>{m.admin_title()}</title></svelte:head>

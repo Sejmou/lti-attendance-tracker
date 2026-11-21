@@ -3,7 +3,7 @@
 	import { adminCrumbs } from '$lib/admin-breadcrumbs';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	let { children } = $props();
 

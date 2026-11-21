@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { resolve } from '$app/paths';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { adminCrumbs } from './admin-breadcrumbs';
 
 const event = { id: 'e1', title: 'Probe' };

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Attachment } from 'svelte/attachments';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	/**
 	 * The camera, read for QR codes until this is unmounted. `onscan` gets every

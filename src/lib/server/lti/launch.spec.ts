@@ -6,7 +6,7 @@ import { IdTokenValidationMethod } from 'ltijs';
 import { resolve } from '$app/paths';
 import { env } from '$env/dynamic/private';
 import { enrollMessage, scanMessage, viewMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
 import { actions as homeActions } from '../../../routes/+page.server';

@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	/**
 	 * The last resort on the scan page: who they are, typed in. Hidden behind a

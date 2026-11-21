@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { enrollMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { myAttendance } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { deviceKey } from '$lib/server/db/schema';

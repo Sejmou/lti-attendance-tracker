@@ -36,6 +36,22 @@ export default defineConfig(
 	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					paths: [
+						{
+							name: '$lib/paraglide/messages',
+							message: "Import m from '$lib/messages', which names the LMS as PUBLIC_LMS_NAME says."
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		files: ['src/lib/messages.ts', 'src/lib/messages.spec.ts'],
+		rules: { 'no-restricted-imports': 'off' }
 	}
 );

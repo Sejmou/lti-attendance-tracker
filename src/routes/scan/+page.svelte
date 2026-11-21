@@ -6,7 +6,7 @@
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
 	import MoodleActivityLink from '$lib/components/moodle-activity-link.svelte';
 	import ManualEntryForm from '$lib/components/manual-entry-form.svelte';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();

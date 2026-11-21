@@ -10,7 +10,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { deviceName } from '$lib/device-name';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { day, eventWhen, time } from '$lib/event-when';
 	import { wallClock } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';

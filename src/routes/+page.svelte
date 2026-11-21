@@ -4,7 +4,7 @@
 	import { loadDeviceKey, sign, viewMessage } from '$lib/device-key';
 	import MoodleActivityLink from '$lib/components/moodle-activity-link.svelte';
 	import MyAttendance from '$lib/components/my-attendance.svelte';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();

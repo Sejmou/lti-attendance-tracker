@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
 import { scanMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { keepBrowserId } from '$lib/server/browser-id';
 import { clientOf, recordScan } from '$lib/server/scan';
 import { parseDetails, manualEntryUser } from '$lib/server/manual-entry';

@@ -5,7 +5,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { eventWhen, time } from '$lib/event-when';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 
 	type Method = 'device' | 'lti' | 'host' | 'manual';

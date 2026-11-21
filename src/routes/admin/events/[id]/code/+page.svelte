@@ -4,7 +4,7 @@
 	import UserPenIcon from '@lucide/svelte/icons/user-pen';
 	import QrScreen from '$lib/components/qr-screen.svelte';
 	import { eventWhen } from '$lib/event-when';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
 	import type { PageServerData } from './$types';

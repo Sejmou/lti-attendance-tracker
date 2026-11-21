@@ -24,7 +24,7 @@
 	import MyAttendance from '$lib/components/my-attendance.svelte';
 	import QrScanner from '$lib/components/qr-scanner.svelte';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();

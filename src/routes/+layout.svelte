@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { env } from '$env/dynamic/public';
 	import { getLocale, locales, setLocale } from '$lib/paraglide/runtime';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 

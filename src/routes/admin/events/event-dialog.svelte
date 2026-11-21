@@ -8,7 +8,7 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import type { EventFieldError, EventFieldErrors, EventFields } from '$lib/event-form';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { TIMEZONE } from '$lib/time';
 
 	/**

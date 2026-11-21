@@ -1,5 +1,5 @@
 import { resolve } from '$app/paths';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 
 export type Crumb = { label: string; href?: string };
 

@@ -16,7 +16,7 @@
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import type { EventFields } from '$lib/event-form';
 	import { eventWhen } from '$lib/event-when';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
 	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';

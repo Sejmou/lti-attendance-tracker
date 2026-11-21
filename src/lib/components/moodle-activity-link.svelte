@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import { env } from '$env/dynamic/public';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	// Optional: without it, the texts around this still say where to go.
 	const url = env.PUBLIC_ATTENDEE_ACTIVITY_URL;

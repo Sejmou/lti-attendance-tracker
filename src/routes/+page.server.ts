@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
 import { eq } from 'drizzle-orm';
 import { viewMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { myAttendance } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { deviceKey, user } from '$lib/server/db/schema';
