@@ -80,12 +80,18 @@
 				? m.events_delete_blocked()
 				: null;
 
-	// Running events count as upcoming: they're where organizers look.
-	type Period = 'upcoming' | 'past' | 'all';
-	let period = $state<Period>('upcoming');
+	// Running events count as upcoming: they're where organizers look. "Current"
+	// adds the last two weeks, whose attendance organizers come to check.
+	type Period = 'current' | 'upcoming' | 'past' | 'all';
+	const RECENT_MS = 14 * 24 * 60 * 60_000;
+	let period = $state<Period>('current');
 	let sorting = $state<SortingState>([{ id: 'when', desc: false }]);
 	const events = $derived(
-		period === 'all' ? data.events : data.events.filter((row) => (period === 'past') === past(row))
+		period === 'all'
+			? data.events
+			: period === 'current'
+				? data.events.filter((row) => row.endsAt.getTime() > data.now.getTime() - RECENT_MS)
+				: data.events.filter((row) => (period === 'past') === past(row))
 	);
 
 	function choosePeriod(next: string) {
@@ -368,6 +374,7 @@
 					onValueChange={choosePeriod}
 					aria-label={m.events_period()}
 				>
+					<ToggleGroup.Item value="current">{m.events_period_current()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="upcoming">{m.events_period_upcoming()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="past">{m.events_period_past()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="all">{m.events_period_all()}</ToggleGroup.Item>

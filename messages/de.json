@@ -104,6 +104,7 @@
 	"events_no_calendar": "Kein Kalender verbunden (CALENDAR_ICS_URL ist nicht gesetzt). Veranstaltungen lassen sich hier von Hand anlegen.",
 	"events_none": "Noch keine Veranstaltungen.",
 	"events_period": "Welche Veranstaltungen",
+	"events_period_current": "Aktuell",
 	"events_period_upcoming": "Kommende",
 	"events_period_past": "Vergangene",
 	"events_period_all": "Alle",
