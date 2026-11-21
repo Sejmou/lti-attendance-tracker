@@ -266,9 +266,9 @@
 	"attendees_missing": "Diese Person gibt es nicht mehr.",
 
 	"home_not_linked_heading": "Das Anwesenheitstool kennt diesen Browser (noch) nicht",
-	"home_not_linked_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs in diesem Browser und richte ihn dort ein. Danach siehst du deine Anwesenheit hier auch ohne Moodle.",
+	"home_not_linked_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs in diesem Browser und richte ihn dort ein. Danach siehst du deine Anwesenheiten hier auch ohne Moodle.",
 	"home_expired": "Diese Seite ist abgelaufen. Lade sie neu.",
-	"attendance_heading": "Meine Anwesenheit",
+	"attendance_heading": "Meine Anwesenheiten",
 	"attendance_none": "Noch keine Scans. Sobald du bei einer Veranstaltung den Anwesenheits-QR-Code scannst, erscheint sie hier.",
 	"attendance_events": [
 		{
@@ -304,13 +304,13 @@
 	"enroll_back": "Zurück",
 	"enroll_linking": "Wird eingerichtet …",
 	"enroll_linked": "Dieser Browser ist eingerichtet: Bei der Veranstaltung genügt deine Kamera zum Scannen.",
-	"enroll_bookmark": "Deine Anwesenheit siehst du auch ohne Moodle unter dieser Adresse – speichere sie als Lesezeichen:",
+	"enroll_bookmark": "Deine Anwesenheiten siehst du auch ohne Moodle unter dieser Adresse – speichere sie als Lesezeichen:",
 	"enroll_linked_elsewhere": "Für dich ist schon ein anderer Browser eingerichtet – auf einem anderen Gerät, oder in diesem, bevor seine Daten gelöscht wurden.",
 	"enroll_link_heading": "Ohne Moodle nutzen",
 	"enroll_setup_card_text": "Mit der Kamera-App deines Handys ein- und ausscannen, erfasste Scans einsehen",
 	"enroll_setup_intro": "Richte diesen Browser einmal ein. Danach:",
 	"enroll_setup_benefit_scan": "genügt bei der Veranstaltung deine Kamera zum Scannen",
-	"enroll_setup_benefit_view": "siehst du deine Anwesenheit unter {address}",
+	"enroll_setup_benefit_view": "siehst du deine Anwesenheiten unter {address}",
 	"enroll_setup_browser_heading": "Nur in diesem Browser",
 	"enroll_setup_what_heading": "Was dabei passiert",
 	"enroll_setup_what": "Dein Browser erzeugt einen Schlüssel, an dem das Anwesenheitstool ihn wiedererkennt, und speichert ihn. Rückgängig machst du es, indem du die Websitedaten löschst oder einen anderen Browser einrichtest.",
