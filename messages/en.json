@@ -114,7 +114,7 @@
 	"events_source_manual": "Created in this tool",
 	"events_ongoing": "In progress",
 	"events_help_title": "About events",
-	"events_help_purpose": "Each event has its own QR code. Whoever scans it attended that event. Your first scan scans you in. Only a further scan scans you out; if there are several, the last one counts. Details typed in by hand only count once an organizer has linked them.",
+	"events_help_purpose": "Each event has its own QR code. Whoever scans it attended that event. The first scan counts as scanning in, any later one as scanning out. The last scan sets the time of scanning out. Details typed in by hand only count once an organizer has linked them.",
 	"events_help_sources_title": "Where events come from",
 	"events_help_calendar": "Taken over automatically. Edit them in the calendar only; “{sync}” fetches changes right away.",
 	"events_help_manual": "Create with “{newEvent}”, edit with the pencil icon.",
