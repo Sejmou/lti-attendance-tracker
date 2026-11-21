@@ -36,7 +36,9 @@ Attendance tracking is reached through the Verein's Moodle course, which only ac
 
 We also record when you set up a device for scanning, with its browser identifier, so that unusual device changes stand out.
 
-**Device key:** when you set up a device, your browser creates a key pair. The private key stays in your browser and cannot be read out, not even by us. We only store the public key.
+**Device key:** when you set up a browser by tapping "Set up this browser" on the page Moodle opens, your browser creates a key pair. The private key stays in your browser and cannot be read out, not even by us. We only store the public key. Nothing is set up without that tap.
+
+**Viewing your own attendance:** the page Moodle opens shows your attendance. In a browser you set up, the app's start page shows it too, without Moodle. For that, your browser signs a one-time value that is valid for 5 minutes with the device key. Nothing is stored for this, and there is no login.
 
 **Login data from Moodle:** on every launch from Moodle we store the login data it sends (including name, email address, role and course) for 24 hours, because the LTI library the app uses requires it for the login process.
 
@@ -44,7 +46,7 @@ We also record when you set up a device for scanning, with its browser identifie
 
 The app only stores what it technically needs to work:
 
-- the device key (see above) in your browser's storage (IndexedDB), until you clear the site data or set up another device
+- the device key (see above) in your browser's storage (IndexedDB), once you tap "Set up this browser", until you remove it on the start page ("Remove from this browser"), clear the site data or set up another browser
 - after a scan, a cookie confirming for 10 minutes that you scanned a valid code
 - after a scan, a cookie with a random browser ID, valid for 12 months and renewed with every scan, so that several people confirmed from one browser stand out (see [Preventing abuse](#what-we-process-and-why))
 - if you confirm your attendance by hand, the name and email address you entered, in your browser's storage (localStorage), so you don't have to enter them again; until you clear the site data
@@ -55,6 +57,7 @@ There are no analytics or advertising cookies and no third-party services.
 ## Who sees the data
 
 - **The Verein's organizers**, meaning whoever can open the admin tool in Moodle: all of the data above, for all events.
+- **You:** your own attendance, for every event: when you scanned, how each scan was confirmed, and which scans count as checking in and out. Not the check values against abuse. Anyone using a browser you set up can see this too, so only set up a browser on a device that is yours.
 - **People present at the event:** the screen showing the QR code displays a short name for every scan: your first name (only the first one, if you have several), and only if another member shares it, as many letters of your last name as needed to tell you apart (e.g. "Anna B."). If another person has exactly the same name, a number tells you apart instead (e.g. "Anna (2)"). Attendance confirmed by hand is marked with a symbol.
 - **[Hosting provider, location]** as a processor running the server.
 
@@ -91,7 +94,7 @@ There is no automated decision-making or profiling within the meaning of Art. 22
 
 ## Your rights
 
-You have the right of access (Art. 15 GDPR), rectification (Art. 16), erasure (Art. 17), restriction of processing (Art. 18) and data portability (Art. 20). Where we rely on legitimate interests, you may object to the processing on grounds relating to your particular situation (Art. 21). To exercise these rights, contact [contact address].
+You have the right of access (Art. 15 GDPR), rectification (Art. 16), erasure (Art. 17), restriction of processing (Art. 18) and data portability (Art. 20). Where we rely on legitimate interests, you may object to the processing on grounds relating to your particular situation (Art. 21). To exercise these rights, contact [contact address]. You can also see your scans yourself in the app at any time (see [Who sees the data](#who-sees-the-data)).
 
 You also have the right to lodge a complaint with the supervisory authority:
 Austrian Data Protection Authority (Österreichische Datenschutzbehörde), Barichgasse 40–42, 1030 Vienna, dsb@dsb.gv.at, www.dsb.gv.at

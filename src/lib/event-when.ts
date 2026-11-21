@@ -1,4 +1,4 @@
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { getLocale } from '$lib/paraglide/runtime';
 import { formatDateTime, wallClock } from '$lib/time';
 

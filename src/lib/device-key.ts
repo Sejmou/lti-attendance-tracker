@@ -5,11 +5,12 @@
  * store a CryptoKey as is.
  *
  * What gets signed is always prefixed with what it is for, so a signature made
- * for one can never pass for the other.
+ * for one can never pass for another.
  */
 
 export const enrollMessage = (token: string) => `enroll:${token}`;
 export const scanMessage = (codeScanId: string) => `scan:${codeScanId}`;
+export const viewMessage = (challenge: string) => `view:${challenge}`;
 
 const ALGORITHM = { name: 'ECDSA', namedCurve: 'P-256' } as const;
 const DB_NAME = 'attendance';
@@ -61,6 +62,20 @@ export async function saveDeviceKey(key: DeviceKey) {
 	// may say no, and Safari's own seven-day rule for sites you don't visit is
 	// a separate thing this doesn't switch off.
 	await navigator.storage?.persist?.().catch(() => false);
+}
+
+/**
+ * Forgets the key in this browser, for someone who set up one that isn't
+ * theirs alone. The server's public half stays until another browser is set
+ * up: without the private half nobody can sign with it.
+ */
+export async function deleteDeviceKey() {
+	const db = await open();
+	try {
+		await request(db.transaction(STORE, 'readwrite').objectStore(STORE).delete(RECORD));
+	} finally {
+		db.close();
+	}
 }
 
 function open() {

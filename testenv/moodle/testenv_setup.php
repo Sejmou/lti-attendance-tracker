@@ -79,6 +79,19 @@ foreach ($people as $username => [$firstname, $lastname]) {
     $userids[$username] = $user->id;
 }
 
+// For app-start.sh, which hands seeded attendees' histories to the students.
+// A launch's `sub` is the Moodle user ID, so this is all it needs.
+$launchers = [];
+foreach ($people as $username => [$firstname, $lastname]) {
+    $launchers[$username] = [
+        'sub' => (string) $userids[$username],
+        'email' => "{$username}@example.com",
+        'firstName' => $firstname,
+        'lastName' => $lastname,
+    ];
+}
+file_put_contents('/testenv-shared/moodle-users.json', json_encode($launchers, JSON_PRETTY_PRINT));
+
 // Found by its short name, which is the same in every locale, so switching
 // TESTENV_LOCALE renames the course instead of making a second one.
 $course = $DB->get_record('course', ['shortname' => 'ATTENDANCE']);
@@ -161,8 +174,9 @@ foreach ($tools as $tool) {
             'name' => $tool['activity'],
             'intro' => $tool['intro'],
         ]);
+        $cmid = get_coursemodule_from_instance('lti', $existing->id, $course->id, false, MUST_EXIST)->id;
     } else {
-        create_module((object) [
+        $cmid = create_module((object) [
             'modulename' => 'lti',
             'course' => $course->id,
             'section' => 1,
@@ -182,7 +196,12 @@ foreach ($tools as $tool) {
             'icon' => '',
             'secureicon' => '',
             'grade' => 0,
-        ]);
+        ])->coursemodule;
+    }
+
+    // For app-start.sh: the app's PUBLIC_ATTENDEE_ACTIVITY_URL, unless .env sets one.
+    if ($tool['clientid'] === getenv('ATTENDEE_CLIENT_ID')) {
+        file_put_contents('/testenv-shared/attendee-activity-url', "{$CFG->wwwroot}/mod/lti/view.php?id={$cmid}");
     }
 }
 

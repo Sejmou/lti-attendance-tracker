@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { resolve } from '$app/paths';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import {
 	ADMIN_SESSION_COOKIE,
 	adminSessionCookieOptions,

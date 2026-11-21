@@ -4,7 +4,7 @@
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	/** Null when no event comes from a calendar: then only making them here is explained. */
 	let { calendar }: { calendar: { editUrl: string | null } | null } = $props();

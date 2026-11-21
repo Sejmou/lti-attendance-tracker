@@ -11,7 +11,7 @@
 	import { createSvelteTable, FlexRender } from '$lib/components/ui/data-table';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import type { Snippet } from 'svelte';
 	import type { ClassValue } from 'svelte/elements';
 

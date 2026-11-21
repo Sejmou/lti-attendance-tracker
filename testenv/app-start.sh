@@ -9,11 +9,25 @@
 # Vite's dev server instead of the built app.
 set -eu
 
+seeded=
 if [ -n "${TESTENV_SEED:-}" ] && [ ! -e "$DATABASE_URL" ]; then
 	pnpm --silent db:seed-synthetic "$TESTENV_SEED"
+	seeded=1
 fi
 
 pnpm --silent db:push --force
+
+# Moodle's setup wrote these before compose started the app (its healthcheck).
+# Seeded: hand the made-up attendees' histories to the Moodle students.
+if [ -n "$seeded" ]; then
+	node scripts/run.js scripts/testenv-hand-over.ts /testenv-shared/moodle-users.json
+fi
+
+# Where attendees open the attendee tool, unless .env says.
+if [ -z "${PUBLIC_ATTENDEE_ACTIVITY_URL:-}" ]; then
+	PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat /testenv-shared/attendee-activity-url)
+	export PUBLIC_ATTENDEE_ACTIVITY_URL
+fi
 
 # Moodle's keyset is fetched over the compose network (`--internal-url`): the
 # Moodle container answers to its public hostname there, see compose.yml.

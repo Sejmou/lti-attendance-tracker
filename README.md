@@ -164,20 +164,23 @@ Docker that means `docker compose up -d`, which recreates the container with the
 compiled into the **build**, so changing it means `pnpm build` or
 `docker compose --profile tools build` first. `HOST_PORT` is compose's own and never reaches the app.
 
-| Variable                  | Required | Read at      | Notes                                                                                                                                                                                                                                                                                                              |
-| ------------------------- | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`            | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                                                           |
-| `ORIGIN`                  | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone))                                 |
-| `SIGNING_SECRET`          | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens, and keys the IP address hashes. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones. Changed during an event, `shared` can't match scans from before the change with scans after it |
-| `BASE_PATH`               | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                                                       |
-| `CALENDAR_ICS_URL`        | no       | start        | An iCal feed (`.ics` URL) whose events are synced in, e.g. a Google Calendar's public address. See [Events](#events)                                                                                                                                                                                               |
-| `CALENDAR_EDIT_URL`       | no       | start        | Where organizers edit that calendar, e.g. `https://calendar.google.com/calendar/r`. The events page's help links to it. Without it, the help still says to edit calendar events in the calendar, just without a link                                                                                               |
-| `CALENDAR_SYNC_PAST_DAYS` | no       | start        | How many days back the calendar sync reaches; older events are left as they are. Defaults to 30. See [Calendar sync](#calendar-sync)                                                                                                                                                                               |
-| `PUBLIC_TIMEZONE`         | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                                                |
-| `PUBLIC_SOURCE_URL`       | no       | start        | Where the "Source code" link at the bottom of every page points. Defaults to https://github.com/Sejmou/lti-attendance-tracker. If you run a modified version, the AGPL requires pointing it at your version's source                                                                                               |
-| `ADDRESS_HEADER`          | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_hash` hashes the proxy's address for everyone                                                                                                                                                                                                         |
-| `PORT`                    | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                                                  |
-| `HOST_PORT`               | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                                                           |
+| Variable                       | Required | Read at      | Notes                                                                                                                                                                                                                                                                                                              |
+| ------------------------------ | -------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                 | yes      | start        | SQLite file path. Compose overrides it to `/data/app.db`                                                                                                                                                                                                                                                           |
+| `ORIGIN`                       | yes      | start        | Public origin: scheme, host, port — **never a path**, see [below](#serving-under-a-sub-path). adapter-node rejects cross-origin form posts without it, the attendance QR code points at it, and attendees' phones need it on HTTPS (see [Setting up a phone](#setting-up-a-phone))                                 |
+| `SIGNING_SECRET`               | yes      | start        | Signs organizer sessions and the QR, presence and enrollment tokens, and keys the IP address hashes. Changing it signs every organizer out and invalidates outstanding QR codes and setup links, not set-up phones. Changed during an event, `shared` can't match scans from before the change with scans after it |
+| `BASE_PATH`                    | no       | **build**    | Sub-path the app is served under, e.g. `/attendance`. See [below](#serving-under-a-sub-path)                                                                                                                                                                                                                       |
+| `CALENDAR_ICS_URL`             | no       | start        | An iCal feed (`.ics` URL) whose events are synced in, e.g. a Google Calendar's public address. See [Events](#events)                                                                                                                                                                                               |
+| `CALENDAR_EDIT_URL`            | no       | start        | Where organizers edit that calendar, e.g. `https://calendar.google.com/calendar/r`. The events page's help links to it. Without it, the help still says to edit calendar events in the calendar, just without a link                                                                                               |
+| `CALENDAR_SYNC_PAST_DAYS`      | no       | start        | How many days back the calendar sync reaches; older events are left as they are. Defaults to 30. See [Calendar sync](#calendar-sync)                                                                                                                                                                               |
+| `PUBLIC_TIMEZONE`              | no       | start        | IANA zone every time is shown and entered in, on the server and in every browser alike. Defaults to `Europe/Vienna`                                                                                                                                                                                                |
+| `PUBLIC_ATTENDEE_ACTIVITY_URL` | no       | start        | The attendee tool's activity in the Moodle course, e.g. `https://moodle.example.org/mod/lti/view.php?id=123`. Attendees whose browser isn't set up get a button to it after scanning, on `/` and on the launched page when it was opened without Moodle. Without it, the texts still say to open the activity      |
+| `PUBLIC_LMS_NAME`              | no       | start        | What people know your Moodle as, e.g. `TUWEL`. Replaces "Moodle" throughout the UI (`src/lib/messages.ts`, which every page imports its texts from). Defaults to Moodle                                                                                                                                            |
+| `PUBLIC_PRIVACY_URL`           | no       | start        | Where your privacy notice is published (templates in `docs/`). Linked at the bottom of every page and from the browser setup, which is where attendees decide to store a key. Without it, there is no such link                                                                                                    |
+| `PUBLIC_SOURCE_URL`            | no       | start        | Where the "Source code" link at the bottom of every page points. Defaults to https://github.com/Sejmou/lti-attendance-tracker. If you run a modified version, the AGPL requires pointing it at your version's source                                                                                               |
+| `ADDRESS_HEADER`               | no       | start        | Set to `x-forwarded-for` behind a reverse proxy, or `scan.ip_hash` hashes the proxy's address for everyone                                                                                                                                                                                                         |
+| `PORT`                         | no       | start        | Defaults to 3000. Set in the image, not in `.env`                                                                                                                                                                                                                                                                  |
+| `HOST_PORT`                    | no       | compose `up` | Host port compose publishes the app on. Defaults to 3000                                                                                                                                                                                                                                                           |
 
 Behind a reverse proxy, `ORIGIN` is the public HTTPS URL — not the container's.
 
@@ -212,14 +215,19 @@ cookie paths and the QR code all include it. The tool URLs become
 Attendees have no password and never sign in, and there is no attendee list. The course has an
 attendance activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
 who someone is, through the LMS, and makes them an attendee on the spot — anyone who can open
-the activity can come in. The page it opens then offers two ways in:
+the activity can come in. The page it opens offers **Scan in or out** and **My attendance**,
+and **Use it without Moodle** for as long as the browser isn't set up:
 
-- **Scan here:** at the event, they open the activity and scan the code with the camera
-  inside that page. Nothing is stored on the phone, so it works in any browser, but
-  they need Moodle every time (see [Scanning from the launched page](#scanning-from-the-launched-page)).
-- **Link this phone:** they set the phone up once, and from then on scanning the code
-  with the camera app is all it takes, for as long as the browser keeps what the setup
-  stored (see [Setting up a phone](#setting-up-a-phone)).
+- **Scan in or out:** at the event, they open the activity and scan the code with the camera
+  inside that page. It works in any browser, but needs Moodle every time (see
+  [Scanning from the launched page](#scanning-from-the-launched-page)).
+- **Use it without Moodle:** they set up the browser once (**Set up this browser**), and from
+  then on scanning the code with the camera app is all it takes, and `/` shows their
+  attendance, for as long as the browser keeps what the setup stored (see
+  [Setting up a phone](#setting-up-a-phone)).
+- **My attendance:** every event they have scans for, with their scan-in and scan-out, and
+  each event's scans in detail. A set-up browser shows the same on `/` without Moodle (see
+  [Attendees' own attendance](#attendees-own-attendance)).
 
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
 2. An organizer opens the admin tool's activity, which signs them in (see
@@ -278,8 +286,13 @@ opening the attendee tool on their phone sets that phone up for them as an atten
 
 The attendee opens the attendance activity in Moodle **on the phone they'll bring**. Moodle
 launches the tool, vouching for who they are, and the tool finds or creates the attendee
-(see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There,
-under **Link this phone**, they tap **Set up this phone**:
+(see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There
+they open **Use it without Moodle**, a view of its own that explains what setting up gives
+them, which browser to do it in (naming the one they are in, from the user agent), what is
+stored and how to undo it, and links the privacy notice if `PUBLIC_PRIVACY_URL` is set. No
+consent is asked for: the key is stored because they tapped **Set up this browser** after
+reading that, which is the explicit request the privacy notice's storage exemption rests on.
+Then:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
@@ -294,10 +307,18 @@ browsers never send to a server, so it can't end up in a log or a `Referer`, and
 takes it out of the address bar as soon as it loads. Setting up a key spends it: a token
 issued before the attendee's current key was set up is turned down.
 
+Once the browser holds the attendee's current key, the card gives way to a line with the
+address of `/` to bookmark. If another browser holds it, the card and the view say so, and the
+button becomes **Set up this browser instead**, with a note that the other one stops working.
+A browser whose data was cleared looks the same to the server.
+
 ### Things that undo it
 
 The key lives in one browser on one phone. The attendee has to open Moodle again if:
 
+- they remove it themselves: **Remove from this browser** on `/` deletes the key from the
+  browser, for someone who set up one that isn't theirs alone. The public key stays on the
+  server until another browser is set up, harmless without the private half
 - they clear that browser's website data, or used a private window
 - they set up another phone or browser — there is one key per attendee, and the old one stops
   working. Every setup stays in the log, so an attendee setting up phone after phone shows
@@ -307,7 +328,8 @@ The key lives in one browser on one phone. The attendee has to open Moodle again
   site the user hasn't visited in seven days. Setting up more than a week before the event
   may not survive on an iPhone. The setup page asks for persistent storage, but that does
   not switch this rule off. Ask attendees to set up in the last few days, or plan for them
-  redoing it.
+  redoing it. Opening their attendance on `/` and tapping an event there counts as
+  using the site, which restarts the seven days.
 
 The scan page says so when it finds no key, and points to scanning from Moodle
 instead. Redoing the setup takes a minute.
@@ -316,13 +338,13 @@ instead. Redoing the setup takes a minute.
 
 The key has to be in the browser that opens when the phone's camera reads a QR code —
 usually Safari on an iPhone and Chrome on Android. That is often not the browser someone
-uses Moodle in, which is why [scanning from the launched page](#scanning-from-the-launched-page)
+uses Moodle in (hence the setup view naming the browser it is in), which is why [scanning from the launched page](#scanning-from-the-launched-page)
 exists: it needs no particular browser. For linking, two things get in the way:
 
 - **Moodle embedding the tool.** Opened in a frame on Moodle's page, the tool's storage is
   partitioned under Moodle's site (all current browsers do this for third-party frames),
   so a key saved there is invisible to the tab a scan opens. The setup page detects the
-  frame and offers a **Continue in a new tab** button, which sets the phone up in a tab
+  frame and offers a **Continue in a new tab** button, which links the phone in a tab
   of its own. Embedding works that way; opening the activity in a new window (see
   [LTI platforms](#lti-platforms)) just saves attendees that one tap.
 - **The Moodle app.** It opens external tools in its own browser view, whose storage
@@ -333,6 +355,26 @@ A laptop set up this way works, but nobody scans a QR code with one.
 The key needs a **secure context**: `crypto.subtle` doesn't exist outside HTTPS, or
 `localhost` exactly, so phones need `ORIGIN` on HTTPS. Setup can't be tried off
 `localhost` without `tailscale serve` or a real certificate.
+
+### Attendees' own attendance
+
+**My attendance** lists every event the attendee has scans for, newest first, with their
+scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)) and a note where
+there is no scan-out, and how much of the event lay between the two, as a percentage
+(`src/lib/attendance-share.ts`). That is clamped to the event's start and end, so arriving
+early or leaving late never takes it past 100 %, and stepping out in between isn't taken off;
+without a scan-out, and for all-day events, there is none. Opening an event shows all of its scans: the time, how it was made
+(set-up browser, Moodle page, the code screen they showed, typed in, or typed in and assigned
+by an organizer) and whether it counted as scan-in, scan-out or neither. Nothing kept against
+abuse (addresses, browsers, flags) is shown. Details typed in under their address but never
+linked to their account by an organizer aren't theirs here: anyone can type anyone's address.
+
+It is on the launched page, where the launch's token says who it is, and on `/` in a linked
+browser, for attendees who can't always get into Moodle. There the page signs a challenge with
+the device key, `view:<challenge>`, the same way a scan is signed. The challenge is an HMAC
+token good for five minutes, so a signature can't be kept and used later, and nothing is
+stored: no session, nothing to sign out of. The `/scan` confirmation links to it. A browser
+without a key, or with one replaced since, is told to open the Moodle activity once.
 
 ### Why device keys, not passkeys
 
@@ -445,7 +487,9 @@ scan-out. Both are worked out from the rows when they are shown, never stored
 (`src/lib/server/attendance.ts`).
 
 Each event's page (`/admin/events/<id>`) lists its attendees with their scan-in, their
-scan-out if they have one, and how many scans that took, above the event's full scan log.
+scan-out if they have one, their share of the event (the same figure attendees see, see
+[Attendees' own attendance](#attendees-own-attendance)) and how many scans that took; the
+count opens that person's scans in a dialog, with which one counted as what, above the event's full scan log.
 The phone says which way its scan counted: **eingescannt** after the first, **ausgescannt**
 after any later one — with a note that scanning again later would make the newer scan the
 scan-out. The code screen labels each name in its live list the same way.

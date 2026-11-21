@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import TrashIcon from '@lucide/svelte/icons/trash';
@@ -16,7 +17,7 @@
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import type { EventFields } from '$lib/event-form';
 	import { eventWhen } from '$lib/event-when';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
 	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
@@ -80,12 +81,18 @@
 				? m.events_delete_blocked()
 				: null;
 
-	// Running events count as upcoming: they're where organizers look.
-	type Period = 'upcoming' | 'past' | 'all';
-	let period = $state<Period>('upcoming');
+	// Running events count as upcoming: they're where organizers look. "Current"
+	// adds the last two weeks, whose attendance organizers come to check.
+	type Period = 'current' | 'upcoming' | 'past' | 'all';
+	const RECENT_MS = 14 * 24 * 60 * 60_000;
+	let period = $state<Period>('current');
 	let sorting = $state<SortingState>([{ id: 'when', desc: false }]);
 	const events = $derived(
-		period === 'all' ? data.events : data.events.filter((row) => (period === 'past') === past(row))
+		period === 'all'
+			? data.events
+			: period === 'current'
+				? data.events.filter((row) => row.endsAt.getTime() > data.now.getTime() - RECENT_MS)
+				: data.events.filter((row) => (period === 'past') === past(row))
 	);
 
 	function choosePeriod(next: string) {
@@ -155,10 +162,7 @@
 {#snippet titleCell(row: Row)}
 	<span class="inline-flex items-center gap-1.5">
 		<EventSourceIcon source={row.source} />
-		<a
-			href={resolve('/admin/events/[id]', { id: row.id })}
-			class="font-medium underline-offset-4 hover:underline">{row.title}</a
-		>
+		<span class="font-medium">{row.title}</span>
 	</span>
 	{#if ongoing(row) || row.removedAt}
 		<span class="mt-1 flex flex-wrap gap-1">
@@ -187,6 +191,22 @@
 {/snippet}
 
 {#snippet actionsCell(row: Row)}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					href={resolve('/admin/events/[id]', { id: row.id })}
+					variant="ghost"
+					size="icon-sm"
+					aria-label={m.events_show_attendance()}
+				>
+					<ClipboardCheckIcon />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>{m.events_show_attendance()}</Tooltip.Content>
+	</Tooltip.Root>
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
@@ -358,6 +378,7 @@
 					onValueChange={choosePeriod}
 					aria-label={m.events_period()}
 				>
+					<ToggleGroup.Item value="current">{m.events_period_current()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="upcoming">{m.events_period_upcoming()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="past">{m.events_period_past()}</ToggleGroup.Item>
 					<ToggleGroup.Item value="all">{m.events_period_all()}</ToggleGroup.Item>

@@ -5,10 +5,11 @@ import { and, desc, eq, like } from 'drizzle-orm';
 import { IdTokenValidationMethod } from 'ltijs';
 import { resolve } from '$app/paths';
 import { env } from '$env/dynamic/private';
-import { enrollMessage, scanMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { enrollMessage, scanMessage, viewMessage } from '$lib/device-key';
+import { m } from '$lib/messages';
 import { actions } from '../../../routes/lti-link/enroll/+page.server';
 import { actions as adminActions } from '../../../routes/lti-link/admin/+page.server';
+import { actions as homeActions } from '../../../routes/+page.server';
 import { db } from '../db';
 import {
 	deviceEnrollment,
@@ -26,6 +27,7 @@ import {
 	bucketToken,
 	ENROLLMENT_MS,
 	issueEnrollment,
+	issueViewChallenge,
 	verifyAdminLaunch,
 	verifyAdminSession,
 	verifyEnrollment
@@ -507,4 +509,82 @@ test('a scan-out in the last minutes of an event is just a scan-out', async () =
 	expect(await scan(tokenFrom(await launch()), bucketToken(screen))).toMatchObject({
 		scanned: { direction: 'out', early: false }
 	});
+});
+
+/** The page's `me` action: what it needs to know once it has the launch's token. */
+function me(token: string) {
+	const request = new Request('http://localhost:5173/lti-link/enroll?/me', {
+		method: 'POST',
+		body: new URLSearchParams({ token })
+	});
+	return actions.me({ request } as never);
+}
+
+test('the launched page learns which key is linked and sees the attendance', async () => {
+	const { id } = attendee()!;
+	db.delete(deviceKey).where(eq(deviceKey.userId, id)).run();
+	const token = tokenFrom(await launch());
+	await scan(token, bucketToken(SCREEN));
+
+	// Nobody linked yet.
+	expect(await me(token)).toMatchObject({
+		me: {
+			keyId: null,
+			events: expect.arrayContaining([expect.objectContaining({ id: SCREEN.eventId })])
+		}
+	});
+	const { result } = await enroll(token);
+	expect(await me(token)).toMatchObject({ me: { keyId: (result as { keyId: string }).keyId } });
+
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(Date.now() + ENROLLMENT_MS + 1);
+	expect(await me(token)).toMatchObject({ status: 403 });
+});
+
+/** The home page's `attendance` action, signed by `privateKey` over `challenge`. */
+async function view(keyId: string, privateKey: CryptoKey, challenge = issueViewChallenge()) {
+	const signature = await crypto.subtle.sign(
+		{ name: 'ECDSA', hash: 'SHA-256' },
+		privateKey,
+		new TextEncoder().encode(viewMessage(challenge))
+	);
+	const request = new Request('http://localhost:5173/?/attendance', {
+		method: 'POST',
+		body: new URLSearchParams({
+			keyId,
+			challenge,
+			signature: Buffer.from(signature).toString('base64url')
+		})
+	});
+	return homeActions.attendance({ request } as never);
+}
+
+test('a linked phone sees its attendance without Moodle, and only while it is the linked one', async () => {
+	const token = tokenFrom(await launch());
+	const { privateKey, result } = await enroll(token);
+	const { keyId } = result as { keyId: string };
+	await scan(token, bucketToken(SCREEN));
+
+	expect(await view(keyId, privateKey)).toMatchObject({
+		me: {
+			firstName: 'Ada',
+			events: expect.arrayContaining([expect.objectContaining({ id: SCREEN.eventId })])
+		}
+	});
+	// A challenge past its time is no good, so a signature can't be kept and replayed.
+	expect(await view(keyId, privateKey, issueViewChallenge(Date.now() - 10 * 60_000))).toMatchObject(
+		{ status: 400 }
+	);
+	// Signed by another key than the one named.
+	const stranger = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, [
+		'sign'
+	]);
+	expect(await view(keyId, stranger.privateKey)).toMatchObject({
+		status: 403,
+		data: { notLinked: true }
+	});
+
+	// Linking another browser unlinks this one.
+	await enroll(tokenFrom(await launch()));
+	expect(await view(keyId, privateKey)).toMatchObject({ status: 403, data: { notLinked: true } });
 });

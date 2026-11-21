@@ -1,6 +1,6 @@
 <script lang="ts">
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
 
