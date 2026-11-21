@@ -1,5 +1,8 @@
 <script lang="ts">
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark';
+	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { eventWhen, time } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
 
@@ -14,6 +17,8 @@
 	};
 
 	let { events }: { events: Event[] } = $props();
+
+	let helpOpen = $state(false);
 
 	const withoutScanOut = $derived(events.filter((e) => e.scans.length < 2).length);
 
@@ -36,11 +41,31 @@
 {#if events.length === 0}
 	<p class="text-gray-600">{m.attendance_none()}</p>
 {:else}
-	<p class="text-gray-600">
+	<p class="flex items-center gap-1 text-gray-600">
 		{m.attendance_events({ count: events.length })}
 		{#if withoutScanOut}· {m.attendance_no_scan_out({ count: withoutScanOut })}{/if}
+		<Button
+			variant="ghost"
+			size="icon-xs"
+			aria-label={m.attendance_help_title()}
+			onclick={() => (helpOpen = true)}
+		>
+			<CircleQuestionMarkIcon />
+		</Button>
 	</p>
-	<p class="text-sm text-gray-500">{m.attendance_note()}</p>
+
+	<Dialog.Root bind:open={helpOpen}>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>{m.attendance_help_title()}</Dialog.Title>
+			</Dialog.Header>
+			<div class="flex flex-col gap-3 text-sm">
+				<p>{m.attendance_help_rule()}</p>
+				<p>{m.attendance_help_missing()}</p>
+				<p class="text-muted-foreground">{m.attendance_help_details()}</p>
+			</div>
+		</Dialog.Content>
+	</Dialog.Root>
 
 	<ul class="flex flex-col gap-2">
 		{#each events as event (event.id)}
