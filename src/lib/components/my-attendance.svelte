@@ -3,8 +3,10 @@
 	import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import { attendanceShare } from '$lib/attendance-share';
 	import { eventWhen, time } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
+	import { getLocale } from '$lib/paraglide/runtime';
 
 	type Method = 'device' | 'lti' | 'host' | 'manual';
 	type Event = {
@@ -19,6 +21,12 @@
 	let { events }: { events: Event[] } = $props();
 
 	let helpOpen = $state(false);
+
+	// 93 %, 93%: the locale knows its own spacing.
+	const percent = new Intl.NumberFormat(getLocale(), {
+		style: 'percent',
+		maximumFractionDigits: 0
+	});
 
 	const withoutScanOut = $derived(events.filter((e) => e.scans.length < 2).length);
 
@@ -64,6 +72,7 @@
 			<div class="flex flex-col gap-3 text-sm">
 				<p>{m.attendance_help_rule()}</p>
 				<p>{m.attendance_help_missing()}</p>
+				<p>{m.attendance_help_share()}</p>
 				<p class="text-muted-foreground">{m.attendance_help_details()}</p>
 			</div>
 		</Dialog.Content>
@@ -72,6 +81,7 @@
 	<ul class="flex flex-col gap-2">
 		{#each events as event (event.id)}
 			{@const scanOut = event.scans.length >= 2 ? event.scans.at(-1) : null}
+			{@const share = attendanceShare(event, event.scans[0].scannedAt, scanOut?.scannedAt ?? null)}
 			<li>
 				<details class="group rounded-lg border border-gray-200">
 					<summary
@@ -85,6 +95,9 @@
 								·
 								{#if scanOut}
 									{m.attendance_out({ time: time(scanOut.scannedAt) })}
+									{#if share !== null}
+										· <span class="text-gray-500">{percent.format(share)}</span>
+									{/if}
 								{:else}
 									<span class="text-amber-700">{m.attendance_out_missing()}</span>
 								{/if}

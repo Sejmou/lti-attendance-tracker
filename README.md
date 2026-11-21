@@ -355,7 +355,10 @@ The key needs a **secure context**: `crypto.subtle` doesn't exist outside HTTPS,
 
 **My attendance** lists every event the attendee has scans for, newest first, with their
 scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)) and a note where
-there is no scan-out. Opening an event shows all of its scans: the time, how it was made
+there is no scan-out, and how much of the event lay between the two, as a percentage
+(`src/lib/attendance-share.ts`). That is clamped to the event's start and end, so arriving
+early or leaving late never takes it past 100 %, and stepping out in between isn't taken off;
+without a scan-out, and for all-day events, there is none. Opening an event shows all of its scans: the time, how it was made
 (set-up browser, Moodle page, the code screen they showed, typed in, or typed in and assigned
 by an organizer) and whether it counted as scan-in, scan-out or neither. Nothing kept against
 abuse (addresses, browsers, flags) is shown. Details typed in under their address but never

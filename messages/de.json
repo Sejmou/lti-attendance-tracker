@@ -297,6 +297,7 @@
 	"attendance_method_manual_linked": "Eingetippt, von der Organisation zugeordnet",
 	"attendance_help_details": "Tippe auf eine Veranstaltung, um alle ihre Scans zu sehen.",
 	"attendance_help_missing": "Hast du nur einmal gescannt, bist du eingescannt, aber nicht ausgescannt. Scanne den Code beim Gehen noch einmal.",
+	"attendance_help_share": "Der Prozentwert gibt an, wie viel der Veranstaltung zwischen deinem Ein- und Ausscannen lag. Früher kommen oder später gehen zählt nicht mit, Hinausgehen zwischendurch wird nicht abgezogen. Ganztägige Veranstaltungen haben keinen.",
 	"attendance_help_rule": "Dein erster Scan einer Veranstaltung zählt als Einscannen, dein letzter als Ausscannen. Scans dazwischen zählen für keines von beiden.",
 	"attendance_help_title": "Ein- und Ausscannen",
 	"enroll_scan_option": "Ein- oder ausscannen",
