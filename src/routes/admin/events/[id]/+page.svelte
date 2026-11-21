@@ -10,7 +10,9 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { deviceName } from '$lib/device-name';
+	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import { day, eventWhen, time } from '$lib/event-when';
 	import { wallClock } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';
@@ -44,6 +46,15 @@
 
 	type AttendanceRow = PageServerData['attendance'][number];
 
+	// The same figure attendees see for themselves. Typed-in details nobody
+	// assigned to an account don't count as attending, so they get none.
+	const share = (row: AttendanceRow) =>
+		row.verified ? attendanceShare(event, row.scannedIn, row.scannedOut) : null;
+	const percent = new Intl.NumberFormat(getLocale(), {
+		style: 'percent',
+		maximumFractionDigits: 0
+	});
+
 	const attendanceColumns: ColumnDef<AttendanceRow>[] = [
 		{
 			id: 'attendee',
@@ -69,6 +80,17 @@
 			header: m.attendance_col_out(),
 			cell: ({ row }) => (row.original.scannedOut ? at(row.original.scannedOut) : '—'),
 			meta: { class: 'tabular-nums' }
+		},
+		{
+			id: 'share',
+			accessorFn: (row) => share(row) ?? undefined,
+			sortUndefined: 'last',
+			header: m.attendance_col_share(),
+			cell: ({ row }) => {
+				const value = share(row.original);
+				return value === null ? '—' : percent.format(value);
+			},
+			meta: { class: 'text-right tabular-nums' }
 		},
 		{
 			accessorKey: 'scans',
@@ -301,6 +323,7 @@
 				<p class="text-sm text-red-600" role="alert">{m.link_failed()}</p>
 			{/if}
 			<p class="text-sm text-muted-foreground">{m.attendance_footnote()}</p>
+			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
 		{/if}
 	</section>
 

@@ -164,7 +164,9 @@
 	"attendance_title": "Anwesenheit",
 	"attendance_col_in": "Eingescannt",
 	"attendance_col_out": "Ausgescannt",
+	"attendance_col_share": "Anteil",
 	"attendance_footnote": "Der erste Scan einer Person zählt als Einscannen, ihr letzter als Ausscannen – sofern es mindestens zwei sind. Scans dazwischen zählen für keins von beiden.",
+	"attendance_share_footnote": "Der Anteil ist, wie viel der Veranstaltung zwischen Ein- und Ausscannen lag. Früher kommen oder später gehen zählt nicht mit, Hinausgehen zwischendurch wird nicht abgezogen. Ohne Ausscannen, für nicht zugeordnete Eingaben und bei ganztägigen Veranstaltungen gibt es keinen.",
 	"qr_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
