@@ -297,7 +297,7 @@
 	"attendance_help_rule": "Your first scan at an event counts as your scan-in, your last as your scan-out. Scans in between count for neither.",
 	"attendance_help_title": "Scanning in and out",
 	"enroll_scan_option": "Scan in or out",
-	"enroll_scan_option_text": "Scan right here in your browser",
+	"enroll_scan_option_text": "Scan the attendance QR code right here in your browser",
 	"enroll_back": "Back",
 	"enroll_linking": "Setting up…",
 	"enroll_linked": "This browser is set up: at the event, your camera is all it takes to scan.",
