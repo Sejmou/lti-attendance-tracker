@@ -511,6 +511,36 @@ test('a scan-out in the last minutes of an event is just a scan-out', async () =
 	});
 });
 
+/** The page's `me` action: what it needs to know once it has the launch's token. */
+function me(token: string) {
+	const request = new Request('http://localhost:5173/lti-link/enroll?/me', {
+		method: 'POST',
+		body: new URLSearchParams({ token })
+	});
+	return actions.me({ request } as never);
+}
+
+test('the launched page learns which key is linked and sees the attendance', async () => {
+	const { id } = attendee()!;
+	db.delete(deviceKey).where(eq(deviceKey.userId, id)).run();
+	const token = tokenFrom(await launch());
+	await scan(token, bucketToken(SCREEN));
+
+	// Nobody linked yet.
+	expect(await me(token)).toMatchObject({
+		me: {
+			keyId: null,
+			events: expect.arrayContaining([expect.objectContaining({ id: SCREEN.eventId })])
+		}
+	});
+	const { result } = await enroll(token);
+	expect(await me(token)).toMatchObject({ me: { keyId: (result as { keyId: string }).keyId } });
+
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(Date.now() + ENROLLMENT_MS + 1);
+	expect(await me(token)).toMatchObject({ status: 403 });
+});
+
 /** The home page's `attendance` action, signed by `privateKey` over `challenge`. */
 async function view(keyId: string, privateKey: CryptoKey, challenge = issueViewChallenge()) {
 	const signature = await crypto.subtle.sign(

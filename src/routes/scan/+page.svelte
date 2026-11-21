@@ -59,7 +59,7 @@
 	{:else}
 		<h1 class="text-2xl font-semibold">{m.scan_set_up_heading()}</h1>
 		<p class="text-gray-600">
-			{m.scan_set_up_text({ button: m.enroll_set_up() })}
+			{m.scan_set_up_text()}
 		</p>
 	{/if}
 

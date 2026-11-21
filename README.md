@@ -212,14 +212,18 @@ cookie paths and the QR code all include it. The tool URLs become
 Attendees have no password and never sign in, and there is no attendee list. The course has an
 attendance activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
 who someone is, through the LMS, and makes them an attendee on the spot — anyone who can open
-the activity can come in. The page it opens then offers two ways in:
+the activity can come in. The page it opens offers two things, **Scan in or out** and
+**My attendance**, and below them, whether the browser is linked:
 
-- **Scan here:** at the event, they open the activity and scan the code with the camera
-  inside that page. Nothing is stored on the phone, so it works in any browser, but
-  they need Moodle every time (see [Scanning from the launched page](#scanning-from-the-launched-page)).
-- **Link this phone:** they set the phone up once, and from then on scanning the code
-  with the camera app is all it takes, for as long as the browser keeps what the setup
-  stored (see [Setting up a phone](#setting-up-a-phone)).
+- **Scan in or out:** at the event, they open the activity and scan the code with the camera
+  inside that page. It works in any browser, but needs Moodle every time (see
+  [Scanning from the launched page](#scanning-from-the-launched-page)).
+- **The link:** they link the phone once, and from then on scanning the code with the camera
+  app is all it takes, for as long as the browser keeps what the link stored (see
+  [Setting up a phone](#setting-up-a-phone)).
+- **My attendance:** every event they have scans for, with their scan-in and scan-out, and
+  each event's scans in detail. A linked phone shows the same on `/` without Moodle (see
+  [Attendees' own attendance](#attendees-own-attendance)).
 
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
 2. An organizer opens the admin tool's activity, which signs them in (see
@@ -278,8 +282,8 @@ opening the attendee tool on their phone sets that phone up for them as an atten
 
 The attendee opens the attendance activity in Moodle **on the phone they'll bring**. Moodle
 launches the tool, vouching for who they are, and the tool finds or creates the attendee
-(see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There,
-under **Link this phone**, they tap **Set up this phone**:
+(see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There
+they tap **Link this browser**:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
@@ -323,7 +327,7 @@ exists: it needs no particular browser. For linking, two things get in the way:
 - **Moodle embedding the tool.** Opened in a frame on Moodle's page, the tool's storage is
   partitioned under Moodle's site (all current browsers do this for third-party frames),
   so a key saved there is invisible to the tab a scan opens. The setup page detects the
-  frame and offers a **Continue in a new tab** button, which sets the phone up in a tab
+  frame and offers a **Continue in a new tab** button, which links the phone in a tab
   of its own. Embedding works that way; opening the activity in a new window (see
   [LTI platforms](#lti-platforms)) just saves attendees that one tap.
 - **The Moodle app.** It opens external tools in its own browser view, whose storage
@@ -345,12 +349,12 @@ an organizer) and whether it counted as scan-in, scan-out or neither. Nothing ke
 abuse (addresses, browsers, flags) is shown. Details typed in under their address but never
 linked to their account by an organizer aren't theirs here: anyone can type anyone's address.
 
-It is on `/` in a linked browser, for attendees who can't always get into Moodle. The page
-signs a challenge with the device key, `view:<challenge>`, the same way a scan is signed. The
-challenge is an HMAC token good for five minutes, so a signature can't be kept and used later,
-and nothing is stored: no session, nothing to sign out of. The `/scan` confirmation links to
-it. A browser without a key, or with one replaced since, is told to open the Moodle activity
-once.
+It is on the launched page, where the launch's token says who it is, and on `/` in a linked
+browser, for attendees who can't always get into Moodle. There the page signs a challenge with
+the device key, `view:<challenge>`, the same way a scan is signed. The challenge is an HMAC
+token good for five minutes, so a signature can't be kept and used later, and nothing is
+stored: no session, nothing to sign out of. The `/scan` confirmation links to it. A browser
+without a key, or with one replaced since, is told to open the Moodle activity once.
 
 ### Why device keys, not passkeys
 
