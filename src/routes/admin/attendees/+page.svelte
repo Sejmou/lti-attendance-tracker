@@ -7,7 +7,7 @@
 	import DataTable from '$lib/components/data-table.svelte';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import { deviceName } from '$lib/device-name';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';

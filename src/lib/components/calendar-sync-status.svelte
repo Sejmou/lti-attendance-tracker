@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import LoaderIcon from '@lucide/svelte/icons/loader-circle';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	/**
 	 * A calendar sync the page started without waiting on it. Says it is

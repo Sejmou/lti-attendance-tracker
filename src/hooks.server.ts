@@ -7,7 +7,7 @@ import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
 import { scheduleRetention } from '$lib/server/retention';
 import { ADMIN_SESSION_COOKIE, verifyAdminSession } from '$lib/server/scan-token';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 

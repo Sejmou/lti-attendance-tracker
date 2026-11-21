@@ -1,6 +1,6 @@
-import { and, count, eq, max, min, sql } from 'drizzle-orm';
+import { and, count, desc, eq, max, min, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { scan, user } from '$lib/server/db/schema';
+import { event, scan, user } from '$lib/server/db/schema';
 import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 
 /**
@@ -74,4 +74,54 @@ export function direction(userId: string, eventId: string): 'in' | 'out' {
 		.where(and(eq(scan.userId, userId), eq(scan.eventId, eventId)))
 		.get()!;
 	return scans >= 2 ? 'out' : 'in';
+}
+
+/**
+ * What an attendee sees of their own attendance: every event they have scans
+ * for, newest first, each with all of its scans in order. The first is the
+ * scan-in, the last the scan-out if there are two or more, as in attendance.
+ *
+ * `linked` marks typed-in details an organizer has since linked to this
+ * attendee. Typed-in details nobody linked stay with the typed-in person:
+ * anyone can type anyone's address, so they are never shown by email.
+ */
+export function myAttendance(userId: string) {
+	const rows = db
+		.select({
+			eventId: event.id,
+			title: event.title,
+			startsAt: event.startsAt,
+			endsAt: event.endsAt,
+			allDay: event.allDay,
+			scannedAt: scan.scannedAt,
+			method: scan.method,
+			linked:
+				sql<boolean>`${scan.method} = 'manual' and ${scan.reportedAs} is not ${scan.userId}`.mapWith(
+					Boolean
+				)
+		})
+		.from(scan)
+		.innerJoin(event, eq(event.id, scan.eventId))
+		.where(eq(scan.userId, userId))
+		.orderBy(desc(event.startsAt), scan.scannedAt)
+		.all();
+
+	const events = new Map<
+		string,
+		{
+			id: string;
+			title: string;
+			startsAt: Date;
+			endsAt: Date;
+			allDay: boolean;
+			scans: { scannedAt: Date; method: (typeof rows)[number]['method']; linked: boolean }[];
+		}
+	>();
+	for (const { eventId, title, startsAt, endsAt, allDay, ...one } of rows) {
+		if (!events.has(eventId)) {
+			events.set(eventId, { id: eventId, title, startsAt, endsAt, allDay, scans: [] });
+		}
+		events.get(eventId)!.scans.push(one);
+	}
+	return [...events.values()];
 }

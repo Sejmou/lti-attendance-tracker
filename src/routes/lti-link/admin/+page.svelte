@@ -2,7 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();

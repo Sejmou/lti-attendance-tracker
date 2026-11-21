@@ -187,6 +187,22 @@ export function verifyAdminSession(value: string | undefined, at = Date.now()) {
 	return verifyExpiring('admin-session', value, at);
 }
 
+const VIEW_CHALLENGE_MS = 5 * 60_000;
+
+/**
+ * What a linked phone signs to see its owner's attendance (see `/`), so a
+ * signature can't be replayed later. Not tied to anyone: the key says who.
+ */
+export function issueViewChallenge(at = Date.now()) {
+	const nonce = crypto.randomUUID();
+	const expiresAt = at + VIEW_CHALLENGE_MS;
+	return `${nonce}.${expiresAt}.${hmac(`view:${nonce}:${expiresAt}`)}`;
+}
+
+export function verifyViewChallenge(value: string | undefined, at = Date.now()) {
+	return verifyExpiring('view', value, at) !== null;
+}
+
 /**
  * `<id>.<expiresAt>.<signature>`, for any of the tokens shaped that way. The
  * purpose is part of what is signed, so none of them passes for another.

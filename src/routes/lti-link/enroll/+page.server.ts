@@ -1,6 +1,10 @@
 import { fail } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
 import { enrollMessage } from '$lib/device-key';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
+import { myAttendance } from '$lib/server/attendance';
+import { db } from '$lib/server/db';
+import { deviceKey } from '$lib/server/db/schema';
 import { clientOf, recordScan } from '$lib/server/scan';
 import { parsePublicKey, verifySignature } from '$lib/server/device-key';
 import { enrollDevice } from '$lib/server/enrollment';
@@ -27,6 +31,24 @@ export const load: PageServerLoad = ({ url }) => {
 };
 
 export const actions: Actions = {
+	/**
+	 * What the page needs once it has the launch's token: the attendee's
+	 * attendance, and which key they have linked, if any, so the page can tell
+	 * whether this browser holds it — and link it on its own if nobody has one.
+	 */
+	me: async ({ request }) => {
+		const token = (await request.formData()).get('token');
+		const enrollment = verifyEnrollment(typeof token === 'string' ? token : undefined);
+		if (!enrollment) return fail(403, { message: SCAN_EXPIRED() });
+
+		const key = db
+			.select({ id: deviceKey.id })
+			.from(deviceKey)
+			.where(eq(deviceKey.userId, enrollment.userId))
+			.get();
+		return { me: { keyId: key?.id ?? null, events: myAttendance(enrollment.userId) } };
+	},
+
 	/**
 	 * A code scanned with the camera inside this page, for an attendee who didn't
 	 * set up a device — or whose camera app opens another browser than the one

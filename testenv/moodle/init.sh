@@ -25,6 +25,8 @@ else
 	as_www php admin/cli/upgrade.php --non-interactive
 fi
 
+# A new volume belongs to root; testenv_setup.php writes to it as www-data.
+chown www-data /testenv-shared
 as_www php admin/cli/testenv_setup.php
 as_www php admin/cli/purge_caches.php
 echo "testenv: Moodle is ready at $MOODLE_URL"

@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 	import { eventWhen } from '$lib/event-when';
 	import type { PageServerData } from './$types';
 

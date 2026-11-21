@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { m } from '$lib/paraglide/messages';
+import { m } from '$lib/messages';
 import { pruneExpired } from '$lib/server/retention';
 import type { LayoutServerLoad } from './$types';
 

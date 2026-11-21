@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CalendarSyncIcon from '@lucide/svelte/icons/calendar-sync';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { m } from '$lib/paraglide/messages';
+	import { m } from '$lib/messages';
 
 	/** Only synced events are marked: they are the ones managed elsewhere. */
 	let { source }: { source: 'calendar' | 'manual' } = $props();

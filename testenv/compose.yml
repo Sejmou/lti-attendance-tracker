@@ -41,6 +41,8 @@ services:
       - '${MOODLE_BIND_IP:-127.0.0.1}:${MOODLE_HOST_PORT:-8080}:80'
     volumes:
       - moodledata:/var/www/moodledata
+      # Moodle writes its test users' IDs here, for app-start.sh.
+      - shared:/testenv-shared
     networks:
       default:
         # The app fetches Moodle's keyset server-to-server. Under its public
@@ -50,6 +52,16 @@ services:
           - ${MOODLE_HOST}
     depends_on:
       - db
+    # Ready once init.sh has set Moodle up, which writes what app-start.sh
+    # reads, and Apache answers. The first start installs Moodle: minutes.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -s /testenv-shared/moodle-users.json && test -s /testenv-shared/attendee-activity-url && curl -fsS -o /dev/null http://localhost/
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10m
     restart: unless-stopped
 
   app:
@@ -61,6 +73,10 @@ services:
       args:
         BASE_PATH: ${BASE_PATH:-}
     command: ['sh', 'testenv/app-start.sh']
+    # app-start.sh reads what Moodle's setup writes to the shared volume.
+    depends_on:
+      moodle:
+        condition: service_healthy
     environment:
       <<: *shared
       MOODLE_HOST: ${MOODLE_HOST}
@@ -73,10 +89,14 @@ services:
       CALENDAR_EDIT_URL: ${CALENDAR_EDIT_URL:-}
       CALENDAR_SYNC_PAST_DAYS: ${CALENDAR_SYNC_PAST_DAYS:-}
       TESTENV_SEED: ${TESTENV_SEED:-}
+      PUBLIC_PRIVACY_URL: ${PUBLIC_PRIVACY_URL:-}
+      PUBLIC_LMS_NAME: ${PUBLIC_LMS_NAME:-}
+      PUBLIC_ATTENDEE_ACTIVITY_URL: ${PUBLIC_ATTENDEE_ACTIVITY_URL:-}
     ports:
       - '${APP_BIND_IP:-127.0.0.1}:${APP_HOST_PORT:-3000}:3000'
     volumes:
       - appdata:/data
+      - shared:/testenv-shared:ro
     restart: unless-stopped
 
 networks:
@@ -86,3 +106,4 @@ volumes:
   pgdata:
   moodledata:
   appdata:
+  shared:

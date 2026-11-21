@@ -2,7 +2,7 @@ import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { like } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import { attendance, direction } from './attendance';
+import { attendance, direction, myAttendance } from './attendance';
 import { listEvents } from './events';
 import { link } from './manual-entry';
 import { db } from './db';
@@ -147,4 +147,47 @@ test('the events list counts people with a verified scan, and apart from them wh
 	// Ada, Grace and Lin's account; Tom isn't.
 	const verified = attendance(talk.id).filter((person) => person.verified);
 	expect(verified.map((person) => person.firstName).sort()).toEqual(['Ada', 'Grace', 'Lin']);
+});
+
+test("an attendee's own attendance: newest event first, each with its scans in order", () => {
+	const ada = someone('Ada');
+	const earlier = someEvent('mine earlier');
+	const later = db
+		.insert(event)
+		.values({
+			source: 'manual',
+			title: 'attendance.spec mine later',
+			startsAt: new Date('2026-10-12T16:00:00Z'),
+			endsAt: new Date('2026-10-12T20:00:00Z')
+		})
+		.returning()
+		.get();
+	scanAt(ada.id, earlier.id, '19:55');
+	scanAt(ada.id, earlier.id, '16:02');
+	db.insert(scan)
+		.values({
+			userId: ada.id,
+			eventId: later.id,
+			method: 'manual',
+			// Typed in as someone else, then linked to Ada by an organizer.
+			reportedAs: crypto.randomUUID(),
+			codeScanId: crypto.randomUUID(),
+			scannedAt: new Date('2026-10-12T16:05:00Z')
+		})
+		.run();
+	scanAt(someone('Grace').id, earlier.id, '16:10');
+
+	expect(myAttendance(ada.id)).toEqual([
+		expect.objectContaining({
+			id: later.id,
+			scans: [{ scannedAt: new Date('2026-10-12T16:05:00Z'), method: 'manual', linked: true }]
+		}),
+		expect.objectContaining({
+			id: earlier.id,
+			scans: [
+				{ scannedAt: at('16:02'), method: 'device', linked: false },
+				{ scannedAt: at('19:55'), method: 'device', linked: false }
+			]
+		})
+	]);
 });

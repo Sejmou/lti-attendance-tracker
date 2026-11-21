@@ -9,8 +9,12 @@
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Table from '$lib/components/ui/table';
 	import { deviceName } from '$lib/device-name';
-	import { m } from '$lib/paraglide/messages';
+	import { attendanceShare } from '$lib/attendance-share';
+	import { m } from '$lib/messages';
+	import { getLocale } from '$lib/paraglide/runtime';
 	import { day, eventWhen, time } from '$lib/event-when';
 	import { wallClock } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';
@@ -44,6 +48,15 @@
 
 	type AttendanceRow = PageServerData['attendance'][number];
 
+	// The same figure attendees see for themselves. Typed-in details nobody
+	// assigned to an account don't count as attending, so they get none.
+	const share = (row: AttendanceRow) =>
+		row.verified ? attendanceShare(event, row.scannedIn, row.scannedOut) : null;
+	const percent = new Intl.NumberFormat(getLocale(), {
+		style: 'percent',
+		maximumFractionDigits: 0
+	});
+
 	const attendanceColumns: ColumnDef<AttendanceRow>[] = [
 		{
 			id: 'attendee',
@@ -71,11 +84,38 @@
 			meta: { class: 'tabular-nums' }
 		},
 		{
+			id: 'share',
+			accessorFn: (row) => share(row) ?? undefined,
+			sortUndefined: 'last',
+			header: m.attendance_col_share(),
+			cell: ({ row }) => {
+				const value = share(row.original);
+				return value === null ? '—' : percent.format(value);
+			},
+			meta: { class: 'text-right tabular-nums' }
+		},
+		{
 			accessorKey: 'scans',
 			header: m.events_col_scans(),
+			cell: ({ row }) => renderSnippet(scansCell, row.original),
 			meta: { class: 'text-right tabular-nums' }
 		}
 	];
+
+	// One person's scans, oldest first, for the dialog the scan count opens.
+	let showing = $state<AttendanceRow | null>(null);
+	const showingScans = $derived(
+		showing ? data.log.rows.filter((row) => row.scanner === showing!.scanner).toReversed() : []
+	);
+	const personName = (row: AttendanceRow) =>
+		row.email === null ? m.scans_deleted_attendee() : `${row.firstName} ${row.lastName}`;
+	// Same rule as the table: first in, last out if there are two or more.
+	const role = (index: number, count: number) =>
+		index === 0
+			? m.attendance_role_in()
+			: index === count - 1
+				? m.attendance_role_out()
+				: m.attendance_role_none();
 
 	const attendanceSearch = (row: AttendanceRow) =>
 		[row.firstName, row.lastName, row.email, ...row.linkedFrom.map((typed) => typed.email)].join(
@@ -197,6 +237,18 @@
 	{/each}
 {/snippet}
 
+{#snippet scansCell(row: AttendanceRow)}
+	<Button
+		variant="ghost"
+		size="sm"
+		class="tabular-nums underline"
+		aria-label={m.attendance_scans_open({ name: personName(row) })}
+		onclick={() => (showing = row)}
+	>
+		{row.scans}
+	</Button>
+{/snippet}
+
 {#snippet attendeeCell(row: LogRow)}
 	{#if row.email === null}
 		<span class="text-muted-foreground italic">{m.scans_deleted_attendee()}</span>
@@ -250,6 +302,42 @@
 	{/if}
 {/snippet}
 
+<Dialog.Root bind:open={() => showing !== null, (open) => !open && (showing = null)}>
+	<Dialog.Content class="sm:max-w-3xl">
+		<Dialog.Header>
+			<Dialog.Title
+				>{showing ? m.attendance_scans_title({ name: personName(showing) }) : ''}</Dialog.Title
+			>
+		</Dialog.Header>
+		<div class="overflow-x-auto">
+			<Table.Root>
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>{m.scans_col_when()}</Table.Head>
+						<Table.Head>{m.attendance_scans_col_role()}</Table.Head>
+						<Table.Head>{m.scans_col_method()}</Table.Head>
+						<Table.Head>{m.scans_col_address()}</Table.Head>
+						<Table.Head>{m.scans_col_device()}</Table.Head>
+						<Table.Head>{m.scans_col_scan()}</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each showingScans as row, i (row.codeScanId)}
+						<Table.Row>
+							<Table.Cell class="tabular-nums">{at(row.at)}</Table.Cell>
+							<Table.Cell>{role(i, showingScans.length)}</Table.Cell>
+							<Table.Cell>{@render methodCell(row)}</Table.Cell>
+							<Table.Cell>{@render addressCell(row)}</Table.Cell>
+							<Table.Cell>{@render deviceCell(row)}</Table.Cell>
+							<Table.Cell>{@render scanCell(row)}</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
+		</div>
+	</Dialog.Content>
+</Dialog.Root>
+
 <main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
 	<header class="flex flex-wrap items-start justify-between gap-4">
 		<div class="flex flex-col gap-1">
@@ -301,6 +389,7 @@
 				<p class="text-sm text-red-600" role="alert">{m.link_failed()}</p>
 			{/if}
 			<p class="text-sm text-muted-foreground">{m.attendance_footnote()}</p>
+			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
 		{/if}
 	</section>
 
