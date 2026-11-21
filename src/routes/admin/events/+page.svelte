@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import TrashIcon from '@lucide/svelte/icons/trash';
@@ -162,10 +163,7 @@
 {#snippet titleCell(row: Row)}
 	<span class="inline-flex items-center gap-1.5">
 		<EventSourceIcon source={row.source} />
-		<a
-			href={resolve('/admin/events/[id]', { id: row.id })}
-			class="font-medium underline underline-offset-4">{row.title}</a
-		>
+		<span class="font-medium">{row.title}</span>
 	</span>
 	{#if ongoing(row) || row.removedAt}
 		<span class="mt-1 flex flex-wrap gap-1">
@@ -203,6 +201,22 @@
 {/snippet}
 
 {#snippet actionsCell(row: Row)}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					href={resolve('/admin/events/[id]', { id: row.id })}
+					variant="ghost"
+					size="icon-sm"
+					aria-label={m.events_show_attendance()}
+				>
+					<ClipboardCheckIcon />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>{m.events_show_attendance()}</Tooltip.Content>
+	</Tooltip.Root>
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}

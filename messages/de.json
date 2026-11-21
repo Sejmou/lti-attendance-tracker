@@ -167,6 +167,7 @@
 	"code_other_event": "Andere Veranstaltung",
 	"code_attendance": "Anwesenheit dieser Veranstaltung",
 	"events_show_code": "QR-Code",
+	"events_show_attendance": "Anwesenheit ansehen",
 	"attendance_title": "Anwesenheit",
 	"attendance_col_in": "Eingescannt",
 	"attendance_col_out": "Ausgescannt",
