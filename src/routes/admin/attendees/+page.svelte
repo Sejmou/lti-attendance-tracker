@@ -131,6 +131,7 @@
 	{:else}
 		<!-- Longest gone first: those are the ones to think about deleting. -->
 		<DataTable
+			placeholder={m.table_search_people()}
 			data={data.attendees}
 			{columns}
 			sorting={[{ id: 'lastSeen', desc: false }]}

@@ -292,6 +292,7 @@
 			<DataTable
 				data={data.attendance}
 				columns={attendanceColumns}
+				placeholder={m.table_search_people()}
 				sorting={[{ id: 'in', desc: false }]}
 				search={attendanceSearch}
 				rowId={(row) => row.scanner}
@@ -314,6 +315,7 @@
 			<DataTable
 				data={data.log.rows}
 				columns={logColumns}
+				placeholder={m.table_search_scans()}
 				sorting={[{ id: 'when', desc: true }]}
 				search={logSearch}
 				rowId={(row) => `${row.codeScanId}${row.scanner}`}

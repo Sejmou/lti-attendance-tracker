@@ -270,7 +270,10 @@
 		}
 	],
 	"table_sort_hint": "Danach sortieren",
-	"table_filter": "Filtern…",
+	"table_search": "Suchen…",
+	"table_search_people": "Name oder E-Mail suchen…",
+	"table_search_events": "Titel oder Ort suchen…",
+	"table_search_scans": "In Scans suchen…",
 	"table_no_matches": "Nichts passt zum Filter.",
 	"attendees_delete": "Löschen",
 	"attendees_delete_title": "Teilnehmer:in löschen?",

@@ -342,6 +342,7 @@
 		<p class="text-muted-foreground">{m.events_none()}</p>
 	{:else}
 		<DataTable
+			placeholder={m.table_search_events()}
 			data={events}
 			{columns}
 			bind:sorting

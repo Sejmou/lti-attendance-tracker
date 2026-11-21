@@ -22,7 +22,8 @@
 		search,
 		rowId,
 		rowClass,
-		toolbar
+		toolbar,
+		placeholder = m.table_search()
 	}: {
 		data: T[];
 		columns: ColumnDef<T>[];
@@ -32,6 +33,8 @@
 		search: (row: T) => string;
 		rowId: (row: T) => string;
 		rowClass?: (row: T) => ClassValue;
+		/** The search box's text, ideally naming what it searches. */
+		placeholder?: string;
 		/** More controls next to the filter box. */
 		toolbar?: Snippet;
 	} = $props();
@@ -71,8 +74,8 @@
 	<Input
 		type="search"
 		class="max-w-xs"
-		placeholder={m.table_filter()}
-		aria-label={m.table_filter()}
+		{placeholder}
+		aria-label={placeholder}
 		bind:value={filter}
 	/>
 	{@render toolbar?.()}

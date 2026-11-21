@@ -267,7 +267,10 @@
 		}
 	],
 	"table_sort_hint": "Sort by this",
-	"table_filter": "Filter…",
+	"table_search": "Search…",
+	"table_search_people": "Search name or email…",
+	"table_search_events": "Search title or location…",
+	"table_search_scans": "Search scans…",
 	"table_no_matches": "Nothing matches the filter.",
 	"attendees_delete": "Delete",
 	"attendees_delete_title": "Delete attendee?",
