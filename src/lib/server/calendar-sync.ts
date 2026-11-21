@@ -228,6 +228,12 @@ let running: Promise<SyncResult> | null = null;
 /** Whether `CALENDAR_ICS_URL` is set. Without it, events are only made by hand. */
 export const calendarConfigured = () => Boolean(env.CALENDAR_ICS_URL);
 
+/** Where organizers edit the calendar (`CALENDAR_EDIT_URL`), if it's a web address. */
+export function calendarEditUrl() {
+	const url = URL.parse(env.CALENDAR_EDIT_URL ?? '');
+	return url && (url.protocol === 'https:' || url.protocol === 'http:') ? url.href : null;
+}
+
 export function lastCalendarSync() {
 	return lastSync;
 }

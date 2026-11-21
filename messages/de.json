@@ -43,16 +43,17 @@
 			"match": { "countPlural=one": "{count} Adresse", "countPlural=*": "{count} Adressen" }
 		}
 	],
-	"attendance_scanned_in": [
+	"attendance_present": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-				"countPlural=one": "{count} Person eingescannt",
-				"countPlural=*": "{count} Personen eingescannt"
+				"countPlural=one": "{count} Person anwesend",
+				"countPlural=*": "{count} Personen anwesend"
 			}
 		}
 	],
+	"attendance_unconfirmed": "{count} unbestätigt",
 	"attendance_scanned_out": "{count} davon ausgescannt",
 	"scans_none": "Noch hat niemand gescannt.",
 	"scans_col_when": "Zeitpunkt",
@@ -99,21 +100,37 @@
 	"events_sync_failed": "Der Kalender konnte nicht abgerufen werden. Details stehen im Server-Log.",
 	"events_no_calendar": "Kein Kalender verbunden (CALENDAR_ICS_URL ist nicht gesetzt). Veranstaltungen lassen sich hier von Hand anlegen.",
 	"events_none": "Noch keine Veranstaltungen.",
+	"events_period": "Welche Veranstaltungen",
+	"events_period_upcoming": "Kommende",
+	"events_period_past": "Vergangene",
+	"events_period_all": "Alle",
 	"events_col_when": "Zeit",
 	"events_col_title": "Veranstaltung",
 	"events_col_location": "Ort",
 	"events_col_scans": "Scans",
+	"events_col_attendees": "Anwesend",
+	"events_col_unconfirmed": "Unbestätigt",
+	"unconfirmed_hint": "Haben ihre Daten von Hand eingegeben und sind noch mit keinem Konto verknüpft, zählen also nicht als anwesend",
 	"events_col_actions": "Aktionen",
 	"events_all_day": "ganztägig",
-	"events_source_calendar": "Kalender",
-	"events_source_manual": "Manuell",
+	"events_source_calendar": "Aus dem verbundenen Kalender",
+	"events_source_manual": "In diesem Tool angelegt",
 	"events_ongoing": "Läuft gerade",
+	"events_help_title": "Über Veranstaltungen",
+	"events_help_purpose": "Jede Veranstaltung hat einen eigenen QR-Code. Wer ihn scannt, war bei genau dieser Veranstaltung anwesend: der erste Scan gilt als eingescannt, der letzte als ausgescannt. Von Hand eingegebene Daten zählen erst, wenn eine Organisator:in sie verknüpft hat.",
+	"events_help_sources_title": "Woher Veranstaltungen kommen",
+	"events_help_calendar": "Werden automatisch übernommen. Bearbeiten nur im Kalender; „{sync}“ holt Änderungen sofort.",
+	"events_help_manual": "Mit „{newEvent}“ anlegen, mit dem Stift-Symbol bearbeiten.",
+	"events_help_scans_kept": "Eine Veranstaltung mit Scans lässt sich nicht löschen. Verschwindet sie aus dem Kalender, bleibt sie als „{removed}“ erhalten.",
+	"events_help_open_calendar": "Kalender öffnen",
 	"events_removed": "Aus dem Kalender entfernt",
 	"events_removed_hint": "Nicht mehr im Kalender, aber es gibt Scans dafür – deshalb bleibt sie erhalten",
-	"events_calendar_hint": "Im Kalender bearbeiten",
 	"events_edit": "Bearbeiten",
+	"events_edit_calendar": "Im Kalender bearbeiten (öffnet einen neuen Tab)",
+	"events_edit_calendar_unlinked": "Aus dem Kalender: dort bearbeiten.",
 	"events_delete": "Löschen",
 	"events_delete_blocked": "Für diese Veranstaltung gibt es bereits Scans, deshalb kann sie nicht gelöscht werden.",
+	"events_delete_calendar": "Aus dem Kalender: dort löschen. Hier gelöscht, käme sie beim nächsten Synchronisieren zurück.",
 	"events_delete_title": "Veranstaltung löschen?",
 	"events_delete_text": "„{title}“ wird gelöscht. Das lässt sich nicht rückgängig machen.",
 	"events_missing": "Diese Veranstaltung gibt es nicht mehr, oder sie stammt aus dem Kalender.",
@@ -248,7 +265,9 @@
 			}
 		}
 	],
-	"attendees_sort_hint": "Danach sortieren",
+	"table_sort_hint": "Danach sortieren",
+	"table_filter": "Filtern…",
+	"table_no_matches": "Nichts passt zum Filter.",
 	"attendees_delete": "Löschen",
 	"attendees_delete_title": "Teilnehmer:in löschen?",
 	"attendees_delete_text": "{name} ({email}) wird gelöscht, samt verknüpftem Handy. Die Scans bleiben ohne Namen für die Statistik der Veranstaltungen erhalten. Das lässt sich nicht rückgängig machen; öffnet die Person die Aktivität in Moodle wieder, wird sie neu angelegt.",

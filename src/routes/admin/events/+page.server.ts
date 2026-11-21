@@ -2,6 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import {
 	calendarConfigured,
+	calendarEditUrl,
 	lastCalendarSync,
 	calendarStale,
 	syncCalendarInBackground,
@@ -20,7 +21,9 @@ export const load: PageServerLoad = async () => {
 		sync: calendarStale() ? syncCalendarInBackground() : null,
 		events: listEvents(),
 		now: new Date(),
-		calendar: calendarConfigured() ? { lastSync: lastCalendarSync() } : null
+		calendar: calendarConfigured()
+			? { lastSync: lastCalendarSync(), editUrl: calendarEditUrl() }
+			: null
 	};
 };
 
