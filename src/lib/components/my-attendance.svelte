@@ -40,6 +40,7 @@
 		{m.attendance_events({ count: events.length })}
 		{#if withoutScanOut}· {m.attendance_no_scan_out({ count: withoutScanOut })}{/if}
 	</p>
+	<p class="text-sm text-gray-500">{m.attendance_note()}</p>
 
 	<ul class="flex flex-col gap-2">
 		{#each events as event (event.id)}
@@ -84,5 +85,4 @@
 			</li>
 		{/each}
 	</ul>
-	<p class="text-sm text-gray-500">{m.attendance_note()}</p>
 {/if}
