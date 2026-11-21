@@ -217,7 +217,7 @@
 
 	"enroll_problem_heading": "Wir konnten dich nicht einrichten",
 	"enroll_open_from_moodle_heading": "Bitte über Moodle öffnen",
-	"enroll_open_from_moodle_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs. Sie leitet dich hierher weiter, um dieses Handy einzurichten.",
+	"enroll_open_from_moodle_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs. Sie leitet dich hierher weiter, und das Anwesenheitstool weiß dann, wer du bist.",
 	"enroll_greeting": "Hallo!",
 	"enroll_greeting_name": "Hallo, {name}!",
 	"enroll_scan_prompt": "Richte deine Kamera auf den Anwesenheits-QR-Code.",
