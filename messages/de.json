@@ -280,6 +280,18 @@
 			}
 		}
 	],
+	"attendance_card_text": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Wann du bei {count} Veranstaltung ein- und ausgescannt hast",
+				"countPlural=*": "Wann du bei {count} Veranstaltungen ein- und ausgescannt hast"
+			}
+		}
+	],
+	"attendance_latest": "Zuletzt: {title}, {date}",
+	"attendance_card_none": "Noch keine Scans",
 	"attendance_no_scan_out": "{count} ohne Ausscannen",
 	"attendance_in": "Ein {time}",
 	"attendance_out": "Aus {time}",

@@ -11,6 +11,11 @@
 		saveDeviceKey,
 		sign
 	} from '$lib/device-key';
+	import CalendarCheckIcon from '@lucide/svelte/icons/calendar-check';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import ScanQrCodeIcon from '@lucide/svelte/icons/scan-qr-code';
+	import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
+	import { day, time } from '$lib/event-when';
 	import MyAttendance from '$lib/components/my-attendance.svelte';
 	import QrScanner from '$lib/components/qr-scanner.svelte';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
@@ -32,6 +37,7 @@
 		events: ComponentProps<typeof MyAttendance>['events'];
 	}>();
 	let localKeyId = $state<string>();
+	const latest = $derived(me?.events[0]);
 	let meForm = $state<HTMLFormElement>();
 
 	let publicKey = $state('');
@@ -64,7 +70,7 @@
 	let home = $state('');
 
 	onMount(async () => {
-		home = new URL(resolve('/'), location.href).href.replace(/^https?:\/\//, '');
+		home = new URL(resolve('/'), location.href).href.replace(/^https?:\/\//, '').replace(/\/$/, '');
 		// The launch hands the token over in the fragment, which no server sees.
 		// Out of the address bar straight away, so it isn't bookmarked or shared.
 		token = location.hash.slice(1);
@@ -183,7 +189,9 @@
 	};
 
 	const option =
-		'flex w-full flex-col items-start gap-1 rounded-lg border border-gray-200 p-4 text-left transition hover:bg-gray-50';
+		'flex w-full items-start gap-3 rounded-lg border border-gray-200 p-4 text-left transition hover:bg-gray-50';
+	const optionIcon = 'size-6 shrink-0 text-blue-600';
+	const chevron = 'size-5 shrink-0 self-center text-gray-400';
 	const primary =
 		'w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50';
 	const secondary =
@@ -241,14 +249,34 @@
 		</h1>
 
 		<button type="button" onclick={() => open('scanning')} class={option}>
-			<span class="text-lg font-semibold">{m.enroll_scan_option()}</span>
-			<span class="text-gray-600">{m.enroll_scan_option_text()}</span>
+			<ScanQrCodeIcon class={optionIcon} aria-hidden="true" />
+			<span class="flex flex-1 flex-col gap-1">
+				<span class="text-lg font-semibold">{m.enroll_scan_option()}</span>
+				<span class="text-gray-600">{m.enroll_scan_option_text()}</span>
+			</span>
+			<ChevronRightIcon class={chevron} aria-hidden="true" />
 		</button>
 		<button type="button" onclick={() => open('attendance')} class={option}>
-			<span class="text-lg font-semibold">{m.attendance_heading()}</span>
-			{#if me}
-				<span class="text-gray-600">{m.attendance_events({ count: me.events.length })}</span>
-			{/if}
+			<CalendarCheckIcon class={optionIcon} aria-hidden="true" />
+			<span class="flex flex-1 flex-col gap-1">
+				<span class="text-lg font-semibold">{m.attendance_heading()}</span>
+				{#if latest}
+					<span class="text-gray-600">{m.attendance_card_text({ count: me!.events.length })}</span>
+					<span class="text-sm text-gray-500">
+						{m.attendance_latest({ title: latest.title, date: day(latest.startsAt) })}
+						<br />
+						{m.attendance_in({ time: time(latest.scans[0].scannedAt) })} ·
+						{#if latest.scans.length >= 2}
+							{m.attendance_out({ time: time(latest.scans.at(-1)!.scannedAt) })}
+						{:else}
+							<span class="text-amber-700">{m.attendance_out_missing()}</span>
+						{/if}
+					</span>
+				{:else if me}
+					<span class="text-gray-600">{m.attendance_card_none()}</span>
+				{/if}
+			</span>
+			<ChevronRightIcon class={chevron} aria-hidden="true" />
 		</button>
 
 		{#if link === 'linked'}
@@ -259,7 +287,10 @@
 			</p>
 		{:else if link}
 			<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
-				<h2 class="text-lg font-semibold">{m.enroll_link_heading()}</h2>
+				<h2 class="flex items-center gap-3 text-lg font-semibold">
+					<SmartphoneIcon class={optionIcon} aria-hidden="true" />
+					{m.enroll_link_heading()}
+				</h2>
 				<p class="text-gray-600">{m.enroll_link_text({ address: home })}</p>
 				<p class="text-gray-600">{m.enroll_link_browser()}</p>
 				{#if link === 'embedded'}
