@@ -180,6 +180,8 @@
 
 	const option =
 		'flex w-full flex-col items-start gap-1 rounded-lg border border-gray-200 p-4 text-left transition hover:bg-gray-50';
+	const primary =
+		'w-full rounded-md bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700 disabled:opacity-50';
 	const secondary =
 		'w-full rounded-md border border-gray-300 px-4 py-2 transition hover:bg-gray-50 disabled:opacity-50';
 
@@ -245,32 +247,39 @@
 			{/if}
 		</button>
 
-		<section class="flex flex-col gap-2 text-sm text-gray-600">
-			{#if link === 'embedded'}
-				<p>{m.enroll_embedded_link()}</p>
-				<button
-					type="button"
-					onclick={() =>
-						window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
-					class={secondary}
-				>
-					{m.enroll_continue_new_tab()}
-				</button>
-			{:else if link === 'linking'}
-				<p>{m.enroll_linking()}</p>
-			{:else if link === 'linked'}
-				<p>✓ {m.enroll_linked()}</p>
-			{:else if link === 'none'}
-				<p>{m.home_not_linked_heading()}</p>
-				<button type="button" onclick={setUp} class={secondary}>{m.enroll_link()}</button>
-			{:else if link === 'elsewhere'}
-				<p>{m.enroll_linked_elsewhere()}</p>
-				<button type="button" onclick={setUp} class={secondary}>
-					{m.enroll_link_here()}
-				</button>
-				<p class="text-gray-500">{m.enroll_link_here_note()}</p>
-			{/if}
-		</section>
+		{#if link === 'linked'}
+			<p class="text-sm text-gray-600">✓ {m.enroll_linked()}</p>
+		{:else if link}
+			<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
+				<h2 class="text-lg font-semibold">{m.enroll_link_heading()}</h2>
+				<p class="text-gray-600">{m.enroll_link_text()}</p>
+				{#if link === 'embedded'}
+					<p class="text-gray-600">{m.enroll_embedded_link()}</p>
+					<button
+						type="button"
+						onclick={() =>
+							window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
+						class={primary}
+					>
+						{m.enroll_continue_new_tab()}
+					</button>
+				{:else}
+					{#if link === 'elsewhere'}
+						<p class="text-gray-600">{m.enroll_linked_elsewhere()}</p>
+					{/if}
+					<button type="button" onclick={setUp} disabled={link === 'linking'} class={primary}>
+						{link === 'linking'
+							? m.enroll_linking()
+							: link === 'elsewhere'
+								? m.enroll_link_here()
+								: m.enroll_link()}
+					</button>
+					{#if link === 'elsewhere'}
+						<p class="text-sm text-gray-500">{m.enroll_link_here_note()}</p>
+					{/if}
+				{/if}
+			</section>
+		{/if}
 	{/if}
 
 	<form method="post" action="?/me" hidden bind:this={meForm} use:enhance={afterMe}>

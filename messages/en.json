@@ -296,9 +296,11 @@
 	"enroll_linking": "Linking this browser…",
 	"enroll_linked": "This browser is linked: at the event, scanning the attendance QR code with your camera is enough, and you can see your attendance here without Moodle.",
 	"enroll_linked_elsewhere": "Another browser or phone is linked to you, or this browser's data was cleared.",
-	"enroll_link": "Link this browser",
-	"enroll_link_here": "Link this browser instead",
+	"enroll_link_heading": "Link this phone",
+	"enroll_link_text": "Then your camera is all it takes to scan at the event, and you can see your attendance here without Moodle. Use the phone you'll bring, in the browser that opens when you scan a QR code (usually Safari on an iPhone, Chrome on Android).",
+	"enroll_link": "Link this phone",
+	"enroll_link_here": "Link this phone instead",
 	"enroll_link_here_note": "The other one stops working then.",
-	"enroll_embedded_link": "To link this phone, so your camera is all it takes to scan, continue in a tab of its own.",
+	"enroll_embedded_link": "Moodle opened this inside its own page, where your browser won't keep the link. Continue in a tab of its own to link it.",
 	"enroll_page_expired": "This page has expired. Open the attendance activity in Moodle again."
 }

@@ -299,9 +299,11 @@
 	"enroll_linking": "Dieser Browser wird verknüpft…",
 	"enroll_linked": "Dieser Browser ist verknüpft: Bei der Veranstaltung genügt es, den Anwesenheits-QR-Code mit der Kamera zu scannen, und deine Anwesenheit siehst du hier auch ohne Moodle.",
 	"enroll_linked_elsewhere": "Ein anderer Browser oder ein anderes Handy ist mit dir verknüpft, oder die Daten dieses Browsers wurden gelöscht.",
-	"enroll_link": "Diesen Browser verknüpfen",
-	"enroll_link_here": "Stattdessen diesen Browser verknüpfen",
+	"enroll_link_heading": "Dieses Handy verknüpfen",
+	"enroll_link_text": "Dann genügt bei der Veranstaltung deine Kamera zum Scannen, und deine Anwesenheit siehst du hier auch ohne Moodle. Nimm das Handy, das du mitbringst, und den Browser, der sich öffnet, wenn du einen QR-Code scannst (meist Safari auf dem iPhone, Chrome auf Android).",
+	"enroll_link": "Dieses Handy verknüpfen",
+	"enroll_link_here": "Stattdessen dieses Handy verknüpfen",
 	"enroll_link_here_note": "Der andere funktioniert dann nicht mehr.",
-	"enroll_embedded_link": "Um dieses Handy zu verknüpfen, damit zum Scannen deine Kamera genügt, mach in einem eigenen Tab weiter.",
+	"enroll_embedded_link": "Moodle hat diese Seite innerhalb seiner eigenen geöffnet, wo dein Browser die Verknüpfung nicht behält. Mach in einem eigenen Tab weiter, um sie einzurichten.",
 	"enroll_page_expired": "Diese Seite ist abgelaufen. Öffne die Anwesenheits-Aktivität in Moodle erneut."
 }
