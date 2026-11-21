@@ -300,7 +300,7 @@
 	"attendance_help_rule": "Dein erster Scan einer Veranstaltung zählt als Einscannen, dein letzter als Ausscannen. Scans dazwischen zählen für keines von beiden.",
 	"attendance_help_title": "Ein- und Ausscannen",
 	"enroll_scan_option": "Ein- oder ausscannen",
-	"enroll_scan_option_text": "Den Anwesenheits-QR-Code mit dieser Seite scannen",
+	"enroll_scan_option_text": "Direkt hier im Browser scannen",
 	"enroll_back": "Zurück",
 	"enroll_linking": "Wird eingerichtet …",
 	"enroll_linked": "Dieser Browser ist eingerichtet: Bei der Veranstaltung genügt deine Kamera zum Scannen.",
