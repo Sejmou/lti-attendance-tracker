@@ -307,7 +307,8 @@ The key lives in one browser on one phone. The attendee has to open Moodle again
   site the user hasn't visited in seven days. Setting up more than a week before the event
   may not survive on an iPhone. The setup page asks for persistent storage, but that does
   not switch this rule off. Ask attendees to set up in the last few days, or plan for them
-  redoing it.
+  redoing it. Opening their attendance on `/` and tapping an event there counts as
+  using the site, which restarts the seven days.
 
 The scan page says so when it finds no key, and points to scanning from Moodle
 instead. Redoing the setup takes a minute.
@@ -333,6 +334,22 @@ A laptop set up this way works, but nobody scans a QR code with one.
 The key needs a **secure context**: `crypto.subtle` doesn't exist outside HTTPS, or
 `localhost` exactly, so phones need `ORIGIN` on HTTPS. Setup can't be tried off
 `localhost` without `tailscale serve` or a real certificate.
+
+### Attendees' own attendance
+
+**My attendance** lists every event the attendee has scans for, newest first, with their
+scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)) and a note where
+there is no scan-out. Opening an event shows all of its scans: the time, how it was made
+(linked phone, Moodle page, the code screen they showed, typed in, or typed in and linked by
+an organizer) and whether it counted as scan-in, scan-out or neither. Nothing kept against
+abuse (addresses, browsers, flags) is shown. Details typed in under their address but never
+linked to their account by an organizer aren't theirs here: anyone can type anyone's address.
+
+It is on `/` in a linked browser, for attendees who can't always get into Moodle. The page
+signs a challenge with the device key, `view:<challenge>`, the same way a scan is signed. The
+challenge is an HMAC token good for five minutes, so a signature can't be kept and used later,
+and nothing is stored: no session, nothing to sign out of. A browser without a key, or with
+one replaced since, is told to open the Moodle activity once.
 
 ### Why device keys, not passkeys
 

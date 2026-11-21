@@ -5,11 +5,12 @@
  * store a CryptoKey as is.
  *
  * What gets signed is always prefixed with what it is for, so a signature made
- * for one can never pass for the other.
+ * for one can never pass for another.
  */
 
 export const enrollMessage = (token: string) => `enroll:${token}`;
 export const scanMessage = (codeScanId: string) => `scan:${codeScanId}`;
+export const viewMessage = (challenge: string) => `view:${challenge}`;
 
 const ALGORITHM = { name: 'ECDSA', namedCurve: 'P-256' } as const;
 const DB_NAME = 'attendance';

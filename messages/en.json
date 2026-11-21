@@ -8,8 +8,6 @@
 	"show_code": "Show the attendance QR code",
 	"scan_log": "Scan log",
 
-	"home_intro": "Open the attendance activity in your Moodle course on your phone and tap \"{button}\". At the event, scan the attendance QR code with that phone.",
-
 	"admin_title": "Organizer",
 	"admin_breadcrumb_label": "Breadcrumb",
 	"admin_breadcrumb_code": "QR code",
@@ -276,5 +274,34 @@
 	"attendees_delete_title": "Delete attendee?",
 	"attendees_delete_text": "{name} ({email}) will be deleted, along with their linked phone. Their scans stay, without a name, for the events' statistics. This can't be undone; if they open the activity in Moodle again, they are created anew.",
 	"attendees_deleted": "Deleted. Their scans are anonymous now.",
-	"attendees_missing": "This person no longer exists."
+	"attendees_missing": "This person no longer exists.",
+
+	"home_not_linked_heading": "This browser isn't linked",
+	"home_not_linked_text": "To see your attendance here, open the attendance activity in your Moodle course once, in this browser. That links it.",
+	"home_expired": "This page has expired. Reload it.",
+	"attendance_heading": "My attendance",
+	"attendance_none": "No scans yet. Once you scan the attendance QR code at an event, it shows up here.",
+	"attendance_events": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} event",
+				"countPlural=*": "{count} events"
+			}
+		}
+	],
+	"attendance_no_scan_out": "{count} without scan-out",
+	"attendance_in": "In {time}",
+	"attendance_out": "Out {time}",
+	"attendance_out_missing": "No scan-out",
+	"attendance_role_in": "Scan-in",
+	"attendance_role_out": "Scan-out",
+	"attendance_role_none": "Not counted",
+	"attendance_method_device": "Linked phone",
+	"attendance_method_lti": "Moodle page",
+	"attendance_method_host": "Your QR code screen",
+	"attendance_method_manual": "Typed in",
+	"attendance_method_manual_linked": "Typed in, linked by an organizer",
+	"attendance_note": "Your first scan at an event counts as your scan-in, your last as your scan-out."
 }

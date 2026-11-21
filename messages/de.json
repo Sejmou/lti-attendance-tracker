@@ -8,8 +8,6 @@
 	"show_code": "Anwesenheits-QR-Code anzeigen",
 	"scan_log": "Scan-Protokoll",
 
-	"home_intro": "Öffne auf deinem Handy die Anwesenheits-Aktivität in deinem Moodle-Kurs und tippe auf „{button}“. Scanne bei der Veranstaltung mit diesem Handy den Anwesenheits-QR-Code.",
-
 	"admin_title": "Organisation",
 	"admin_breadcrumb_label": "Navigationspfad",
 	"admin_breadcrumb_code": "QR-Code",
@@ -279,5 +277,34 @@
 	"attendees_delete_title": "Teilnehmer:in löschen?",
 	"attendees_delete_text": "{name} ({email}) wird gelöscht, samt verknüpftem Handy. Die Scans bleiben ohne Namen für die Statistik der Veranstaltungen erhalten. Das lässt sich nicht rückgängig machen; öffnet die Person die Aktivität in Moodle wieder, wird sie neu angelegt.",
 	"attendees_deleted": "Gelöscht. Die Scans sind jetzt anonym.",
-	"attendees_missing": "Diese Person gibt es nicht mehr."
+	"attendees_missing": "Diese Person gibt es nicht mehr.",
+
+	"home_not_linked_heading": "Dieser Browser ist nicht verknüpft",
+	"home_not_linked_text": "Um deine Anwesenheit hier zu sehen, öffne einmal die Anwesenheits-Aktivität in deinem Moodle-Kurs, in diesem Browser. Das verknüpft ihn.",
+	"home_expired": "Diese Seite ist abgelaufen. Lade sie neu.",
+	"attendance_heading": "Meine Anwesenheit",
+	"attendance_none": "Noch keine Scans. Sobald du bei einer Veranstaltung den Anwesenheits-QR-Code scannst, erscheint sie hier.",
+	"attendance_events": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Veranstaltung",
+				"countPlural=*": "{count} Veranstaltungen"
+			}
+		}
+	],
+	"attendance_no_scan_out": "{count} ohne Ausscannen",
+	"attendance_in": "Ein {time}",
+	"attendance_out": "Aus {time}",
+	"attendance_out_missing": "Nicht ausgescannt",
+	"attendance_role_in": "Eingescannt",
+	"attendance_role_out": "Ausgescannt",
+	"attendance_role_none": "Zählt nicht",
+	"attendance_method_device": "Verknüpftes Handy",
+	"attendance_method_lti": "Moodle-Seite",
+	"attendance_method_host": "Dein QR-Code-Bildschirm",
+	"attendance_method_manual": "Eingetippt",
+	"attendance_method_manual_linked": "Eingetippt, von der Organisation verknüpft",
+	"attendance_note": "Dein erster Scan einer Veranstaltung zählt als Einscannen, dein letzter als Ausscannen."
 }
