@@ -488,7 +488,8 @@ scan-out. Both are worked out from the rows when they are shown, never stored
 
 Each event's page (`/admin/events/<id>`) lists its attendees with their scan-in, their
 scan-out if they have one, their share of the event (the same figure attendees see, see
-[Attendees' own attendance](#attendees-own-attendance)) and how many scans that took, above the event's full scan log.
+[Attendees' own attendance](#attendees-own-attendance)) and how many scans that took; the
+count opens that person's scans in a dialog, with which one counted as what, above the event's full scan log.
 The phone says which way its scan counted: **eingescannt** after the first, **ausgescannt**
 after any later one — with a note that scanning again later would make the newer scan the
 scan-out. The code screen labels each name in its live list the same way.
