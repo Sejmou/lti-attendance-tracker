@@ -294,7 +294,7 @@
 	"attendance_method_manual_linked": "Typed in, assigned by an organizer",
 	"attendance_help_details": "Tap an event to see all its scans.",
 	"attendance_help_missing": "If you scanned only once, you're scanned in but not out. Scan the code again when you leave.",
-	"attendance_help_share": "The percentage is how much of the event lay between your scan-in and scan-out. Coming early or leaving late doesn't add to it, and stepping out in between isn't taken off. All-day events have none.",
+	"attendance_help_share": "The percentage is how much of the event lay between your scan-in and scan-out. Coming early or leaving late doesn't add to it. All-day events have none.",
 	"attendance_help_rule": "Your first scan at an event counts as your scan-in, your last as your scan-out. Scans in between count for neither.",
 	"attendance_help_title": "Scanning in and out",
 	"enroll_scan_option": "Scan in or out",
