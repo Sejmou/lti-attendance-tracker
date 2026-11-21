@@ -105,7 +105,7 @@
 			accessorFn: (row) => row.startsAt,
 			sortingFn: 'datetime',
 			header: m.events_col_when(),
-			cell: ({ row }) => eventWhen(row.original),
+			cell: ({ row }) => eventWhen(row.original, { allDayNote: false }),
 			meta: { class: 'whitespace-nowrap' }
 		},
 		{

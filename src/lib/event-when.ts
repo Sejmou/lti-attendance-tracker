@@ -7,8 +7,15 @@ export const day = (at: Date) =>
 export const time = (at: Date) =>
 	formatDateTime(at, getLocale(), { hour: '2-digit', minute: '2-digit' });
 
-/** When an event runs, naming its day only once if it starts and ends on it. */
-export function eventWhen(event: { startsAt: Date; endsAt: Date; allDay: boolean }) {
+/**
+ * When an event runs, naming its day only once if it starts and ends on it.
+ * `allDayNote: false` leaves out "all day" where times all around already say
+ * it, as in the events list, whose widest date sets the column's width.
+ */
+export function eventWhen(
+	event: { startsAt: Date; endsAt: Date; allDay: boolean },
+	{ allDayNote = true } = {}
+) {
 	if (event.allDay) {
 		// The end of a whole-day event is the midnight after it.
 		const last = new Date(event.endsAt.getTime() - 1);
@@ -16,7 +23,7 @@ export function eventWhen(event: { startsAt: Date; endsAt: Date; allDay: boolean
 			wallClock(last).date === wallClock(event.startsAt).date
 				? day(event.startsAt)
 				: `${day(event.startsAt)} – ${day(last)}`;
-		return `${days} · ${m.events_all_day()}`;
+		return allDayNote ? `${days} · ${m.events_all_day()}` : days;
 	}
 	return wallClock(event.startsAt).date === wallClock(event.endsAt).date
 		? `${day(event.startsAt)}, ${time(event.startsAt)}–${time(event.endsAt)}`
