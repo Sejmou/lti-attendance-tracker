@@ -17,36 +17,16 @@ fi
 
 pnpm --silent db:push --force
 
-# Hands seeded attendees' histories to the Moodle students, once Moodle has
-# said who they are. Its first start installs Moodle, hence the wait.
+# Moodle's setup wrote these before compose started the app (its healthcheck).
+# Seeded: hand the made-up attendees' histories to the Moodle students.
 if [ -n "$seeded" ]; then
-	users=/testenv-shared/moodle-users.json
-	for _ in $(seq 1 150); do
-		[ -e "$users" ] && break
-		sleep 2
-	done
-	if [ -e "$users" ]; then
-		node scripts/run.js scripts/testenv-hand-over.ts "$users"
-	else
-		echo "testenv: Moodle's users never showed up in $users; the students start without history"
-	fi
+	node scripts/run.js scripts/testenv-hand-over.ts /testenv-shared/moodle-users.json
 fi
 
-# Where attendees open the attendee tool, as Moodle wrote it, unless .env says.
-# Read once, here, so on a first start wait for Moodle to install and write it;
-# later starts find it from the one before.
-activity=/testenv-shared/attendee-activity-url
+# Where attendees open the attendee tool, unless .env says.
 if [ -z "${PUBLIC_ATTENDEE_ACTIVITY_URL:-}" ]; then
-	for _ in $(seq 1 150); do
-		[ -e "$activity" ] && break
-		sleep 2
-	done
-	if [ -e "$activity" ]; then
-		PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat "$activity")
-		export PUBLIC_ATTENDEE_ACTIVITY_URL
-	else
-		echo "testenv: Moodle never wrote $activity; no button to the attendee activity"
-	fi
+	PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat /testenv-shared/attendee-activity-url)
+	export PUBLIC_ATTENDEE_ACTIVITY_URL
 fi
 
 # Moodle's keyset is fetched over the compose network (`--internal-url`): the

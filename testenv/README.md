@@ -116,8 +116,10 @@ attendee pages have something to show (`scripts/testenv-hand-over.ts`):
 
 A launch's `sub` is the Moodle user ID, which `testenv_setup.php` writes to a volume
 the app reads (`shared`), along with the attendee activity's address, which becomes the app's
-`PUBLIC_ATTENDEE_ACTIVITY_URL` unless `.env` sets one. On the first start the app waits for Moodle to install and write
-it. It only happens when the app seeds a new database. Leave `CALENDAR_ICS_URL`
+`PUBLIC_ATTENDEE_ACTIVITY_URL` unless `.env` sets one. Compose only starts the app once
+Moodle's healthcheck finds both written and Apache answering, which on a first start means
+waiting a minute or so for Moodle to install. The hand-over only happens when the app seeds a
+new database. Leave `CALENDAR_ICS_URL`
 unset to keep it all made up: otherwise the calendar's events are synced in alongside the
 seeded ones, which are all created on the Events page.
 

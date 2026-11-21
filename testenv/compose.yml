@@ -52,6 +52,16 @@ services:
           - ${MOODLE_HOST}
     depends_on:
       - db
+    # Ready once init.sh has set Moodle up, which writes what app-start.sh
+    # reads, and Apache answers. The first start installs Moodle: minutes.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -s /testenv-shared/moodle-users.json && test -s /testenv-shared/attendee-activity-url && curl -fsS -o /dev/null http://localhost/
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10m
     restart: unless-stopped
 
   app:
@@ -63,6 +73,10 @@ services:
       args:
         BASE_PATH: ${BASE_PATH:-}
     command: ['sh', 'testenv/app-start.sh']
+    # app-start.sh reads what Moodle's setup writes to the shared volume.
+    depends_on:
+      moodle:
+        condition: service_healthy
     environment:
       <<: *shared
       MOODLE_HOST: ${MOODLE_HOST}
