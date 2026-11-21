@@ -33,10 +33,20 @@ if [ -n "$seeded" ]; then
 fi
 
 # Where attendees open the attendee tool, as Moodle wrote it, unless .env says.
+# Read once, here, so on a first start wait for Moodle to install and write it;
+# later starts find it from the one before.
 activity=/testenv-shared/attendee-activity-url
-if [ -z "${PUBLIC_ATTENDEE_ACTIVITY_URL:-}" ] && [ -e "$activity" ]; then
-	PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat "$activity")
-	export PUBLIC_ATTENDEE_ACTIVITY_URL
+if [ -z "${PUBLIC_ATTENDEE_ACTIVITY_URL:-}" ]; then
+	for _ in $(seq 1 150); do
+		[ -e "$activity" ] && break
+		sleep 2
+	done
+	if [ -e "$activity" ]; then
+		PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat "$activity")
+		export PUBLIC_ATTENDEE_ACTIVITY_URL
+	else
+		echo "testenv: Moodle never wrote $activity; no button to the attendee activity"
+	fi
 fi
 
 # Moodle's keyset is fetched over the compose network (`--internal-url`): the
