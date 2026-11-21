@@ -131,7 +131,7 @@
 		{
 			accessorKey: 'unconfirmed',
 			header: () => renderSnippet(unconfirmedHead),
-			cell: ({ row }) => renderSnippet(unconfirmedCell, row.original.unconfirmed),
+			cell: ({ row }) => renderSnippet(unconfirmedCell, row.original),
 			meta: { class: 'text-right tabular-nums' }
 		},
 		{
@@ -176,8 +176,10 @@
 	<span title={m.unconfirmed_hint()}>{m.events_col_unconfirmed()}</span>
 {/snippet}
 
-{#snippet unconfirmedCell(count: number)}
-	<span class={[count === 0 && 'text-muted-foreground']}>{count}</span>
+<!-- Takes the row, like every cell: FlexRender spreads what it's given into a
+     new object, so a bare number would arrive as `{ attach }`. -->
+{#snippet unconfirmedCell(row: Row)}
+	<span class={[row.unconfirmed === 0 && 'text-muted-foreground']}>{row.unconfirmed}</span>
 {/snippet}
 
 {#snippet actionsHead()}
