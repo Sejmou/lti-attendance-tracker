@@ -326,7 +326,8 @@ instead. Redoing the setup takes a minute.
 
 The key has to be in the browser that opens when the phone's camera reads a QR code —
 usually Safari on an iPhone and Chrome on Android. That is often not the browser someone
-uses Moodle in, which is why [scanning from the launched page](#scanning-from-the-launched-page)
+uses Moodle in (the setup card says which browser it is in, from the user agent, so this
+shows), which is why [scanning from the launched page](#scanning-from-the-launched-page)
 exists: it needs no particular browser. For linking, two things get in the way:
 
 - **Moodle embedding the tool.** Opened in a frame on Moodle's page, the tool's storage is

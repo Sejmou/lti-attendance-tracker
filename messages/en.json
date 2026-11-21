@@ -312,6 +312,7 @@
 	"enroll_link_heading": "Use it without Moodle",
 	"enroll_link_text": "Set up this browser once. After that, your camera is all it takes to scan at the event, and you can see your attendance at {address}, both without Moodle.",
 	"enroll_link_browser": "It only works in this browser. Use the one that opens when you scan a QR code with your camera, usually Safari on an iPhone, Chrome on Android.",
+	"enroll_current_browser": "You're in {browser} right now.",
 	"enroll_link": "Set up this browser",
 	"enroll_link_here": "Set up this browser instead",
 	"enroll_link_here_note": "The other one stops working then.",

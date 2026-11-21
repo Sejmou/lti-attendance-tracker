@@ -315,6 +315,7 @@
 	"enroll_link_heading": "Ohne Moodle nutzen",
 	"enroll_link_text": "Richte diesen Browser einmal ein. Danach genügt bei der Veranstaltung deine Kamera zum Scannen, und deine Anwesenheit siehst du unter {address} – beides ohne Moodle.",
 	"enroll_link_browser": "Das gilt nur für diesen Browser. Nimm den, der sich öffnet, wenn du mit der Kamera einen QR-Code scannst – meist Safari auf dem iPhone, Chrome auf Android.",
+	"enroll_current_browser": "Du bist gerade in {browser}.",
 	"enroll_link": "Diesen Browser einrichten",
 	"enroll_link_here": "Stattdessen diesen Browser einrichten",
 	"enroll_link_here_note": "Der andere funktioniert dann nicht mehr.",

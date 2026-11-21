@@ -15,6 +15,7 @@
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import ScanQrCodeIcon from '@lucide/svelte/icons/scan-qr-code';
 	import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
+	import { browserName } from '$lib/browser-name';
 	import { day, time } from '$lib/event-when';
 	import MyAttendance from '$lib/components/my-attendance.svelte';
 	import QrScanner from '$lib/components/qr-scanner.svelte';
@@ -68,8 +69,11 @@
 
 	// Where a set-up browser sees its attendance without Moodle, as people would type it.
 	let home = $state('');
+	// So iPhone users see when Moodle opened in another browser than the camera uses.
+	let browser = $state<string | null>(null);
 
 	onMount(async () => {
+		browser = browserName(navigator.userAgent);
 		home = new URL(resolve('/'), location.href).href.replace(/^https?:\/\//, '').replace(/\/$/, '');
 		// The launch hands the token over in the fragment, which no server sees.
 		// Out of the address bar straight away, so it isn't bookmarked or shared.
@@ -292,7 +296,10 @@
 					{m.enroll_link_heading()}
 				</h2>
 				<p class="text-gray-600">{m.enroll_link_text({ address: home })}</p>
-				<p class="text-gray-600">{m.enroll_link_browser()}</p>
+				<p class="text-gray-600">
+					{m.enroll_link_browser()}
+					{#if browser}{m.enroll_current_browser({ browser })}{/if}
+				</p>
 				{#if link === 'embedded'}
 					<p class="text-gray-600">{m.enroll_embedded_link()}</p>
 					<button
