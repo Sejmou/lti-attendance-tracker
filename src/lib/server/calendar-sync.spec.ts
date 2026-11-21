@@ -228,7 +228,7 @@ END:VEVENT`;
 test('only the window around now is synced', () => {
 	syncCalendar(feed(LECTURE, SERIES, LONG_AGO), new Date('2026-10-10T12:00:00Z'));
 
-	// 30 days back is 10 September: the 7th is out, the 14th in, and 2020 long gone.
+	// 30 days back (CALENDAR_SYNC_PAST_DAYS in .env.test) is 10 September: the 7th is out, the 14th in, and 2020 long gone.
 	expect(rows().map((row) => row.calendarKey)).not.toContain('long-ago@sync.test');
 	expect(rows()[0].startsAt).toEqual(new Date('2026-09-14T08:00:00Z'));
 });

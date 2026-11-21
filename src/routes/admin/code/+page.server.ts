@@ -11,7 +11,7 @@ const DAY = 24 * 60 * 60_000;
  */
 export const load: PageServerLoad = async () => {
 	const now = new Date();
-	const events = listEvents(now).filter(
+	const events = listEvents().filter(
 		(e) =>
 			!e.removedAt &&
 			e.endsAt.getTime() > now.getTime() - DAY &&

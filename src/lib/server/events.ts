@@ -1,11 +1,9 @@
-import { count, eq, gte } from 'drizzle-orm';
+import { count, countDistinct, eq, sql } from 'drizzle-orm';
+import { scanner, verified } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { event, scan } from '$lib/server/db/schema';
 import type { EventFieldErrors, EventFields } from '$lib/event-form';
 import { fromWallClock } from '$lib/time';
-
-/** How far back the events page lists events. */
-const LISTED_PAST_MS = 30 * 24 * 60 * 60_000;
 
 /**
  * The form's fields, and either the row to write or what is wrong with them.
@@ -45,15 +43,24 @@ export function parseEventForm(form: FormData) {
 }
 
 /**
- * Events from 30 days ago on, soonest first, each with how many scans it has:
- * one that has any can't be deleted.
+ * Every event, soonest first, each with how many scans it has
+ * (one that has any can't be deleted), how many people attended it with a
+ * verified scan, and how many only typed in details nobody has linked yet:
+ * the same split as its page.
  *
- * ponytail: everything since then on one page. A calendar with hundreds of
- * events ahead would want paging or a date filter.
+ * ponytail: all of them, ever, on one page, filtered in the browser. Fine for
+ * a few hundred; past that, page it or filter by date in the query.
  */
-export function listEvents(now = new Date()) {
+export function listEvents() {
 	const scans = db
-		.select({ eventId: scan.eventId, scans: count().as('scans') })
+		.select({
+			eventId: scan.eventId,
+			scans: count().as('scans'),
+			people: countDistinct(scanner).as('people'),
+			attendees: sql<number>`count(distinct case when ${verified} then ${scanner} end)`.as(
+				'attendees'
+			)
+		})
 		.from(scan)
 		.groupBy(scan.eventId)
 		.as('scans');
@@ -68,14 +75,20 @@ export function listEvents(now = new Date()) {
 			endsAt: event.endsAt,
 			allDay: event.allDay,
 			removedAt: event.removedAt,
-			scans: scans.scans
+			scans: scans.scans,
+			people: scans.people,
+			attendees: scans.attendees
 		})
 		.from(event)
 		.leftJoin(scans, eq(scans.eventId, event.id))
-		.where(gte(event.endsAt, new Date(now.getTime() - LISTED_PAST_MS)))
 		.orderBy(event.startsAt)
 		.all()
-		.map((row) => ({ ...row, scans: row.scans ?? 0 }));
+		.map(({ people, ...row }) => ({
+			...row,
+			scans: row.scans ?? 0,
+			attendees: row.attendees ?? 0,
+			unconfirmed: (people ?? 0) - (row.attendees ?? 0)
+		}));
 }
 
 type Timed = { startsAt: Date; endsAt: Date; removedAt: Date | null };

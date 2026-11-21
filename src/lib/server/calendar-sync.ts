@@ -11,8 +11,18 @@ import { fromWallClock } from '$lib/time';
  * are left as they are: an old event's scans stay attached to the row they
  * were filed under, whatever the calendar says now.
  */
-const PAST_MS = 30 * 24 * 60 * 60_000;
-const FUTURE_MS = 180 * 24 * 60 * 60_000;
+const DAY_MS = 24 * 60 * 60_000;
+const FUTURE_MS = 180 * DAY_MS;
+
+/** How far back, from `CALENDAR_SYNC_PAST_DAYS`: 30 days if it isn't set. */
+function pastMs() {
+	const raw = env.CALENDAR_SYNC_PAST_DAYS;
+	const days = raw ? Number(raw) : 30;
+	if (!Number.isInteger(days) || days < 0) {
+		throw new Error(`CALENDAR_SYNC_PAST_DAYS must be a whole number of days, not "${raw}"`);
+	}
+	return days * DAY_MS;
+}
 
 /** Stops an open-ended rule with a tiny interval from spinning forever. */
 const MAX_OCCURRENCES = 50_000;
@@ -35,7 +45,7 @@ export type SyncResult = { added: number; updated: number; deleted: number; kept
  * gone from the feed is deleted, or kept with `removedAt` set if it has scans.
  */
 export function syncCalendar(ics: string, now = new Date()): SyncResult {
-	const from = new Date(now.getTime() - PAST_MS);
+	const from = new Date(now.getTime() - pastMs());
 	const to = new Date(now.getTime() + FUTURE_MS);
 	const { occurrences, seen } = parseFeed(ics, from, to);
 
@@ -227,6 +237,12 @@ let running: Promise<SyncResult> | null = null;
 
 /** Whether `CALENDAR_ICS_URL` is set. Without it, events are only made by hand. */
 export const calendarConfigured = () => Boolean(env.CALENDAR_ICS_URL);
+
+/** Where organizers edit the calendar (`CALENDAR_EDIT_URL`), if it's a web address. */
+export function calendarEditUrl() {
+	const url = URL.parse(env.CALENDAR_EDIT_URL ?? '');
+	return url && (url.protocol === 'https:' || url.protocol === 'http:') ? url.href : null;
+}
 
 export function lastCalendarSync() {
 	return lastSync;

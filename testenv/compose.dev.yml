@@ -13,7 +13,7 @@ services:
     volumes:
       # Only what changes while developing. node_modules stays the image's
       # (better-sqlite3 is built for its Node); a change to package.json,
-      # vite.config.ts and the like needs `up -d --build app`.
+      # vite.config.ts and the like needs `up -d --build --force-recreate app`.
       - ../src:/app/src
       - ../static:/app/static
       - ../messages:/app/messages

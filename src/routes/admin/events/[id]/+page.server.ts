@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { desc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { attendance, scanner } from '$lib/server/attendance';
+import { calendarConfigured, calendarEditUrl } from '$lib/server/calendar-sync';
 import { db } from '$lib/server/db';
 import { event as eventTable, scan, user } from '$lib/server/db/schema';
 import { link, linkSuggestions, unlink } from '$lib/server/manual-entry';
@@ -87,7 +88,8 @@ export const load: PageServerLoad = async ({ params }) => {
 				email
 			}))
 		})),
-		log
+		log,
+		calendar: calendarConfigured() ? { editUrl: calendarEditUrl() } : null
 	};
 };
 

@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { like } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
 import { attendance, direction } from './attendance';
+import { listEvents } from './events';
+import { link } from './manual-entry';
 import { db } from './db';
 import { event, scan, user } from './db/schema';
 
@@ -18,6 +20,7 @@ beforeAll(() => {
 	db.delete(user)
 		.where(like(user.ltiSubject, `["${PLATFORM}"%`))
 		.run();
+	db.delete(user).where(like(user.email, '%@typed.attendance.test')).run();
 	db.delete(event).where(like(event.title, 'attendance.spec %')).run();
 });
 
@@ -98,4 +101,50 @@ test("another event's scans are its own", () => {
 	expect(direction(ada.id, evening.id)).toBe('in');
 	scanAt(ada.id, evening.id, '19:00');
 	expect(direction(ada.id, evening.id)).toBe('out');
+});
+
+test('the events list counts people with a verified scan, and apart from them who only typed in details', () => {
+	const talk = someEvent('counted');
+	const ada = someone('Ada');
+	const grace = someone('Grace');
+	scanAt(ada.id, talk.id, '16:02');
+	scanAt(ada.id, talk.id, '19:55');
+	scanAt(grace.id, talk.id, '16:10');
+	// Two typed in their details; an organizer has linked one of them to her account.
+	const typedIn = (firstName: string) => {
+		const email = `${firstName.toLowerCase()}.${crypto.randomUUID()}@typed.attendance.test`;
+		return db
+			.insert(user)
+			.values({
+				id: crypto.randomUUID(),
+				email,
+				firstName,
+				lastName: 'Test',
+				ltiSubject: JSON.stringify(['manual', email])
+			})
+			.returning()
+			.get();
+	};
+	const tom = typedIn('Tom');
+	const lin = typedIn('Lin');
+	const linsAccount = someone('Lin');
+	for (const person of [tom, lin]) {
+		db.insert(scan)
+			.values({
+				userId: person.id,
+				reportedAs: person.id,
+				eventId: talk.id,
+				method: 'manual',
+				codeScanId: crypto.randomUUID(),
+				scannedAt: at('16:30')
+			})
+			.run();
+	}
+	expect(link(talk.id, lin.id, linsAccount.id)).toBeTruthy();
+
+	const row = listEvents().find((listed) => listed.id === talk.id);
+	expect(row).toMatchObject({ scans: 5, attendees: 3, unconfirmed: 1 });
+	// Ada, Grace and Lin's account; Tom isn't.
+	const verified = attendance(talk.id).filter((person) => person.verified);
+	expect(verified.map((person) => person.firstName).sort()).toEqual(['Ada', 'Grace', 'Lin']);
 });

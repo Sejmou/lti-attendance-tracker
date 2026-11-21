@@ -120,8 +120,10 @@ podman compose -f testenv/compose.yml up -d --build
 
 - **Setup:** `moodle/testenv_setup.php` runs on every start of `moodle`. It
   updates what it finds (the tools' URLs follow `APP_HOST` and `BASE_PATH`), and
-  creates what's missing. Edit it and `up -d --build moodle`.
-- **The app:** `up -d --build app` after changing the code.
+  creates what's missing. Edit it and `up -d --build --force-recreate moodle`.
+- **The app:** `up -d --build --force-recreate app` after changing the code.
+  Without `--force-recreate`, podman-compose builds the new image but can leave
+  the old container running on the old one.
 - **Hostnames:** starting over is the reliable way (below). Both sides keep URLs
   in their databases.
 - **Start over:** `podman compose -f testenv/compose.yml down -v` deletes Moodle,
@@ -150,7 +152,7 @@ podman compose -f testenv/compose.yml -f testenv/compose.dev.yml logs -f app
   so the dev server only reads your checkout and never writes to it.
 - **Rebuild for everything else:** `package.json`, `vite.config.ts`, the
   `drizzle` config and the like come from the image, as does `node_modules`.
-  `up -d --build app` with both files after changing them. After a schema
+  `up -d --build --force-recreate app` with both files after changing them. After a schema
   change, restart `app` so `app-start.sh` pushes it.
 - **Client addresses:** the scan log gets the same address for every scan. Say
   a phone at `203.0.113.7` scans. Its request reaches the app through your

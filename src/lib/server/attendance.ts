@@ -11,6 +11,14 @@ import { MANUAL_SUBJECTS } from '$lib/server/manual-entry';
 export const scanner = sql<string>`coalesce(${scan.userId}, ${scan.anonymousId})`;
 
 /**
+ * Whether a scan says who scanned: anything but typed-in details, or typed-in
+ * details an organizer has since linked to an account (see link). A deleted
+ * attendee's typed-in scans can't show either any more, so they don't count.
+ * `is not`, as `reportedAs` is cleared when the typed-in person is deleted.
+ */
+export const verified = sql<boolean>`(${scan.method} <> 'manual' or (${scan.userId} is not null and ${scan.userId} is not ${scan.reportedAs}))`;
+
+/**
  * Who came to an event, and when they scanned in and out: an attendee's first
  * scan is their scan-in, their last one their scan-out — if there are two or
  * more. Nobody says which way a scan goes; the order does. Worked out here on
@@ -18,7 +26,8 @@ export const scanner = sql<string>`coalesce(${scan.userId}, ${scan.anonymousId})
  *
  * A deleted attendee's row is still there, with no name or email.
  *
- * `manualScans` counts the ones typed in rather than confirmed, and
+ * `manualScans` counts the ones typed in rather than confirmed, `verified`
+ * says whether any of the person's scans says who they are (see verified), and
  * `manualEntry` says the person is only someone typed in, not a platform
  * account (see user). `userId` is null for a deleted attendee.
  */
@@ -35,6 +44,7 @@ export function attendance(eventId: string) {
 			last: max(scan.scannedAt),
 			scans: count(),
 			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`,
+			verified: sql<boolean>`max(${verified})`.mapWith(Boolean),
 			manualEntry: sql<boolean>`coalesce(${user.ltiSubject} like ${MANUAL_SUBJECTS}, 0)`.mapWith(
 				Boolean
 			)

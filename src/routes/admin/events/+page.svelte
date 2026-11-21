@@ -1,18 +1,27 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+	import TrashIcon from '@lucide/svelte/icons/trash';
+	import type { ColumnDef, SortingState } from '@tanstack/table-core';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import * as Table from '$lib/components/ui/table';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	import DataTable from '$lib/components/data-table.svelte';
+	import { renderSnippet } from '$lib/components/ui/data-table';
 	import type { EventFields } from '$lib/event-form';
 	import { eventWhen } from '$lib/event-when';
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { formatDateTime, wallClock } from '$lib/time';
 	import CalendarSyncStatus from '$lib/components/calendar-sync-status.svelte';
+	import EventSourceHelp from '$lib/components/event-source-help.svelte';
+	import EventSourceIcon from '$lib/components/event-source-icon.svelte';
 	import EventDialog from './event-dialog.svelte';
 	import type { ActionData, PageServerData } from './$types';
 
@@ -63,8 +72,76 @@
 		editorOpen = true;
 	}
 
+	/** Why an event can't be deleted here, or null if it can. */
+	const undeletable = (row: Row) =>
+		row.source === 'calendar'
+			? m.events_delete_calendar()
+			: row.scans > 0
+				? m.events_delete_blocked()
+				: null;
+
+	// Running events count as upcoming: they're where organizers look.
+	type Period = 'upcoming' | 'past' | 'all';
+	let period = $state<Period>('upcoming');
+	let sorting = $state<SortingState>([{ id: 'when', desc: false }]);
+	const events = $derived(
+		period === 'all' ? data.events : data.events.filter((row) => (period === 'past') === past(row))
+	);
+
+	function choosePeriod(next: string) {
+		// The group lets the active item be clicked off; keep one chosen.
+		if (!next) return;
+		period = next as Period;
+		// Past events newest first, or the list starts a month ago.
+		sorting = [{ id: 'when', desc: period === 'past' }];
+	}
+
 	const ongoing = (row: Row) => row.startsAt <= data.now && data.now < row.endsAt;
 	const past = (row: Row) => row.endsAt <= data.now;
+
+	const columns: ColumnDef<Row>[] = [
+		{
+			id: 'when',
+			accessorFn: (row) => row.startsAt,
+			sortingFn: 'datetime',
+			header: m.events_col_when(),
+			cell: ({ row }) => eventWhen(row.original, { allDayNote: false }),
+			meta: { class: 'whitespace-nowrap' }
+		},
+		{
+			accessorKey: 'title',
+			sortingFn: 'text',
+			header: m.events_col_title(),
+			cell: ({ row }) => renderSnippet(titleCell, row.original),
+			meta: { class: 'whitespace-normal' }
+		},
+		{
+			id: 'location',
+			accessorFn: (row) => row.location ?? '',
+			sortingFn: 'text',
+			header: m.events_col_location(),
+			cell: ({ row }) => row.original.location ?? '—',
+			meta: { class: 'whitespace-normal' }
+		},
+		{
+			accessorKey: 'attendees',
+			header: m.events_col_attendees(),
+			meta: { class: 'text-right tabular-nums' }
+		},
+		{
+			accessorKey: 'unconfirmed',
+			header: () => renderSnippet(unconfirmedHead),
+			cell: ({ row }) => renderSnippet(unconfirmedCell, row.original),
+			meta: { class: 'text-right tabular-nums' }
+		},
+		{
+			id: 'actions',
+			enableSorting: false,
+			header: () => renderSnippet(actionsHead),
+			cell: ({ row }) => renderSnippet(actionsCell, row.original),
+			meta: { class: 'text-right whitespace-nowrap' }
+		}
+	];
 
 	const syncMessage = $derived.by(() => {
 		if (form && 'syncFailed' in form) return m.events_sync_failed();
@@ -75,9 +152,142 @@
 
 <svelte:head><title>{m.events_title()}</title></svelte:head>
 
+{#snippet titleCell(row: Row)}
+	<span class="inline-flex items-center gap-1.5">
+		<EventSourceIcon source={row.source} />
+		<a
+			href={resolve('/admin/events/[id]', { id: row.id })}
+			class="font-medium underline-offset-4 hover:underline">{row.title}</a
+		>
+	</span>
+	{#if ongoing(row) || row.removedAt}
+		<span class="mt-1 flex flex-wrap gap-1">
+			{#if ongoing(row)}<Badge>{m.events_ongoing()}</Badge>{/if}
+			{#if row.removedAt}
+				<Badge variant="destructive" title={m.events_removed_hint()}>
+					{m.events_removed()}
+				</Badge>
+			{/if}
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet unconfirmedHead()}
+	<span title={m.unconfirmed_hint()}>{m.events_col_unconfirmed()}</span>
+{/snippet}
+
+<!-- Takes the row, like every cell: FlexRender spreads what it's given into a
+     new object, so a bare number would arrive as `{ attach }`. -->
+{#snippet unconfirmedCell(row: Row)}
+	<span class={[row.unconfirmed === 0 && 'text-muted-foreground']}>{row.unconfirmed}</span>
+{/snippet}
+
+{#snippet actionsHead()}
+	<span class="sr-only">{m.events_col_actions()}</span>
+{/snippet}
+
+{#snippet actionsCell(row: Row)}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<!-- Button passes href through as is; resolving it is ours to do. -->
+				<Button
+					{...props}
+					href={resolve('/admin/events/[id]/code', { id: row.id })}
+					variant="ghost"
+					size="icon-sm"
+					aria-label={m.events_show_code()}
+				>
+					<QrCodeIcon />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content>{m.events_show_code()}</Tooltip.Content>
+	</Tooltip.Root>
+	{@const calendarUrl = data.calendar?.editUrl}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				{#if row.source === 'manual'}
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon-sm"
+						aria-label={m.events_edit()}
+						onclick={() => edit(row)}
+					>
+						<PencilLineIcon />
+					</Button>
+				{:else if calendarUrl}
+					<Button
+						{...props}
+						href={calendarUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="ghost"
+						size="icon-sm"
+						aria-label={m.events_edit_calendar()}
+					>
+						<PencilLineIcon />
+					</Button>
+				{:else}
+					<!-- As with delete below: aria-disabled keeps the reason reachable. -->
+					<Button
+						{...props}
+						variant="ghost"
+						size="icon-sm"
+						class="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+						aria-disabled="true"
+						aria-label={m.events_edit_calendar_unlinked()}
+					>
+						<PencilLineIcon />
+					</Button>
+				{/if}
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content class="max-w-64">
+			{row.source === 'manual'
+				? m.events_edit()
+				: calendarUrl
+					? m.events_edit_calendar()
+					: m.events_edit_calendar_unlinked()}
+		</Tooltip.Content>
+	</Tooltip.Root>
+	{@const reason = undeletable(row)}
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<!-- aria-disabled, not disabled: a disabled button gets no hover or
+				     focus, and the tooltip saying why would never show. -->
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon-sm"
+					class="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+					aria-disabled={reason !== null}
+					aria-label={reason ?? m.events_delete()}
+					onclick={() => {
+						if (reason === null) deleting = row;
+					}}
+				>
+					<TrashIcon />
+				</Button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content class="max-w-64">{reason ?? m.events_delete()}</Tooltip.Content>
+	</Tooltip.Root>
+{/snippet}
+
 <main class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
 	<div class="flex flex-wrap items-center justify-between gap-3">
-		<h1 class="text-2xl font-semibold">{m.events_title()}</h1>
+		<div class="flex items-center gap-1">
+			<h1 class="text-2xl font-semibold">{m.events_title()}</h1>
+			<!-- Synced events outlive a removed feed; they still need explaining. -->
+			<EventSourceHelp
+				calendar={data.calendar ??
+					(data.events.some((row) => row.source === 'calendar') ? { editUrl: null } : null)}
+			/>
+		</div>
 		<div class="flex flex-wrap gap-2">
 			{#if data.calendar}
 				<form
@@ -131,71 +341,29 @@
 	{#if data.events.length === 0}
 		<p class="text-muted-foreground">{m.events_none()}</p>
 	{:else}
-		<Table.Root>
-			<Table.Header>
-				<Table.Row>
-					<Table.Head>{m.events_col_when()}</Table.Head>
-					<Table.Head>{m.events_col_title()}</Table.Head>
-					<Table.Head>{m.events_col_location()}</Table.Head>
-					<Table.Head class="text-right">{m.events_col_scans()}</Table.Head>
-					<Table.Head><span class="sr-only">{m.events_col_actions()}</span></Table.Head>
-				</Table.Row>
-			</Table.Header>
-			<Table.Body>
-				{#each data.events as row (row.id)}
-					<Table.Row class={[past(row) && 'text-muted-foreground']}>
-						<Table.Cell class="whitespace-nowrap">{eventWhen(row)}</Table.Cell>
-						<Table.Cell class="whitespace-normal">
-							<a
-								href={resolve('/admin/events/[id]', { id: row.id })}
-								class="font-medium underline-offset-4 hover:underline">{row.title}</a
-							>
-							<span class="mt-1 flex flex-wrap gap-1">
-								<Badge variant="outline">
-									{row.source === 'calendar'
-										? m.events_source_calendar()
-										: m.events_source_manual()}
-								</Badge>
-								{#if ongoing(row)}<Badge>{m.events_ongoing()}</Badge>{/if}
-								{#if row.removedAt}
-									<Badge variant="destructive" title={m.events_removed_hint()}>
-										{m.events_removed()}
-									</Badge>
-								{/if}
-							</span>
-						</Table.Cell>
-						<Table.Cell class="whitespace-normal">{row.location ?? '—'}</Table.Cell>
-						<Table.Cell class="text-right tabular-nums">{row.scans}</Table.Cell>
-						<Table.Cell class="text-right whitespace-nowrap">
-							<!-- Button passes href through as is; resolving it is ours to do. -->
-							<Button
-								href={resolve('/admin/events/[id]/code', { id: row.id })}
-								variant="ghost"
-								size="sm"
-							>
-								{m.events_show_code()}
-							</Button>
-							{#if row.source === 'manual'}
-								<Button variant="ghost" size="sm" onclick={() => edit(row)}>
-									{m.events_edit()}
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									disabled={row.scans > 0}
-									title={row.scans > 0 ? m.events_delete_blocked() : undefined}
-									onclick={() => (deleting = row)}
-								>
-									{m.events_delete()}
-								</Button>
-							{:else}
-								<span class="text-xs text-muted-foreground">{m.events_calendar_hint()}</span>
-							{/if}
-						</Table.Cell>
-					</Table.Row>
-				{/each}
-			</Table.Body>
-		</Table.Root>
+		<DataTable
+			placeholder={m.table_search_events()}
+			data={events}
+			{columns}
+			bind:sorting
+			search={(row) => `${row.title} ${row.location ?? ''}`}
+			rowId={(row) => row.id}
+			rowClass={(row) => [past(row) && 'text-muted-foreground']}
+		>
+			{#snippet toolbar()}
+				<ToggleGroup.Root
+					type="single"
+					variant="outline"
+					value={period}
+					onValueChange={choosePeriod}
+					aria-label={m.events_period()}
+				>
+					<ToggleGroup.Item value="upcoming">{m.events_period_upcoming()}</ToggleGroup.Item>
+					<ToggleGroup.Item value="past">{m.events_period_past()}</ToggleGroup.Item>
+					<ToggleGroup.Item value="all">{m.events_period_all()}</ToggleGroup.Item>
+				</ToggleGroup.Root>
+			{/snippet}
+		</DataTable>
 	{/if}
 </main>
 

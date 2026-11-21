@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { adminCrumbs } from '$lib/admin-breadcrumbs';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { m } from '$lib/paraglide/messages';
 
 	let { children } = $props();
@@ -30,4 +31,6 @@
 	</Breadcrumb.Root>
 {/if}
 
-{@render children()}
+<Tooltip.Provider>
+	{@render children()}
+</Tooltip.Provider>
