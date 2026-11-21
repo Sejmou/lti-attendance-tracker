@@ -277,6 +277,8 @@
 	"home_not_linked_heading": "The attendance tool doesn't know this browser (yet)",
 	"home_not_linked_text": "Open the attendance activity in your Moodle course in this browser and set it up there. After that, you can see your attendance here without Moodle.",
 	"home_expired": "This page has expired. Reload it.",
+	"home_admin_link": "To the organisation page",
+	"home_admin_note": "You're signed in as an organizer.",
 	"home_removed": "Removed from this browser.",
 	"home_remove_confirm": "Remove",
 	"home_remove_text": "After that, nobody sees your attendance in this browser any more, and you need Moodle again to scan here. Your scans stay.",

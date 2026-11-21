@@ -280,6 +280,8 @@
 	"home_not_linked_heading": "Das Anwesenheitstool kennt diesen Browser (noch) nicht",
 	"home_not_linked_text": "Öffne die Anwesenheits-Aktivität in deinem Moodle-Kurs in diesem Browser und richte ihn dort ein. Danach siehst du deine Anwesenheiten hier auch ohne Moodle.",
 	"home_expired": "Diese Seite ist abgelaufen. Lade sie neu.",
+	"home_admin_link": "Zur Organisation",
+	"home_admin_note": "Du bist als Organisator:in angemeldet.",
 	"home_removed": "Aus diesem Browser entfernt.",
 	"home_remove_confirm": "Entfernen",
 	"home_remove_text": "Danach sieht in diesem Browser niemand mehr deine Anwesenheiten, und zum Scannen brauchst du hier wieder Moodle. Deine Scans bleiben erhalten.",

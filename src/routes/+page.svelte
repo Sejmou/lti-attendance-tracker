@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import { deleteDeviceKey, loadDeviceKey, sign, viewMessage } from '$lib/device-key';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Button } from '$lib/components/ui/button';
@@ -40,6 +41,12 @@
 <svelte:head><title>{m.app_title()}</title></svelte:head>
 
 <main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
+	{#if data.admin}
+		<p class="text-sm text-gray-600">
+			{m.home_admin_note()}
+			<a href={resolve('/admin')} class="text-blue-600 underline">{m.home_admin_link()} ›</a>
+		</p>
+	{/if}
 	{#if form?.me && !removed}
 		<p class="text-gray-600">{m.enroll_greeting_name({ name: form.me.firstName })}</p>
 		<MyAttendance events={form.me.events} />

@@ -1,5 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { resolve } from '$app/paths';
+import { fail } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { viewMessage } from '$lib/device-key';
 import { m } from '$lib/messages';
@@ -10,10 +9,12 @@ import { verifySignature } from '$lib/server/device-key';
 import { issueViewChallenge, verifyViewChallenge } from '$lib/server/scan-token';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals }) => {
-	if (locals.admin) redirect(302, resolve('/admin'));
-	return { challenge: issueViewChallenge() };
-};
+// No redirect for organizers: the same browser may be set up for them as an
+// attendee, and only the browser knows. The page offers the way over instead.
+export const load: PageServerLoad = ({ locals }) => ({
+	challenge: issueViewChallenge(),
+	admin: Boolean(locals.admin)
+});
 
 export const actions: Actions = {
 	/**
