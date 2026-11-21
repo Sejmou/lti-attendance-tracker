@@ -11,6 +11,8 @@
 
 	// The AGPL (section 13) has whoever runs a modified version offer its users that version's source.
 	const sourceUrl = env.PUBLIC_SOURCE_URL || 'https://github.com/Sejmou/lti-attendance-tracker';
+	// Optional: the organization publishes its own, see docs/.
+	const privacyUrl = env.PUBLIC_PRIVACY_URL;
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
@@ -20,6 +22,10 @@
 	{@render children()}
 
 	<footer class="flex justify-end gap-3 px-4 pb-4 text-sm text-gray-500">
+		{#if privacyUrl}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
+			<a href={privacyUrl} class="underline">{m.privacy_notice()}</a>
+		{/if}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
 		<a href={sourceUrl} class="underline">{m.source_code()}</a>
 		<nav aria-label={m.language()} class="flex gap-3">
