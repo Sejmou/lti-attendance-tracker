@@ -117,12 +117,10 @@ const isBlock = (e: Timed) => e.allDay || e.endsAt.getTime() - e.startsAt.getTim
 export function suggestEvent<T extends Timed>(events: T[], now = new Date()) {
 	const candidates = events.filter((e) => !e.removedAt);
 	const today = wallClock(now).date;
+	// Shorter than a day, so one running now starts or ends today too.
 	const specificToday = candidates.filter(
 		(e) =>
-			!isBlock(e) &&
-			(wallClock(e.startsAt).date === today ||
-				wallClock(e.endsAt).date === today ||
-				(e.startsAt <= now && now < e.endsAt))
+			!isBlock(e) && (wallClock(e.startsAt).date === today || wallClock(e.endsAt).date === today)
 	);
 	return nearest(specificToday, now) ?? nearest(candidates, now);
 }
@@ -139,15 +137,9 @@ function nearest<T extends Timed>(events: T[], now: Date) {
 		e.startsAt > now ? e.startsAt.getTime() - now.getTime() : now.getTime() - e.endsAt.getTime();
 	// Lower is better.
 	const rank = running.length > 0 ? (e: T) => -e.startsAt.getTime() : distance;
-	return (running.length > 0 ? running : events).reduce<T | null>(
-		(best, e) =>
-			best === null ||
-			rank(e) < rank(best) ||
-			(rank(e) === rank(best) && e.source === 'manual' && best.source !== 'manual')
-				? e
-				: best,
-		null
-	);
+	const manual = (e: T) => Number(e.source === 'manual');
+	const pool = running.length > 0 ? running : events;
+	return pool.toSorted((a, b) => rank(a) - rank(b) || manual(b) - manual(a))[0] ?? null;
 }
 
 /** A manual event, the only kind the app edits or deletes. */
