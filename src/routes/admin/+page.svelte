@@ -10,13 +10,13 @@
 	import { m } from '$lib/messages';
 
 	const cards = [
+		{ route: '/admin/code', Icon: QrCodeIcon, title: m.show_code, text: m.admin_code_text },
 		{
 			route: '/admin/events',
 			Icon: CalendarDaysIcon,
 			title: m.events_title,
 			text: m.admin_events_text
 		},
-		{ route: '/admin/code', Icon: QrCodeIcon, title: m.show_code, text: m.admin_code_text },
 		{
 			route: '/admin/attendees',
 			Icon: UsersIcon,
