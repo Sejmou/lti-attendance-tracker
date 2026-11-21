@@ -91,7 +91,13 @@ export function listEvents() {
 		}));
 }
 
-type Timed = { startsAt: Date; endsAt: Date; allDay: boolean; removedAt: Date | null };
+type Timed = {
+	startsAt: Date;
+	endsAt: Date;
+	allDay: boolean;
+	source: 'calendar' | 'manual';
+	removedAt: Date | null;
+};
 
 const DAY = 24 * 60 * 60_000;
 
@@ -123,17 +129,23 @@ export function suggestEvent<T extends Timed>(events: T[], now = new Date()) {
 
 /**
  * One that is running, the latest to start if several overlap, or else the
- * nearest in time: by its start if it is ahead, by its end if it is over.
+ * nearest in time: by its start if it is ahead, by its end if it is over. A tie
+ * goes to an event made here rather than synced: an organizer created it on
+ * purpose, often for this very screen.
  */
 function nearest<T extends Timed>(events: T[], now: Date) {
 	const running = events.filter((e) => e.startsAt <= now && now < e.endsAt);
-	if (running.length > 0) {
-		return running.reduce((a, b) => (b.startsAt > a.startsAt ? b : a));
-	}
 	const distance = (e: T) =>
 		e.startsAt > now ? e.startsAt.getTime() - now.getTime() : now.getTime() - e.endsAt.getTime();
-	return events.reduce<T | null>(
-		(best, e) => (best === null || distance(e) < distance(best) ? e : best),
+	// Lower is better.
+	const rank = running.length > 0 ? (e: T) => -e.startsAt.getTime() : distance;
+	return (running.length > 0 ? running : events).reduce<T | null>(
+		(best, e) =>
+			best === null ||
+			rank(e) < rank(best) ||
+			(rank(e) === rank(best) && e.source === 'manual' && best.source !== 'manual')
+				? e
+				: best,
 		null
 	);
 }

@@ -53,6 +53,7 @@ const e = (name: string, start: string, end: string, removed = false) => ({
 	startsAt: at(start),
 	endsAt: at(end),
 	allDay: false,
+	source: 'calendar' as 'calendar' | 'manual',
 	removedAt: removed ? at('00:00') : null
 });
 
@@ -110,4 +111,15 @@ test('specific events today come before a block of days around them, even betwee
 		endsAt: at('11:00', '2026-10-12')
 	};
 	expect(suggestEvent([weekend, nextWeek], at('10:00', '2026-10-04'))?.name).toBe('weekend');
+});
+
+test('a tie goes to the event made here, whichever comes first in the list', () => {
+	const synced = e('synced', '09:00', '10:00');
+	const made = { ...e('made here', '09:00', '11:00'), source: 'manual' as const };
+	// Running, started at the same time.
+	expect(suggestEvent([synced, made], at('09:30'))?.name).toBe('made here');
+	expect(suggestEvent([made, synced], at('09:30'))?.name).toBe('made here');
+	// Ahead, starting at the same time.
+	expect(suggestEvent([synced, made], at('08:30'))?.name).toBe('made here');
+	expect(suggestEvent([made, synced], at('08:30'))?.name).toBe('made here');
 });
