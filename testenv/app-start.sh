@@ -32,6 +32,13 @@ if [ -n "$seeded" ]; then
 	fi
 fi
 
+# Where attendees open the attendee tool, as Moodle wrote it, unless .env says.
+activity=/testenv-shared/attendee-activity-url
+if [ -z "${PUBLIC_ATTENDEE_ACTIVITY_URL:-}" ] && [ -e "$activity" ]; then
+	PUBLIC_ATTENDEE_ACTIVITY_URL=$(cat "$activity")
+	export PUBLIC_ATTENDEE_ACTIVITY_URL
+fi
+
 # Moodle's keyset is fetched over the compose network (`--internal-url`): the
 # Moodle container answers to its public hostname there, see compose.yml.
 pnpm --silent lti:register-platform \

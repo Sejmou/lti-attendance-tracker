@@ -174,8 +174,9 @@ foreach ($tools as $tool) {
             'name' => $tool['activity'],
             'intro' => $tool['intro'],
         ]);
+        $cmid = get_coursemodule_from_instance('lti', $existing->id, $course->id, false, MUST_EXIST)->id;
     } else {
-        create_module((object) [
+        $cmid = create_module((object) [
             'modulename' => 'lti',
             'course' => $course->id,
             'section' => 1,
@@ -195,7 +196,12 @@ foreach ($tools as $tool) {
             'icon' => '',
             'secureicon' => '',
             'grade' => 0,
-        ]);
+        ])->coursemodule;
+    }
+
+    // For app-start.sh: the app's PUBLIC_ATTENDEE_ACTIVITY_URL, unless .env sets one.
+    if ($tool['clientid'] === getenv('ATTENDEE_CLIENT_ID')) {
+        file_put_contents('/testenv-shared/attendee-activity-url', "{$CFG->wwwroot}/mod/lti/view.php?id={$cmid}");
     }
 }
 
