@@ -31,23 +31,18 @@
 			<section class="flex flex-col gap-3">
 				<h3 class="font-medium">{m.events_help_sources_title()}</h3>
 				{#if calendar}
-					<p class="flex gap-3">
-						<CalendarSyncIcon
-							class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-							aria-hidden="true"
-						/>
-						<span>
-							<strong class="block">{m.events_source_calendar()}</strong>
-							{m.events_help_calendar({ sync: m.events_sync() })}
+					<p>
+						<strong class="block">{m.events_source_calendar()}</strong>
+						{m.events_help_calendar({ sync: m.events_sync() })}
+						<span class="inline-flex items-center gap-1 text-muted-foreground">
+							{m.events_help_calendar_marked()}
+							<CalendarSyncIcon class="size-4" role="img" aria-label={m.events_source_calendar()} />
 						</span>
 					</p>
 				{/if}
-				<!-- Unmarked in the list, so no icon here; indented to line up. -->
-				<p class={[calendar && 'pl-7']}>
-					<span>
-						<strong class="block">{m.events_source_manual()}</strong>
-						{m.events_help_manual({ newEvent: m.events_new() })}
-					</span>
+				<p>
+					<strong class="block">{m.events_source_manual()}</strong>
+					{m.events_help_manual({ newEvent: m.events_new() })}
 				</p>
 			</section>
 			<section class="flex flex-col gap-2">

@@ -117,6 +117,7 @@
 	"events_help_purpose": "Each event has its own QR code. Whoever scans it attended that event.",
 	"events_help_sources_title": "Where events come from",
 	"events_help_calendar": "Taken over automatically. Edit them in the calendar only; “{sync}” fetches changes right away.",
+	"events_help_calendar_marked": "Marked in the list with",
 	"events_help_manual": "Create with “{newEvent}”, edit with the pencil icon.",
 	"events_help_scans_title": "Scanning in and out",
 	"events_help_scans": "The first scan counts as scanning in, the last as scanning out. For example, scans at 9:00, 12:00 and 17:00 mean scanned in at 9:00 and out at 17:00. A single scan only counts as scanning in.",
