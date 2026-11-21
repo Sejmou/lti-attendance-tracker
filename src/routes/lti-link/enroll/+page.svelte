@@ -60,7 +60,11 @@
 							: 'elsewhere'
 	);
 
+	// Where a set-up browser sees its attendance without Moodle, as people would type it.
+	let home = $state('');
+
 	onMount(async () => {
+		home = new URL(resolve('/'), location.href).href.replace(/^https?:\/\//, '');
 		// The launch hands the token over in the fragment, which no server sees.
 		// Out of the address bar straight away, so it isn't bookmarked or shared.
 		token = location.hash.slice(1);
@@ -248,11 +252,16 @@
 		</button>
 
 		{#if link === 'linked'}
-			<p class="text-sm text-gray-600">✓ {m.enroll_linked()}</p>
+			<p class="text-sm text-gray-600">
+				✓ {m.enroll_linked()}
+				{m.enroll_bookmark()}
+				<a href={resolve('/')} class="text-blue-600 underline">{home}</a>
+			</p>
 		{:else if link}
 			<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
 				<h2 class="text-lg font-semibold">{m.enroll_link_heading()}</h2>
-				<p class="text-gray-600">{m.enroll_link_text()}</p>
+				<p class="text-gray-600">{m.enroll_link_text({ address: home })}</p>
+				<p class="text-gray-600">{m.enroll_link_browser()}</p>
 				{#if link === 'embedded'}
 					<p class="text-gray-600">{m.enroll_embedded_link()}</p>
 					<button

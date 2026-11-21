@@ -213,16 +213,17 @@ Attendees have no password and never sign in, and there is no attendee list. The
 attendance activity (an LTI 1.3 "external tool", the **attendee tool**): opening it proves
 who someone is, through the LMS, and makes them an attendee on the spot — anyone who can open
 the activity can come in. The page it opens offers **Scan in or out** and **My attendance**,
-and **Link this phone** for as long as the browser isn't linked:
+and **Use it without Moodle** for as long as the browser isn't set up:
 
 - **Scan in or out:** at the event, they open the activity and scan the code with the camera
   inside that page. It works in any browser, but needs Moodle every time (see
   [Scanning from the launched page](#scanning-from-the-launched-page)).
-- **Link this phone:** they link the phone once, and from then on scanning the code with the
-  camera app is all it takes, for as long as the browser keeps what the link stored (see
+- **Use it without Moodle:** they set up the browser once (**Set up this browser**), and from
+  then on scanning the code with the camera app is all it takes, and `/` shows their
+  attendance, for as long as the browser keeps what the setup stored (see
   [Setting up a phone](#setting-up-a-phone)).
 - **My attendance:** every event they have scans for, with their scan-in and scan-out, and
-  each event's scans in detail. A linked phone shows the same on `/` without Moodle (see
+  each event's scans in detail. A set-up browser shows the same on `/` without Moodle (see
   [Attendees' own attendance](#attendees-own-attendance)).
 
 1. Both tools are added to the LMS and registered here — see [LTI platforms](#lti-platforms).
@@ -283,7 +284,7 @@ opening the attendee tool on their phone sets that phone up for them as an atten
 The attendee opens the attendance activity in Moodle **on the phone they'll bring**. Moodle
 launches the tool, vouching for who they are, and the tool finds or creates the attendee
 (see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There
-they tap **Link this phone**:
+they tap **Set up this browser**:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
@@ -298,9 +299,9 @@ browsers never send to a server, so it can't end up in a log or a `Referer`, and
 takes it out of the address bar as soon as it loads. Setting up a key spends it: a token
 issued before the attendee's current key was set up is turned down.
 
-The card goes away once the browser holds the attendee's current key. If another browser holds
-it, the card says so, and the button becomes **Link this phone instead**, with a note that the
-other one stops working. A browser whose data was cleared looks the same to the server.
+The card goes away once the browser holds the attendee's current key, leaving a line with the
+address of `/` to bookmark. If another browser holds it, the card says so, and the button
+becomes **Set up this browser instead**, with a note that the other one stops working. A browser whose data was cleared looks the same to the server.
 
 ### Things that undo it
 
@@ -348,8 +349,8 @@ The key needs a **secure context**: `crypto.subtle` doesn't exist outside HTTPS,
 **My attendance** lists every event the attendee has scans for, newest first, with their
 scan-in and scan-out (see [Scan-in and scan-out](#scan-in-and-scan-out)) and a note where
 there is no scan-out. Opening an event shows all of its scans: the time, how it was made
-(linked phone, Moodle page, the code screen they showed, typed in, or typed in and linked by
-an organizer) and whether it counted as scan-in, scan-out or neither. Nothing kept against
+(set-up browser, Moodle page, the code screen they showed, typed in, or typed in and assigned
+by an organizer) and whether it counted as scan-in, scan-out or neither. Nothing kept against
 abuse (addresses, browsers, flags) is shown. Details typed in under their address but never
 linked to their account by an organizer aren't theirs here: anyone can type anyone's address.
 

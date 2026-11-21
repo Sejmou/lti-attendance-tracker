@@ -34,7 +34,7 @@ Die Anwesenheitserfassung ist über den Moodle-Kurs des Vereins erreichbar, der 
 
 Außerdem speichern wir, wann du ein Gerät für das Scannen eingerichtet hast, mit dessen Browserkennung. So fallen ungewöhnliche Gerätewechsel auf.
 
-**Geräteschlüssel:** wenn du ein Gerät einrichtest, indem du auf der von Moodle geöffneten Seite auf „Dieses Handy verknüpfen“ tippst, erzeugt dein Browser ein Schlüsselpaar. Der private Schlüssel bleibt in deinem Browser und kann nicht ausgelesen werden, auch nicht von uns. Wir speichern nur den öffentlichen Schlüssel. Ohne dieses Tippen wird nichts eingerichtet.
+**Geräteschlüssel:** wenn du einen Browser einrichtest, indem du auf der von Moodle geöffneten Seite auf „Diesen Browser einrichten“ tippst, erzeugt dein Browser ein Schlüsselpaar. Der private Schlüssel bleibt in deinem Browser und kann nicht ausgelesen werden, auch nicht von uns. Wir speichern nur den öffentlichen Schlüssel. Ohne dieses Tippen wird nichts eingerichtet.
 
 **Einsicht in deine eigene Anwesenheit:** die von Moodle geöffnete Seite zeigt deine Anwesenheit an. In einem Browser, den du eingerichtet hast, zeigt sie auch die Startseite der Anwendung, ohne Moodle. Dazu signiert dein Browser mit dem Geräteschlüssel einen einmaligen, 5 Minuten gültigen Wert. Dafür wird nichts gespeichert, und es gibt keine Anmeldung.
 
@@ -44,7 +44,7 @@ Außerdem speichern wir, wann du ein Gerät für das Scannen eingerichtet hast, 
 
 Die Anwendung legt nur ab, was für ihre Funktion technisch notwendig ist:
 
-- den Geräteschlüssel (siehe oben) im Speicher deines Browsers (IndexedDB), sobald du auf „Dieses Handy verknüpfen“ tippst, bis du die Websitedaten löschst oder ein anderes Gerät einrichtest
+- den Geräteschlüssel (siehe oben) im Speicher deines Browsers (IndexedDB), sobald du auf „Diesen Browser einrichten“ tippst, bis du die Websitedaten löschst oder ein anderes Gerät einrichtest
 - nach einem Scan ein Cookie, das 10 Minuten lang bestätigt, dass du einen gültigen Code gescannt hast
 - nach einem Scan ein Cookie mit einer zufälligen Browser-ID, gültig für 12 Monate und mit jedem Scan erneuert, damit auffällt, wenn mehrere Personen vom selben Browser aus bestätigt werden (siehe [Schutz vor Missbrauch](#welche-daten-wir-verarbeiten-und-wozu))
 - wenn du deine Anwesenheit von Hand bestätigst, den eingegebenen Namen und die E-Mail-Adresse im Speicher deines Browsers (localStorage), damit du sie nicht noch einmal eingeben musst; bis du die Websitedaten löschst
@@ -55,7 +55,7 @@ Es gibt keine Analyse- oder Werbe-Cookies und keine Einbindung von Drittanbieter
 ## Wer die Daten sieht
 
 - **Organisator:innen des Vereins**, also wer in Moodle Zugriff auf das Admin-Werkzeug hat: alle oben genannten Daten, für alle Veranstaltungen.
-- **Du selbst:** deine eigene Anwesenheit bei jeder Veranstaltung: wann du gescannt hast, wie jeder Scan bestätigt wurde und welche Scans als Ein- und Ausscannen zählen. Nicht die Prüfwerte gegen Missbrauch. Das sieht auch, wer einen von dir eingerichteten Browser benutzt; richte daher nur ein Gerät ein, das dir gehört.
+- **Du selbst:** deine eigene Anwesenheit bei jeder Veranstaltung: wann du gescannt hast, wie jeder Scan bestätigt wurde und welche Scans als Ein- und Ausscannen zählen. Nicht die Prüfwerte gegen Missbrauch. Das sieht auch, wer einen von dir eingerichteten Browser benutzt; richte daher nur einen Browser auf einem Gerät ein, das dir gehört.
 - **Anwesende bei der Veranstaltung:** der Bildschirm mit dem QR-Code zeigt bei jedem Scan einen Kurznamen an: deinen Vornamen (bei mehreren nur den ersten), und nur wenn ein anderes Mitglied denselben Vornamen hat, so viele Buchstaben deines Nachnamens wie nötig, um dich zu unterscheiden (z. B. „Anna B.“). Hat eine andere Person genau denselben Namen, unterscheidet euch stattdessen eine Nummer (z. B. „Anna (2)“). Von Hand bestätigte Anwesenheit ist mit einem Symbol markiert.
 - **[Hosting-Anbieter, Sitz]** als Auftragsverarbeiter, der den Server betreibt.
 
