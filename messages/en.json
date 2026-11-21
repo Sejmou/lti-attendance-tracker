@@ -195,7 +195,7 @@
 	"scan_in_progress": "Recording your scan…",
 	"scan_failed_heading": "That didn't work",
 	"scan_set_up_heading": "This browser doesn't know you (yet)",
-	"scan_set_up_text": "Open the attendance activity in your Moodle course and scan the code from the page it opens. Set up this browser there too, then it recognises you, and next time this is all it takes.",
+	"scan_set_up_text": "Open the attendance activity in your Moodle course and scan the code from the page it opens. Set up this browser there too, and next time this is all it takes.",
 	"scan_expired": "This code has expired. Scan the one showing now.",
 	"scan_not_confirmed": "We could not confirm that was you. Try again.",
 	"scan_event_gone": "This event no longer exists. Ask the organizers to open the code again.",
@@ -264,7 +264,7 @@
 	"attendees_missing": "This person no longer exists.",
 
 	"home_not_linked_heading": "This browser doesn't know you (yet)",
-	"home_not_linked_text": "Open the attendance activity in your Moodle course in this browser and set it up there. After that, it recognises you, and you can see your attendance here without Moodle.",
+	"home_not_linked_text": "Open the attendance activity in your Moodle course in this browser and set it up there. After that, you can see your attendance here without Moodle.",
 	"home_expired": "This page has expired. Reload it.",
 	"attendance_heading": "My attendance",
 	"attendance_none": "No scans yet. Once you scan the attendance QR code at an event, it shows up here.",
