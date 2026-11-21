@@ -17,6 +17,7 @@
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import ScanQrCodeIcon from '@lucide/svelte/icons/scan-qr-code';
 	import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
+	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { browserName } from '$lib/browser-name';
 	import { day, time } from '$lib/event-when';
 	import MyAttendance from '$lib/components/my-attendance.svelte';
@@ -286,6 +287,12 @@
 						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
 						<a href={privacyUrl} class="text-blue-600 underline">{m.privacy_notice()}</a>
 					{/if}
+				</p>
+				<p
+					class="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+				>
+					<TriangleAlertIcon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+					{m.enroll_setup_warning()}
 				</p>
 			</section>
 			{#if link === 'embedded'}
