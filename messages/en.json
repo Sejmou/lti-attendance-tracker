@@ -19,7 +19,7 @@
 	"admin_open_from_lms_heading": "Open this from Moodle",
 	"admin_sign_out": "Sign out",
 	"admin_attendees_text": "Everyone who opened the attendance tool, and deleting attendees",
-	"admin_code_text": "Put up the QR code for an event to scan",
+	"admin_code_text": "Provide the QR code for an event to scan",
 	"admin_events_text": "Create events and see who came",
 
 	"scans_count": [

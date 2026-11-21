@@ -19,7 +19,7 @@
 	"admin_open_from_lms_heading": "Bitte über Moodle öffnen",
 	"admin_sign_out": "Abmelden",
 	"admin_attendees_text": "Alle, die das Anwesenheitstool geöffnet haben, und Teilnehmende löschen",
-	"admin_code_text": "Den QR-Code für eine Veranstaltung zum Scannen aufstellen",
+	"admin_code_text": "Den QR-Code für eine Veranstaltung zum Scannen bereitstellen",
 	"admin_events_text": "Veranstaltungen anlegen und ansehen, wer gekommen ist",
 
 	"scans_count": [
