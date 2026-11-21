@@ -1,5 +1,4 @@
 <script lang="ts">
-	import CalendarPlusIcon from '@lucide/svelte/icons/calendar-plus';
 	import CalendarSyncIcon from '@lucide/svelte/icons/calendar-sync';
 	import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
@@ -43,11 +42,8 @@
 						</span>
 					</p>
 				{/if}
-				<p class="flex gap-3">
-					<CalendarPlusIcon
-						class="mt-0.5 size-4 shrink-0 text-muted-foreground"
-						aria-hidden="true"
-					/>
+				<!-- Unmarked in the list, so no icon here; indented to line up. -->
+				<p class={[calendar && 'pl-7']}>
 					<span>
 						<strong class="block">{m.events_source_manual()}</strong>
 						{m.events_help_manual({ newEvent: m.events_new() })}
