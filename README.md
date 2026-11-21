@@ -239,10 +239,15 @@ and **Use it without Moodle** for as long as the browser isn't set up:
 ### Which event a scan is for
 
 The organizer picks the event before the code goes up (`/admin/code`), and every scan
-through that screen is filed under it. The page suggests one: an event running now —
-the latest to start, if several overlap, so a talk rather than the all-day conference
-around it — or else the one nearest in time, by its start if it is ahead and by its end
-if it is over. Events removed from the calendar are never suggested. The picker offers
+through that screen is filed under it. The page suggests one, looking first at today's
+events that aren't blocks of days (whole-day events, or ones lasting a day or more, which
+calendars use to hold a weekend or a conference while the talks are entered inside it): an
+event running now — the latest to start, if several overlap — or else the one nearest in
+time, by its start if it is ahead and by its end if it is over. So between two talks, or
+before the first, it is still a talk, not the block around them. Only on a day with none of
+those does it do the same among all events, blocks included. Events removed from the
+calendar are never suggested, and a tie goes to an event created on the Events page rather
+than synced. The picker offers
 what runs from a day back to a month ahead; the events page has a **QR code** button on
 every event.
 

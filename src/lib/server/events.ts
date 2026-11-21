@@ -3,7 +3,7 @@ import { scanner, verified } from '$lib/server/attendance';
 import { db } from '$lib/server/db';
 import { event, scan } from '$lib/server/db/schema';
 import type { EventFieldErrors, EventFields } from '$lib/event-form';
-import { fromWallClock } from '$lib/time';
+import { fromWallClock, wallClock } from '$lib/time';
 
 /**
  * The form's fields, and either the row to write or what is wrong with them.
@@ -91,27 +91,55 @@ export function listEvents() {
 		}));
 }
 
-type Timed = { startsAt: Date; endsAt: Date; removedAt: Date | null };
+type Timed = {
+	startsAt: Date;
+	endsAt: Date;
+	allDay: boolean;
+	source: 'calendar' | 'manual';
+	removedAt: Date | null;
+};
+
+const DAY = 24 * 60 * 60_000;
 
 /**
- * The event an organizer most likely wants to show the code for: one that is
- * running, the latest to start if several overlap (a talk rather than the
- * all-day conference around it), or else the one nearest in time — by its
- * start if it is ahead, by its end if it is over. Never one removed from the
- * calendar. Only a suggestion: the organizer picks.
+ * Days a calendar blocks for something big (a whole-day event, or one lasting
+ * a day or more), with the events that actually happen entered inside them.
+ */
+const isBlock = (e: Timed) => e.allDay || e.endsAt.getTime() - e.startsAt.getTime() >= DAY;
+
+/**
+ * The event an organizer most likely wants to show the code for. First among
+ * today's events that aren't blocks: one that is running, the latest to start
+ * if several overlap, or else the nearest in time. Only with none of those
+ * today the same among all of them, blocks included. Never one removed from
+ * the calendar. Only a suggestion: the organizer picks.
  */
 export function suggestEvent<T extends Timed>(events: T[], now = new Date()) {
 	const candidates = events.filter((e) => !e.removedAt);
-	const running = candidates.filter((e) => e.startsAt <= now && now < e.endsAt);
-	if (running.length > 0) {
-		return running.reduce((a, b) => (b.startsAt > a.startsAt ? b : a));
-	}
+	const today = wallClock(now).date;
+	// Shorter than a day, so one running now starts or ends today too.
+	const specificToday = candidates.filter(
+		(e) =>
+			!isBlock(e) && (wallClock(e.startsAt).date === today || wallClock(e.endsAt).date === today)
+	);
+	return nearest(specificToday, now) ?? nearest(candidates, now);
+}
+
+/**
+ * One that is running, the latest to start if several overlap, or else the
+ * nearest in time: by its start if it is ahead, by its end if it is over. A tie
+ * goes to an event made here rather than synced: an organizer created it on
+ * purpose, often for this very screen.
+ */
+function nearest<T extends Timed>(events: T[], now: Date) {
+	const running = events.filter((e) => e.startsAt <= now && now < e.endsAt);
 	const distance = (e: T) =>
 		e.startsAt > now ? e.startsAt.getTime() - now.getTime() : now.getTime() - e.endsAt.getTime();
-	return candidates.reduce<T | null>(
-		(best, e) => (best === null || distance(e) < distance(best) ? e : best),
-		null
-	);
+	// Lower is better.
+	const rank = running.length > 0 ? (e: T) => -e.startsAt.getTime() : distance;
+	const manual = (e: T) => Number(e.source === 'manual');
+	const pool = running.length > 0 ? running : events;
+	return pool.toSorted((a, b) => rank(a) - rank(b) || manual(b) - manual(a))[0] ?? null;
 }
 
 /** A manual event, the only kind the app edits or deletes. */
