@@ -336,7 +336,7 @@
 			<span class="flex flex-1 flex-col gap-1">
 				<span class="text-lg font-semibold">{m.attendance_heading()}</span>
 				{#if latest}
-					<span class="text-gray-600">{m.attendance_card_text({ count: me!.events.length })}</span>
+					<span class="text-gray-600">{m.attendance_card_text()}</span>
 					<span class="text-sm text-gray-500">
 						{m.attendance_latest({ title: latest.title, date: day(latest.startsAt) })}
 						<br />

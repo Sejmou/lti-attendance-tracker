@@ -277,16 +277,7 @@
 			}
 		}
 	],
-	"attendance_card_text": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "When you scanned in and out at {count} event",
-				"countPlural=*": "When you scanned in and out at {count} events"
-			}
-		}
-	],
+	"attendance_card_text": "When you scanned in and out at which event",
 	"attendance_latest": "Latest: {title}, {date}",
 	"attendance_card_none": "No scans yet",
 	"attendance_no_scan_out": "{count} without scan-out",
