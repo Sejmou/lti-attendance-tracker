@@ -2,6 +2,7 @@
 	import { onMount, tick, type ComponentProps } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { env } from '$env/dynamic/public';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import {
 		createKeyPair,
@@ -13,6 +14,7 @@
 	} from '$lib/device-key';
 	import CalendarCheckIcon from '@lucide/svelte/icons/calendar-check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import ScanQrCodeIcon from '@lucide/svelte/icons/scan-qr-code';
 	import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
 	import { browserName } from '$lib/browser-name';
@@ -29,7 +31,7 @@
 	let firstName = $state('');
 	let embedded = $state(false);
 	let mounted = $state(false);
-	let view = $state<'home' | 'scanning' | 'attendance'>('home');
+	let view = $state<'home' | 'scanning' | 'attendance' | 'setup'>('home');
 	let problem = $state('');
 	let busy = $state(false);
 
@@ -69,6 +71,7 @@
 
 	// Where a set-up browser sees its attendance without Moodle, as people would type it.
 	let home = $state('');
+	const privacyUrl = env.PUBLIC_PRIVACY_URL;
 	// So iPhone users see when Moodle opened in another browser than the camera uses.
 	let browser = $state<string | null>(null);
 
@@ -247,6 +250,67 @@
 		{:else}
 			<p class="text-gray-600">{m.loading()}</p>
 		{/if}
+	{:else if view === 'setup'}
+		<button type="button" onclick={() => (view = 'home')} class="self-start text-blue-600">
+			← {m.enroll_back()}
+		</button>
+		{#if link === 'linked'}
+			<CircleCheckIcon class="size-16 text-green-600" aria-hidden="true" />
+			<h1 class="text-2xl font-semibold">{m.enroll_setup_done()}</h1>
+			<p class="text-gray-600">{m.enroll_setup_done_text()}</p>
+			<p class="text-gray-600">
+				{m.enroll_bookmark()}
+				<a href={resolve('/')} class="text-blue-600 underline">{home}</a>
+			</p>
+		{:else}
+			<h1 class="text-2xl font-semibold">{m.enroll_link_heading()}</h1>
+			<div class="flex flex-col gap-2 text-gray-600">
+				<p>{m.enroll_setup_intro()}</p>
+				<ul class="list-disc pl-5">
+					<li>{m.enroll_setup_benefit_scan()}</li>
+					<li>{m.enroll_setup_benefit_view({ address: home })}</li>
+				</ul>
+			</div>
+			<section class="flex flex-col gap-2 text-gray-600">
+				<h2 class="font-semibold text-gray-900">{m.enroll_setup_browser_heading()}</h2>
+				<p>
+					{m.enroll_link_browser()}
+					{#if browser}{m.enroll_current_browser({ browser })}{/if}
+				</p>
+			</section>
+			<section class="flex flex-col gap-2 text-gray-600">
+				<h2 class="font-semibold text-gray-900">{m.enroll_setup_what_heading()}</h2>
+				<p>
+					{m.enroll_setup_what()}
+					{#if privacyUrl}
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- external URL, not a route -->
+						<a href={privacyUrl} class="text-blue-600 underline">{m.privacy_notice()}</a>
+					{/if}
+				</p>
+			</section>
+			{#if link === 'embedded'}
+				<p class="text-gray-600">{m.enroll_embedded_link()}</p>
+				<button
+					type="button"
+					onclick={() =>
+						window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
+					class={primary}
+				>
+					{m.enroll_continue_new_tab()}
+				</button>
+			{:else}
+				{#if link === 'elsewhere'}
+					<p class="text-gray-600">{m.enroll_linked_elsewhere()} {m.enroll_link_here_note()}</p>
+				{/if}
+				<button type="button" onclick={setUp} disabled={link === 'linking'} class={primary}>
+					{link === 'linking'
+						? m.enroll_linking()
+						: link === 'elsewhere'
+							? m.enroll_link_here()
+							: m.enroll_link()}
+				</button>
+			{/if}
+		{/if}
 	{:else}
 		<h1 class="text-2xl font-semibold">
 			{firstName ? m.enroll_greeting_name({ name: firstName }) : m.enroll_greeting()}
@@ -290,42 +354,16 @@
 				<a href={resolve('/')} class="text-blue-600 underline">{home}</a>
 			</p>
 		{:else if link}
-			<section class="flex flex-col gap-3 rounded-lg border border-gray-200 p-4">
-				<h2 class="flex items-center gap-3 text-lg font-semibold">
-					<SmartphoneIcon class={optionIcon} aria-hidden="true" />
-					{m.enroll_link_heading()}
-				</h2>
-				<p class="text-gray-600">{m.enroll_link_text({ address: home })}</p>
-				<p class="text-gray-600">
-					{m.enroll_link_browser()}
-					{#if browser}{m.enroll_current_browser({ browser })}{/if}
-				</p>
-				{#if link === 'embedded'}
-					<p class="text-gray-600">{m.enroll_embedded_link()}</p>
-					<button
-						type="button"
-						onclick={() =>
-							window.open(`${resolve('/lti-link/enroll')}#${token}`, '_blank', 'noopener')}
-						class={primary}
-					>
-						{m.enroll_continue_new_tab()}
-					</button>
-				{:else}
-					{#if link === 'elsewhere'}
-						<p class="text-gray-600">{m.enroll_linked_elsewhere()}</p>
-					{/if}
-					<button type="button" onclick={setUp} disabled={link === 'linking'} class={primary}>
-						{link === 'linking'
-							? m.enroll_linking()
-							: link === 'elsewhere'
-								? m.enroll_link_here()
-								: m.enroll_link()}
-					</button>
-					{#if link === 'elsewhere'}
-						<p class="text-sm text-gray-500">{m.enroll_link_here_note()}</p>
-					{/if}
-				{/if}
-			</section>
+			<button type="button" onclick={() => open('setup')} class={option}>
+				<SmartphoneIcon class={optionIcon} aria-hidden="true" />
+				<span class="flex flex-1 flex-col gap-1">
+					<span class="text-lg font-semibold">{m.enroll_link_heading()}</span>
+					<span class="text-gray-600">
+						{link === 'elsewhere' ? m.enroll_setup_card_elsewhere() : m.enroll_setup_card_text()}
+					</span>
+				</span>
+				<ChevronRightIcon class={chevron} aria-hidden="true" />
+			</button>
 		{/if}
 	{/if}
 

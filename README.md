@@ -285,7 +285,12 @@ opening the attendee tool on their phone sets that phone up for them as an atten
 The attendee opens the attendance activity in Moodle **on the phone they'll bring**. Moodle
 launches the tool, vouching for who they are, and the tool finds or creates the attendee
 (see [How attendees get in](#how-attendees-get-in)) and sends them to `/lti-link/enroll`. There
-they tap **Set up this browser**:
+they open **Use it without Moodle**, a view of its own that explains what setting up gives
+them, which browser to do it in (naming the one they are in, from the user agent), what is
+stored and how to undo it, and links the privacy notice if `PUBLIC_PRIVACY_URL` is set. No
+consent is asked for: the key is stored because they tapped **Set up this browser** after
+reading that, which is the explicit request the privacy notice's storage exemption rests on.
+Then:
 
 1. The browser makes an ECDSA P-256 key pair with WebCrypto, the private half
    **non-extractable** — scripts on the page can sign with it, but nothing can read it
@@ -300,9 +305,10 @@ browsers never send to a server, so it can't end up in a log or a `Referer`, and
 takes it out of the address bar as soon as it loads. Setting up a key spends it: a token
 issued before the attendee's current key was set up is turned down.
 
-The card goes away once the browser holds the attendee's current key, leaving a line with the
-address of `/` to bookmark. If another browser holds it, the card says so, and the button
-becomes **Set up this browser instead**, with a note that the other one stops working. A browser whose data was cleared looks the same to the server.
+Once the browser holds the attendee's current key, the card gives way to a line with the
+address of `/` to bookmark. If another browser holds it, the card and the view say so, and the
+button becomes **Set up this browser instead**, with a note that the other one stops working.
+A browser whose data was cleared looks the same to the server.
 
 ### Things that undo it
 
@@ -327,8 +333,7 @@ instead. Redoing the setup takes a minute.
 
 The key has to be in the browser that opens when the phone's camera reads a QR code —
 usually Safari on an iPhone and Chrome on Android. That is often not the browser someone
-uses Moodle in (the setup card says which browser it is in, from the user agent, so this
-shows), which is why [scanning from the launched page](#scanning-from-the-launched-page)
+uses Moodle in (hence the setup view naming the browser it is in), which is why [scanning from the launched page](#scanning-from-the-launched-page)
 exists: it needs no particular browser. For linking, two things get in the way:
 
 - **Moodle embedding the tool.** Opened in a frame on Moodle's page, the tool's storage is
