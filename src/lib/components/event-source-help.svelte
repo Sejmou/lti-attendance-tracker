@@ -53,7 +53,7 @@
 			<section class="flex flex-col gap-2">
 				<h3 class="font-medium">{m.events_help_scans_title()}</h3>
 				<p>{m.events_help_scans()}</p>
-				<p>{m.events_help_scans_typed()}</p>
+				<p>{m.events_help_scans_typed({ link: m.link_button() })}</p>
 				<p class="text-muted-foreground">
 					{m.events_help_scans_kept({ removed: m.events_removed() })}
 				</p>
