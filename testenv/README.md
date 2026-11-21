@@ -103,7 +103,20 @@ takes it over.
 With `TESTENV_SEED` set in `.env` (any number), the app's database starts out with
 half a year of made-up use (see "Data to develop against" in the main README). It only
 seeds a database that doesn't exist yet. The made-up people come from a platform URL of
-their own, so no test user's login is mistaken for one of them. Leave `CALENDAR_ICS_URL`
+their own, so no test user's login is mistaken for one of them.
+
+Two of the test students then take over a made-up attendee each, history and all, so the
+attendee pages have something to show (`scripts/testenv-hand-over.ts`):
+
+| Moodle user | Gets the history of                                                             |
+| ----------- | ------------------------------------------------------------------------------- |
+| `student1`  | someone with a set-up phone: a new browser sees another browser set up for them |
+| `student2`  | someone who only scanned from the Moodle page: nothing set up                   |
+| `student3`  | nobody: a first launch with no history                                          |
+
+A launch's `sub` is the Moodle user ID, which `testenv_setup.php` writes to a volume
+the app reads (`shared`). On the first start the app waits for Moodle to install and write
+it. It only happens when the app seeds a new database. Leave `CALENDAR_ICS_URL`
 unset to keep it all made up: otherwise the calendar's events are synced in alongside the
 seeded ones, which are all created on the Events page.
 

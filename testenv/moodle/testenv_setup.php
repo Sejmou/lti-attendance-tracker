@@ -79,6 +79,19 @@ foreach ($people as $username => [$firstname, $lastname]) {
     $userids[$username] = $user->id;
 }
 
+// For app-start.sh, which hands seeded attendees' histories to the students.
+// A launch's `sub` is the Moodle user ID, so this is all it needs.
+$launchers = [];
+foreach ($people as $username => [$firstname, $lastname]) {
+    $launchers[$username] = [
+        'sub' => (string) $userids[$username],
+        'email' => "{$username}@example.com",
+        'firstName' => $firstname,
+        'lastName' => $lastname,
+    ];
+}
+file_put_contents('/testenv-shared/moodle-users.json', json_encode($launchers, JSON_PRETTY_PRINT));
+
 // Found by its short name, which is the same in every locale, so switching
 // TESTENV_LOCALE renames the course instead of making a second one.
 $course = $DB->get_record('course', ['shortname' => 'ATTENDANCE']);

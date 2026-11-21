@@ -41,6 +41,8 @@ services:
       - '${MOODLE_BIND_IP:-127.0.0.1}:${MOODLE_HOST_PORT:-8080}:80'
     volumes:
       - moodledata:/var/www/moodledata
+      # Moodle writes its test users' IDs here, for app-start.sh.
+      - shared:/testenv-shared
     networks:
       default:
         # The app fetches Moodle's keyset server-to-server. Under its public
@@ -77,6 +79,7 @@ services:
       - '${APP_BIND_IP:-127.0.0.1}:${APP_HOST_PORT:-3000}:3000'
     volumes:
       - appdata:/data
+      - shared:/testenv-shared:ro
     restart: unless-stopped
 
 networks:
@@ -86,3 +89,4 @@ volumes:
   pgdata:
   moodledata:
   appdata:
+  shared:
