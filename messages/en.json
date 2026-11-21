@@ -110,7 +110,6 @@
 	"events_col_location": "Location",
 	"events_col_scans": "Scans",
 	"events_col_attendees": "Attended",
-	"events_attendance_open": "See attendance at {title}",
 	"events_col_unconfirmed": "Unconfirmed",
 	"unconfirmed_hint": "Typed in their details by hand and not linked to an account yet, so they don't count as attended",
 	"events_col_actions": "Actions",

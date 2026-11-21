@@ -133,7 +133,6 @@
 		{
 			accessorKey: 'attendees',
 			header: m.events_col_attendees(),
-			cell: ({ row }) => renderSnippet(attendeesCell, row.original),
 			meta: { class: 'text-right tabular-nums' }
 		},
 		{
@@ -175,15 +174,6 @@
 			{/if}
 		</span>
 	{/if}
-{/snippet}
-
-<!-- Where the eye goes for "who came": straight to the event's attendance. -->
-{#snippet attendeesCell(row: Row)}
-	<a
-		href={resolve('/admin/events/[id]', { id: row.id })}
-		class="underline underline-offset-4"
-		aria-label={m.events_attendance_open({ title: row.title })}>{row.attendees}</a
-	>
 {/snippet}
 
 {#snippet unconfirmedHead()}

@@ -113,7 +113,6 @@
 	"events_col_location": "Ort",
 	"events_col_scans": "Scans",
 	"events_col_attendees": "Anwesend",
-	"events_attendance_open": "Anwesenheit von {title} ansehen",
 	"events_col_unconfirmed": "Unbestätigt",
 	"unconfirmed_hint": "Haben ihre Daten von Hand eingegeben und sind noch mit keinem Konto verknüpft, zählen also nicht als anwesend",
 	"events_col_actions": "Aktionen",
