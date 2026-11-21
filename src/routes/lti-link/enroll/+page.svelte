@@ -365,9 +365,7 @@
 				<SmartphoneIcon class={optionIcon} aria-hidden="true" />
 				<span class="flex flex-1 flex-col gap-1">
 					<span class="text-lg font-semibold">{m.enroll_link_heading()}</span>
-					<span class="text-gray-600">
-						{link === 'elsewhere' ? m.enroll_setup_card_elsewhere() : m.enroll_setup_card_text()}
-					</span>
+					<span class="text-gray-600">{m.enroll_setup_card_text()}</span>
 				</span>
 				<ChevronRightIcon class={chevron} aria-hidden="true" />
 			</button>
