@@ -44,13 +44,15 @@
 	<p class="flex items-center gap-1 text-gray-600">
 		{m.attendance_events({ count: events.length })}
 		{#if withoutScanOut}· {m.attendance_no_scan_out({ count: withoutScanOut })}{/if}
+		<!-- Text-sized, unlike the admin pages' smaller help: a 12px icon looks lost next to 16px text. -->
 		<Button
 			variant="ghost"
-			size="icon-xs"
+			size="icon-sm"
+			class="-my-2 text-gray-500"
 			aria-label={m.attendance_help_title()}
 			onclick={() => (helpOpen = true)}
 		>
-			<CircleQuestionMarkIcon />
+			<CircleQuestionMarkIcon class="size-4" />
 		</Button>
 	</p>
 
