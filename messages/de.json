@@ -18,7 +18,7 @@
 	"admin_open_from_lms_text": "Organisator:innen kommen über die Organisations-Aktivität in ihrem Moodle-Kurs hierher. Hier gibt es nichts, womit man sich anmelden könnte.",
 	"admin_open_from_lms_heading": "Bitte über Moodle öffnen",
 	"admin_sign_out": "Abmelden",
-	"admin_attendees_text": "Alle, die das Anwesenheitstool geöffnet haben, und Teilnehmende löschen",
+	"admin_attendees_text": "Teilnehmende ansehen und löschen, z. B. auf DSGVO-Anfrage",
 	"admin_code_text": "Den QR-Code für eine Veranstaltung zum Scannen bereitstellen",
 	"admin_events_text": "Veranstaltungen anlegen und ansehen, wer gekommen ist",
 

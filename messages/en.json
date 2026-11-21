@@ -18,7 +18,7 @@
 	"admin_open_from_lms_text": "Organizers get in by opening the organizer activity in their Moodle course. There is nothing to sign in with here.",
 	"admin_open_from_lms_heading": "Open this from Moodle",
 	"admin_sign_out": "Sign out",
-	"admin_attendees_text": "Everyone who opened the attendance tool, and deleting attendees",
+	"admin_attendees_text": "See and delete attendees, e.g. on a GDPR request",
 	"admin_code_text": "Provide the QR code for an event to scan",
 	"admin_events_text": "Create events and see who came",
 
