@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { loadDeviceKey, scanMessage, sign } from '$lib/device-key';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
+	import MoodleActivityLink from '$lib/components/moodle-activity-link.svelte';
 	import ManualEntryForm from '$lib/components/manual-entry-form.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import type { ActionData, PageServerData } from './$types';
@@ -63,8 +64,10 @@
 		</p>
 	{/if}
 
-	<!-- Once the phone's own way is known not to work: not linked, or turned down. -->
+	<!-- Once the phone's own way is known not to work: not linked, or turned down.
+	     Moodle first: typing in details is the last resort. -->
 	{#if data.codeScanId && !scanned && (hasDeviceKey === false || form)}
+		<MoodleActivityLink />
 		<ManualEntryForm {keyId} {signature} />
 	{/if}
 

@@ -20,6 +20,7 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { browserName } from '$lib/browser-name';
 	import { day, time } from '$lib/event-when';
+	import MoodleActivityLink from '$lib/components/moodle-activity-link.svelte';
 	import MyAttendance from '$lib/components/my-attendance.svelte';
 	import QrScanner from '$lib/components/qr-scanner.svelte';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
@@ -225,6 +226,7 @@
 		<p class="text-gray-600">
 			{m.enroll_open_from_moodle_text()}
 		</p>
+		<MoodleActivityLink />
 	{:else if scanned}
 		<ScanConfirmation {scanned} />
 		<button type="button" onclick={() => open('attendance')} class={secondary}>
