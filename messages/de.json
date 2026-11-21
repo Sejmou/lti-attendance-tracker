@@ -117,7 +117,7 @@
 	"events_source_manual": "In diesem Tool angelegt",
 	"events_ongoing": "Läuft gerade",
 	"events_help_title": "Über Veranstaltungen",
-	"events_help_purpose": "Jede Veranstaltung hat einen eigenen QR-Code. Wer ihn scannt, war bei genau dieser Veranstaltung anwesend: der erste Scan gilt als eingescannt, der letzte als ausgescannt. Von Hand eingegebene Daten zählen erst, wenn eine Organisator:in sie verknüpft hat.",
+	"events_help_purpose": "Jede Veranstaltung hat einen eigenen QR-Code. Wer ihn scannt, war bei genau dieser Veranstaltung anwesend. Mit dem ersten Scan ist man eingescannt. Ausgescannt ist man erst mit einem weiteren Scan; bei mehreren zählt der letzte. Von Hand eingegebene Daten zählen erst, wenn eine Organisator:in sie verknüpft hat.",
 	"events_help_sources_title": "Woher Veranstaltungen kommen",
 	"events_help_calendar": "Werden automatisch übernommen. Bearbeiten nur im Kalender; „{sync}“ holt Änderungen sofort.",
 	"events_help_manual": "Mit „{newEvent}“ anlegen, mit dem Stift-Symbol bearbeiten.",
