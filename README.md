@@ -348,8 +348,9 @@ linked to their account by an organizer aren't theirs here: anyone can type anyo
 It is on `/` in a linked browser, for attendees who can't always get into Moodle. The page
 signs a challenge with the device key, `view:<challenge>`, the same way a scan is signed. The
 challenge is an HMAC token good for five minutes, so a signature can't be kept and used later,
-and nothing is stored: no session, nothing to sign out of. A browser without a key, or with
-one replaced since, is told to open the Moodle activity once.
+and nothing is stored: no session, nothing to sign out of. The `/scan` confirmation links to
+it. A browser without a key, or with one replaced since, is told to open the Moodle activity
+once.
 
 ### Why device keys, not passkeys
 

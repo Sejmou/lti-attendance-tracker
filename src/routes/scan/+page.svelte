@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
 	import { loadDeviceKey, scanMessage, sign } from '$lib/device-key';
 	import ScanConfirmation from '$lib/components/scan-confirmation.svelte';
 	import ManualEntryForm from '$lib/components/manual-entry-form.svelte';
@@ -38,6 +39,9 @@
 <main class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-6 p-6">
 	{#if scanned}
 		<ScanConfirmation {scanned} />
+		{#if !('manualEntry' in scanned)}
+			<a href={resolve('/')} class="text-blue-600 underline">{m.attendance_heading()}</a>
+		{/if}
 	{:else if !data.codeScanId}
 		<h1 class="text-2xl font-semibold">{m.scan_prompt_heading()}</h1>
 		<p class="text-gray-600">
