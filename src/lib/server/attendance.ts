@@ -141,7 +141,16 @@ export function attendanceByName(eventId: string) {
 			scannedIn,
 			last: max(scan.scannedAt),
 			scans: count(),
-			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`
+			// The scan-in or scan-out was typed in if it is the first or last of
+			// the typed-in ones.
+			firstManual:
+				sql<Date | null>`min(case when ${scan.method} = 'manual' then ${scan.scannedAt} end)`.mapWith(
+					scan.scannedAt
+				),
+			lastManual:
+				sql<Date | null>`max(case when ${scan.method} = 'manual' then ${scan.scannedAt} end)`.mapWith(
+					scan.scannedAt
+				)
 		})
 		.from(scan)
 		.innerJoin(user, eq(user.id, scan.userId))
@@ -149,9 +158,14 @@ export function attendanceByName(eventId: string) {
 		.groupBy(user.firstName, user.lastName)
 		.orderBy(scannedIn)
 		.all()
-		.map(({ last, ...row }) => ({
-			...row,
-			scannedIn: row.scannedIn!,
-			scannedOut: row.scans >= 2 ? last : null
-		}));
+		.map(({ last, firstManual, lastManual, ...row }) => {
+			const scannedOut = row.scans >= 2 ? last : null;
+			return {
+				...row,
+				scannedIn: row.scannedIn!,
+				scannedOut,
+				manualIn: firstManual?.getTime() === row.scannedIn!.getTime(),
+				manualOut: scannedOut !== null && lastManual?.getTime() === scannedOut.getTime()
+			};
+		});
 }

@@ -43,19 +43,25 @@ export function sheetDate(at: Date) {
 
 /**
  * Why a row got its code, for the spreadsheet's notes column. Always German:
- * the spreadsheet is.
+ * the spreadsheet is. A scan-in or scan-out that was typed in rather than
+ * confirmed is marked `manuell`; typed-in scans in between decide nothing.
  */
 export function sheetNote(
 	scannedIn: Date,
 	scannedOut: Date | null,
 	share: number | null,
-	{ late = false, manual = false } = {}
+	{ late = false, manualIn = false, manualOut = false } = {}
 ) {
+	const marks = (...list: (string | false)[]) => {
+		const set = list.filter(Boolean);
+		return set.length ? ` (${set.join(', ')})` : '';
+	};
 	const parts = [
-		`ein ${wallClock(scannedIn).time}${late ? ' (Nachfrist, ab Beginn gezählt)' : ''}`,
-		scannedOut ? `aus ${wallClock(scannedOut).time}` : 'nicht ausgescannt'
+		`ein ${wallClock(scannedIn).time}${marks(manualIn && 'manuell', late && 'Nachfrist, ab Beginn gezählt')}`,
+		scannedOut
+			? `aus ${wallClock(scannedOut).time}${marks(manualOut && 'manuell')}`
+			: 'nicht ausgescannt'
 	];
 	if (share !== null) parts.push(`${Math.round(share * 100)} % anwesend`);
-	if (manual) parts.push('enthält manuelle Eingabe');
 	return `Automatisch aus Scans erzeugt: ${parts.join(', ')}`;
 }

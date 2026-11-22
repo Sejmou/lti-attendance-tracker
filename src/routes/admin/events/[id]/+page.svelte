@@ -149,7 +149,8 @@
 				code,
 				note: sheetNote(row.scannedIn, row.scannedOut, share, {
 					late,
-					manual: row.manualScans > 0
+					manualIn: row.manualIn,
+					manualOut: row.manualOut
 				})
 			};
 		})

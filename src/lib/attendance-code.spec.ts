@@ -44,7 +44,12 @@ test('the spreadsheet date and note', () => {
 	expect(sheetNote(at('18:03'), at('19:58'), 0.96)).toBe(
 		'Automatisch aus Scans erzeugt: ein 18:03, aus 19:58, 96 % anwesend'
 	);
-	expect(sheetNote(at('18:03'), null, null, { manual: true })).toBe(
-		'Automatisch aus Scans erzeugt: ein 18:03, nicht ausgescannt, enthält manuelle Eingabe'
+	expect(sheetNote(at('18:03'), null, null, { manualIn: true })).toBe(
+		'Automatisch aus Scans erzeugt: ein 18:03 (manuell), nicht ausgescannt'
+	);
+	expect(
+		sheetNote(at('18:10'), at('20:00'), 1, { late: true, manualIn: true, manualOut: true })
+	).toBe(
+		'Automatisch aus Scans erzeugt: ein 18:10 (manuell, Nachfrist, ab Beginn gezählt), aus 20:00 (manuell), 100 % anwesend'
 	);
 });

@@ -242,7 +242,8 @@ test('by name, one row for a name scanned under two accounts; deleted attendees 
 			scannedIn: at('16:05'),
 			scannedOut: at('19:50'),
 			scans: 2,
-			manualScans: 1
+			manualIn: true,
+			manualOut: false
 		}
 	]);
 });
