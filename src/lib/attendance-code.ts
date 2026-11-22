@@ -38,6 +38,20 @@ export function attendanceCode(
 	return { code, share, late };
 }
 
+/** The spreadsheet's column names: German and fixed, like the spreadsheet. */
+export const sheetHeader = [
+	'Termin',
+	'Vorname',
+	'Nachname',
+	'Anwesenheitscode',
+	'Eingescannt',
+	'Ausgescannt',
+	'Anteil',
+	'Beginn',
+	'Ende',
+	'Anmerkungen'
+];
+
 /**
  * Rows as CSV for Excel: semicolons, which German Excel expects, every field
  * quoted, and a byte order mark, without which it reads UTF-8 as Latin-1.
@@ -54,26 +68,33 @@ export function sheetDate(at: Date) {
 }
 
 /**
- * Why a row got its code, for the spreadsheet's notes column. Always German:
- * the spreadsheet is. A scan-in or scan-out that was typed in rather than
- * confirmed is marked `manuell`; typed-in scans in between decide nothing.
+ * The spreadsheet's cells after the name and code, as Excel reads them in any
+ * locale: moments as `2026-10-05 18:03`, the share as a whole `96%` (a
+ * decimal would need a comma in German Excel), empty when unknown. The notes
+ * are always German: the spreadsheet is.
  */
-export function sheetNote(
+export function sheetValues(
+	event: Event,
 	scannedIn: Date,
 	scannedOut: Date | null,
 	share: number | null,
 	{ late = false, manualIn = false, manualOut = false } = {}
 ) {
-	const marks = (...list: (string | false)[]) => {
-		const set = list.filter(Boolean);
-		return set.length ? ` (${set.join(', ')})` : '';
+	const moment = (at: Date) => {
+		const { date, time } = wallClock(at);
+		return `${date} ${time}`;
 	};
-	const parts = [
-		`ein ${wallClock(scannedIn).time}${marks(manualIn && 'manuell', late && 'Nachfrist, ab Beginn gezählt')}`,
-		scannedOut
-			? `aus ${wallClock(scannedOut).time}${marks(manualOut && 'manuell')}`
-			: 'nicht ausgescannt'
+	const notes = [
+		manualIn && 'Einscannen manuell',
+		manualOut && 'Ausscannen manuell',
+		late && 'Einscannen in Nachfrist, ab Beginn gezählt'
+	].filter(Boolean);
+	return [
+		moment(scannedIn),
+		scannedOut ? moment(scannedOut) : '',
+		share === null ? '' : `${Math.round(share * 100)}%`,
+		moment(event.startsAt),
+		moment(event.endsAt),
+		notes.join('; ')
 	];
-	if (share !== null) parts.push(`${Math.round(share * 100)} % anwesend`);
-	return `Automatisch aus Scans erzeugt: ${parts.join(', ')}`;
 }

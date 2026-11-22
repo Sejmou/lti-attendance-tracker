@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import InfoIcon from '@lucide/svelte/icons/info';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import DataTable from '$lib/components/data-table.svelte';
@@ -13,8 +14,9 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { deviceName } from '$lib/device-name';
-	import { attendanceCode, sheetDate, sheetNote, toCsv } from '$lib/attendance-code';
+	import { attendanceCode, sheetDate, sheetHeader, sheetValues, toCsv } from '$lib/attendance-code';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -142,7 +144,7 @@
 				firstName: row.firstName,
 				lastName: row.lastName,
 				code,
-				note: sheetNote(row.scannedIn, row.scannedOut, share, {
+				values: sheetValues(event, row.scannedIn, row.scannedOut, share, {
 					late,
 					manualIn: row.manualIn,
 					manualOut: row.manualOut
@@ -156,7 +158,7 @@
 		row.firstName,
 		row.lastName,
 		row.code,
-		row.note
+		...row.values
 	];
 
 	let copied = $state<boolean | null>(null);
@@ -170,17 +172,10 @@
 	}
 
 	function downloadSheet() {
-		const header = [
-			m.sheet_col_date(),
-			m.sheet_col_first_name(),
-			m.sheet_col_last_name(),
-			m.sheet_col_code(),
-			m.sheet_col_note()
-		];
-		const csv = toCsv([header, ...sheet.map(sheetCells)]);
+		const csv = toCsv([sheetHeader, ...sheet.map(sheetCells)]);
 		const link = document.createElement('a');
 		link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-		link.download = `${m.sheet_file_name()}-${wallClock(event.startsAt).date}.csv`;
+		link.download = `anwesenheit-${wallClock(event.startsAt).date}.csv`;
 		link.click();
 		URL.revokeObjectURL(link.href);
 	}
@@ -465,7 +460,19 @@
 			{/if}
 			<div class="flex flex-wrap items-end gap-4">
 				<Field.Field class="w-auto">
-					<Field.Label for="sheet-day">{m.sheet_col_date()}</Field.Label>
+					<div class="flex items-center gap-1">
+						<Field.Label for="sheet-day">{sheetHeader[0]}</Field.Label>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} variant="ghost" size="icon-xs" aria-label={m.sheet_day_hint()}>
+										<InfoIcon />
+									</Button>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content class="max-w-xs">{m.sheet_day_hint()}</Tooltip.Content>
+						</Tooltip.Root>
+					</div>
 					<Input id="sheet-day" class="w-24" bind:value={sheetDay} />
 				</Field.Field>
 				{#if codeLate}
@@ -493,11 +500,9 @@
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							<Table.Head>{m.sheet_col_date()}</Table.Head>
-							<Table.Head>{m.sheet_col_first_name()}</Table.Head>
-							<Table.Head>{m.sheet_col_last_name()}</Table.Head>
-							<Table.Head>{m.sheet_col_code()}</Table.Head>
-							<Table.Head>{m.sheet_col_note()}</Table.Head>
+							{#each sheetHeader as name (name)}
+								<Table.Head>{name}</Table.Head>
+							{/each}
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
@@ -507,9 +512,9 @@
 								<Table.Cell>{row.firstName}</Table.Cell>
 								<Table.Cell>{row.lastName}</Table.Cell>
 								<Table.Cell class="font-mono">{row.code}</Table.Cell>
-								<Table.Cell class="text-xs whitespace-normal text-muted-foreground"
-									>{row.note}</Table.Cell
-								>
+								{#each row.values as value, i (i)}
+									<Table.Cell class="tabular-nums">{value}</Table.Cell>
+								{/each}
 							</Table.Row>
 						{/each}
 					</Table.Body>

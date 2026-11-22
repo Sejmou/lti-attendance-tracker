@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { attendanceCode, sheetDate, sheetNote, toCsv } from './attendance-code';
+import { attendanceCode, sheetDate, sheetValues, toCsv } from './attendance-code';
 
 // 18:00–20:00 in Vienna (UTC+2 in October).
 const at = (hhmm: string) => new Date(`2026-10-05T${hhmm}:00+02:00`);
@@ -44,19 +44,26 @@ test('a code that went up late lets scan-ins up to the grace period after the fi
 	expect(code('18:04', '20:00', '17:59')).toBe('x');
 });
 
-test('the spreadsheet date and note', () => {
+test('the spreadsheet date and values', () => {
 	expect(sheetDate(at('18:00'))).toBe('5.10.');
-	expect(sheetNote(at('18:03'), at('19:58'), 0.96)).toBe(
-		'Automatisch aus Scans erzeugt: ein 18:03, aus 19:58, 96 % anwesend'
-	);
-	expect(sheetNote(at('18:03'), null, null, { manualIn: true })).toBe(
-		'Automatisch aus Scans erzeugt: ein 18:03 (manuell), nicht ausgescannt'
-	);
+	expect(sheetValues(talk, at('18:03'), at('19:58'), 0.955)).toEqual([
+		'2026-10-05 18:03',
+		'2026-10-05 19:58',
+		'96%',
+		'2026-10-05 18:00',
+		'2026-10-05 20:00',
+		''
+	]);
 	expect(
-		sheetNote(at('18:10'), at('20:00'), 1, { late: true, manualIn: true, manualOut: true })
-	).toBe(
-		'Automatisch aus Scans erzeugt: ein 18:10 (manuell, Nachfrist, ab Beginn gezählt), aus 20:00 (manuell), 100 % anwesend'
-	);
+		sheetValues(talk, at('18:03'), null, null, { late: true, manualIn: true }).slice(1, 3)
+	).toEqual(['', '']);
+	expect(
+		sheetValues(talk, at('18:03'), at('20:00'), 1, {
+			late: true,
+			manualIn: true,
+			manualOut: true
+		})[5]
+	).toBe('Einscannen manuell; Ausscannen manuell; Einscannen in Nachfrist, ab Beginn gezählt');
 });
 
 test('CSV for Excel: semicolons, every field quoted, quotes doubled', () => {
