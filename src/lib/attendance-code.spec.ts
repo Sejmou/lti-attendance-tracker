@@ -4,13 +4,17 @@ import { attendanceCode, sheetDate, sheetNote } from './attendance-code';
 // 18:00–20:00 in Vienna (UTC+2 in October).
 const at = (hhmm: string) => new Date(`2026-10-05T${hhmm}:00+02:00`);
 const talk = { startsAt: at('18:00'), endsAt: at('20:00'), allDay: false };
-const code = (scannedIn: string, scannedOut: string | null, graceUntil?: string) =>
-	attendanceCode(
-		talk,
-		at(scannedIn),
-		scannedOut ? at(scannedOut) : null,
-		graceUntil ? at(graceUntil) : null
-	).code;
+// Without a first scan given, the code was up before the start.
+const code = (
+	scannedIn: string,
+	scannedOut: string | null,
+	firstScan = '17:55',
+	graceMinutes = 5
+) =>
+	attendanceCode(talk, at(scannedIn), scannedOut ? at(scannedOut) : null, {
+		firstScan: at(firstScan),
+		graceMinutes
+	}).code;
 
 test('full when in before a quarter of the event passed, scan-out or not', () => {
 	expect(code('18:29', null)).toBe('x');
@@ -31,12 +35,13 @@ test('punctual from 97 % on', () => {
 	expect(code('18:00', null)).toBe('x');
 });
 
-test('a late code lets scan-ins up to the grace end count from the start', () => {
+test('a code that went up late lets scan-ins up to the grace period after the first scan count from the start', () => {
 	expect(code('18:35', '20:00')).toBe('y');
-	expect(code('18:35', '20:00', '18:35')).toBe('xp');
-	expect(code('18:36', '20:00', '18:35')).toBe('y');
-	// A grace end before the start changes nothing.
-	expect(code('18:05', '20:00', '17:59')).toBe('x');
+	expect(code('18:35', '20:00', '18:30')).toBe('xp');
+	expect(code('18:36', '20:00', '18:30')).toBe('y');
+	expect(code('18:35', '20:00', '18:30', 0)).toBe('y');
+	// Up before the start: scanning in a little late is just late.
+	expect(code('18:04', '20:00', '17:59')).toBe('x');
 });
 
 test('the spreadsheet date and note', () => {

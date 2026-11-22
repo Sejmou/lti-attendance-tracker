@@ -12,19 +12,22 @@ type Event = { startsAt: Date; endsAt: Date; allDay: boolean };
  * - partial: scanned in and out, and there for 45 % up to (not including) 75 %
  * - punctual: scanned in and out, and there for at least 97 %
  *
- * `graceUntil` is for when the code went up late: a scan-in up to then counts
- * as one at the start, since nobody could scan in earlier. Before the start it
- * changes nothing.
+ * The event's first scan, anyone's, is when the code went up. If that was
+ * only after the start, nobody could scan in on time, so a scan-in up to
+ * `graceMinutes` after it counts as one at the start (the choir's FAQ: "zum
+ * Probenbeginn eingescannt", if close to the others).
  */
 export function attendanceCode(
 	event: Event,
 	scannedIn: Date,
 	scannedOut: Date | null,
-	graceUntil: Date | null = null
+	{ firstScan, graceMinutes }: { firstScan: Date; graceMinutes: number }
 ) {
 	const start = event.startsAt.getTime();
 	const length = event.endsAt.getTime() - start;
-	const late = graceUntil !== null && graceUntil.getTime() > start && scannedIn <= graceUntil;
+	const late =
+		firstScan.getTime() > start &&
+		scannedIn.getTime() <= firstScan.getTime() + graceMinutes * 60_000;
 	const from = late ? event.startsAt : scannedIn;
 
 	const missed = (Math.max(from.getTime(), start) - start) / length;

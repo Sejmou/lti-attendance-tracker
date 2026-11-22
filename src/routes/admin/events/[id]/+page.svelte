@@ -6,7 +6,6 @@
 	import DataTable from '$lib/components/data-table.svelte';
 	import EventSourceHelp from '$lib/components/event-source-help.svelte';
 	import EventSourceIcon from '$lib/components/event-source-icon.svelte';
-	import TimeInput from '$lib/components/time-input.svelte';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
@@ -20,7 +19,7 @@
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { day, eventWhen, time } from '$lib/event-when';
-	import { fromWallClock, wallClock } from '$lib/time';
+	import { wallClock } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
@@ -126,22 +125,16 @@
 			' '
 		);
 
-	// When the code went up, by default 5 minutes before the start: then the
-	// grace period ends before the start and changes nothing.
-	let codeFrom = $derived(wallClock(new Date(event.startsAt.getTime() - 5 * 60_000)).time);
+	// The log is newest first; its last row is when the code went up.
+	const firstScan = $derived(data.log.rows.at(-1)?.at);
+	const codeLate = $derived(firstScan !== undefined && firstScan > event.startsAt);
 	let graceMinutes = $state(5);
-	const graceUntil = $derived.by(() => {
-		const from = fromWallClock(wallClock(event.startsAt).date, codeFrom);
-		return from && new Date(from.getTime() + graceMinutes * 60_000);
-	});
 	const sheet = $derived(
 		data.byName.map((row) => {
-			const { code, share, late } = attendanceCode(
-				event,
-				row.scannedIn,
-				row.scannedOut,
-				graceUntil
-			);
+			const { code, share, late } = attendanceCode(event, row.scannedIn, row.scannedOut, {
+				firstScan: firstScan!,
+				graceMinutes
+			});
 			return {
 				date: sheetDate(event.startsAt),
 				firstName: row.firstName,
@@ -443,33 +436,27 @@
 		<section class="flex flex-col gap-3">
 			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
 			<p class="text-sm text-muted-foreground">{m.sheet_hint()}</p>
+			{#if codeLate}
+				<p class="text-sm">{m.sheet_grace_hint({ time: time(firstScan!) })}</p>
+			{/if}
 			<div class="flex flex-wrap items-end gap-4">
-				<Field.Field class="w-auto">
-					<Field.Label for="sheet-code-from">{m.sheet_code_from()}</Field.Label>
-					<TimeInput
-						id="sheet-code-from"
-						name="codeFrom"
-						label={m.sheet_code_from()}
-						bind:value={codeFrom}
-					/>
-				</Field.Field>
-				<Field.Field class="w-auto">
-					<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
-					<Input
-						id="sheet-grace"
-						type="number"
-						min="0"
-						max="15"
-						class="w-24"
-						title={m.sheet_grace_hint()}
-						bind:value={graceMinutes}
-					/>
-				</Field.Field>
+				{#if codeLate}
+					<Field.Field class="w-auto">
+						<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
+						<Input
+							id="sheet-grace"
+							type="number"
+							min="0"
+							max="60"
+							class="w-24"
+							bind:value={graceMinutes}
+						/>
+					</Field.Field>
+				{/if}
 				<Button onclick={copySheet}>
 					{copied ? m.sheet_copied() : m.sheet_copy()}
 				</Button>
 			</div>
-			<p class="text-sm text-muted-foreground">{m.sheet_grace_hint()}</p>
 			{#if copied === false}
 				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>
 			{/if}
