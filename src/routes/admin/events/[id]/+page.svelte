@@ -6,17 +6,21 @@
 	import DataTable from '$lib/components/data-table.svelte';
 	import EventSourceHelp from '$lib/components/event-source-help.svelte';
 	import EventSourceIcon from '$lib/components/event-source-icon.svelte';
+	import TimeInput from '$lib/components/time-input.svelte';
 	import { renderSnippet } from '$lib/components/ui/data-table';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Field from '$lib/components/ui/field';
+	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { deviceName } from '$lib/device-name';
+	import { attendanceCode, sheetDate, sheetNote } from '$lib/attendance-code';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { day, eventWhen, time } from '$lib/event-when';
-	import { wallClock } from '$lib/time';
+	import { fromWallClock, wallClock } from '$lib/time';
 	import type { ActionData, PageServerData } from './$types';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
@@ -121,6 +125,47 @@
 		[row.firstName, row.lastName, row.email, ...row.linkedFrom.map((typed) => typed.email)].join(
 			' '
 		);
+
+	// When the code went up, by default 5 minutes before the start: then the
+	// grace period ends before the start and changes nothing.
+	let codeFrom = $derived(wallClock(new Date(event.startsAt.getTime() - 5 * 60_000)).time);
+	let graceMinutes = $state(5);
+	const graceUntil = $derived.by(() => {
+		const from = fromWallClock(wallClock(event.startsAt).date, codeFrom);
+		return from && new Date(from.getTime() + graceMinutes * 60_000);
+	});
+	const sheet = $derived(
+		data.byName.map((row) => {
+			const { code, share, late } = attendanceCode(
+				event,
+				row.scannedIn,
+				row.scannedOut,
+				graceUntil
+			);
+			return {
+				date: sheetDate(event.startsAt),
+				firstName: row.firstName,
+				lastName: row.lastName,
+				code,
+				note: sheetNote(row.scannedIn, row.scannedOut, share, {
+					late,
+					manual: row.manualScans > 0
+				})
+			};
+		})
+	);
+
+	let copied = $state<boolean | null>(null);
+	async function copySheet() {
+		// Tab-separated, which Excel splits into cells on paste.
+		const text = sheet
+			.map((row) => [row.date, row.firstName, row.lastName, row.code, row.note].join('\t'))
+			.join('\n');
+		copied = await navigator.clipboard.writeText(text).then(
+			() => true,
+			() => false
+		);
+	}
 
 	type LogRow = PageServerData['log']['rows'][number];
 
@@ -392,6 +437,69 @@
 			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
 		{/if}
 	</section>
+
+	{#if sheet.length > 0}
+		<section class="flex flex-col gap-3">
+			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
+			<p class="text-sm text-muted-foreground">{m.sheet_hint()}</p>
+			<div class="flex flex-wrap items-end gap-4">
+				<Field.Field class="w-auto">
+					<Field.Label for="sheet-code-from">{m.sheet_code_from()}</Field.Label>
+					<TimeInput
+						id="sheet-code-from"
+						name="codeFrom"
+						label={m.sheet_code_from()}
+						bind:value={codeFrom}
+					/>
+				</Field.Field>
+				<Field.Field class="w-auto">
+					<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
+					<Input
+						id="sheet-grace"
+						type="number"
+						min="0"
+						max="15"
+						class="w-24"
+						title={m.sheet_grace_hint()}
+						bind:value={graceMinutes}
+					/>
+				</Field.Field>
+				<Button onclick={copySheet}>
+					{copied ? m.sheet_copied() : m.sheet_copy()}
+				</Button>
+			</div>
+			<p class="text-sm text-muted-foreground">{m.sheet_grace_hint()}</p>
+			{#if copied === false}
+				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>
+			{/if}
+			<div class="overflow-x-auto">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>{m.sheet_col_date()}</Table.Head>
+							<Table.Head>{m.sheet_col_first_name()}</Table.Head>
+							<Table.Head>{m.sheet_col_last_name()}</Table.Head>
+							<Table.Head>{m.sheet_col_code()}</Table.Head>
+							<Table.Head>{m.sheet_col_note()}</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each sheet as row (`${row.firstName}\n${row.lastName}`)}
+							<Table.Row>
+								<Table.Cell>{row.date}</Table.Cell>
+								<Table.Cell>{row.firstName}</Table.Cell>
+								<Table.Cell>{row.lastName}</Table.Cell>
+								<Table.Cell class="font-mono">{row.code}</Table.Cell>
+								<Table.Cell class="text-xs whitespace-normal text-muted-foreground"
+									>{row.note}</Table.Cell
+								>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+		</section>
+	{/if}
 
 	{#if data.log.rows.length > 0}
 		<section class="flex flex-col gap-3">

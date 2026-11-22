@@ -125,3 +125,33 @@ export function myAttendance(userId: string) {
 	}
 	return [...events.values()];
 }
+
+/**
+ * Like attendance, but one row per name rather than per person, as the
+ * attendance spreadsheet has it: someone who typed in their details and also
+ * scanned from their account is one row there, linked or not. Deleted
+ * attendees have no name left, so they are left out.
+ */
+export function attendanceByName(eventId: string) {
+	const scannedIn = min(scan.scannedAt);
+	return db
+		.select({
+			firstName: user.firstName,
+			lastName: user.lastName,
+			scannedIn,
+			last: max(scan.scannedAt),
+			scans: count(),
+			manualScans: sql<number>`count(case when ${scan.method} = 'manual' then 1 end)`
+		})
+		.from(scan)
+		.innerJoin(user, eq(user.id, scan.userId))
+		.where(eq(scan.eventId, eventId))
+		.groupBy(user.firstName, user.lastName)
+		.orderBy(scannedIn)
+		.all()
+		.map(({ last, ...row }) => ({
+			...row,
+			scannedIn: row.scannedIn!,
+			scannedOut: row.scans >= 2 ? last : null
+		}));
+}
