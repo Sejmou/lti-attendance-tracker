@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import type { ColumnDef } from '@tanstack/table-core';
@@ -420,37 +421,6 @@
 		</Button>
 	</header>
 
-	<section class="flex flex-col gap-3">
-		<h2 class="text-lg font-semibold">{m.attendance_title()}</h2>
-		<p class="text-sm text-muted-foreground">
-			{m.attendance_present({ count: present })} ·
-			{#if present < data.attendance.length}
-				<span title={m.unconfirmed_hint()}>
-					{m.attendance_unconfirmed({ count: data.attendance.length - present })}
-				</span>
-				·
-			{/if}
-			{m.attendance_scanned_out({ count: scannedOut })}
-		</p>
-		{#if data.attendance.length === 0}
-			<p class="text-muted-foreground">{m.scans_none()}</p>
-		{:else}
-			<DataTable
-				data={data.attendance}
-				columns={attendanceColumns}
-				placeholder={m.table_search_people()}
-				sorting={[{ id: 'in', desc: false }]}
-				search={attendanceSearch}
-				rowId={(row) => row.scanner}
-			/>
-			{#if form && 'linkFailed' in form}
-				<p class="text-sm text-red-600" role="alert">{m.link_failed()}</p>
-			{/if}
-			<p class="text-sm text-muted-foreground">{m.attendance_footnote()}</p>
-			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
-		{/if}
-	</section>
-
 	{#if sheet.length > 0}
 		<section class="flex flex-col gap-3">
 			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
@@ -522,6 +492,55 @@
 			</div>
 		</section>
 	{/if}
+
+	<section class="flex flex-col gap-3">
+		<h2 class="flex items-center gap-2 text-lg font-semibold">
+			{m.attendance_title()}
+			<Badge variant="outline">{m.attendance_wip()}</Badge>
+			<Dialog.Root>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} variant="ghost" size="icon-xs" aria-label={m.attendance_wip_more()}>
+							<CircleQuestionMarkIcon />
+						</Button>
+					{/snippet}
+				</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Header>
+						<Dialog.Title>{m.attendance_wip()}</Dialog.Title>
+						<Dialog.Description>{m.attendance_wip_hint()}</Dialog.Description>
+					</Dialog.Header>
+				</Dialog.Content>
+			</Dialog.Root>
+		</h2>
+		<p class="text-sm text-muted-foreground">
+			{m.attendance_present({ count: present })} ·
+			{#if present < data.attendance.length}
+				<span title={m.unconfirmed_hint()}>
+					{m.attendance_unconfirmed({ count: data.attendance.length - present })}
+				</span>
+				·
+			{/if}
+			{m.attendance_scanned_out({ count: scannedOut })}
+		</p>
+		{#if data.attendance.length === 0}
+			<p class="text-muted-foreground">{m.scans_none()}</p>
+		{:else}
+			<DataTable
+				data={data.attendance}
+				columns={attendanceColumns}
+				placeholder={m.table_search_people()}
+				sorting={[{ id: 'in', desc: false }]}
+				search={attendanceSearch}
+				rowId={(row) => row.scanner}
+			/>
+			{#if form && 'linkFailed' in form}
+				<p class="text-sm text-red-600" role="alert">{m.link_failed()}</p>
+			{/if}
+			<p class="text-sm text-muted-foreground">{m.attendance_footnote()}</p>
+			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
+		{/if}
+	</section>
 
 	{#if data.log.rows.length > 0}
 		<section class="flex flex-col gap-3">
