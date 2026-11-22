@@ -10,8 +10,11 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as Field from '$lib/components/ui/field';
+	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { deviceName } from '$lib/device-name';
+	import { attendanceCode, sheetDate, sheetNote, toCsv } from '$lib/attendance-code';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -121,6 +124,66 @@
 		[row.firstName, row.lastName, row.email, ...row.linkedFrom.map((typed) => typed.email)].join(
 			' '
 		);
+
+	// The log is newest first; its last row is when the code went up.
+	const firstScan = $derived(data.log.rows.at(-1)?.at);
+	const codeLate = $derived(firstScan !== undefined && firstScan > event.startsAt);
+	let graceMinutes = $state(5);
+	// Editable, for a spreadsheet column that names the day differently.
+	let sheetDay = $derived(sheetDate(event.startsAt));
+	const sheet = $derived(
+		data.byName.map((row) => {
+			const { code, share, late } = attendanceCode(event, row.scannedIn, row.scannedOut, {
+				firstScan: firstScan!,
+				graceMinutes
+			});
+			return {
+				date: sheetDay,
+				firstName: row.firstName,
+				lastName: row.lastName,
+				code,
+				note: sheetNote(row.scannedIn, row.scannedOut, share, {
+					late,
+					manualIn: row.manualIn,
+					manualOut: row.manualOut
+				})
+			};
+		})
+	);
+
+	const sheetCells = (row: (typeof sheet)[number]) => [
+		row.date,
+		row.firstName,
+		row.lastName,
+		row.code,
+		row.note
+	];
+
+	let copied = $state<boolean | null>(null);
+	async function copySheet() {
+		// Tab-separated, which Excel splits into cells on paste.
+		const text = sheet.map((row) => sheetCells(row).join('\t')).join('\n');
+		copied = await navigator.clipboard.writeText(text).then(
+			() => true,
+			() => false
+		);
+	}
+
+	function downloadSheet() {
+		const header = [
+			m.sheet_col_date(),
+			m.sheet_col_first_name(),
+			m.sheet_col_last_name(),
+			m.sheet_col_code(),
+			m.sheet_col_note()
+		];
+		const csv = toCsv([header, ...sheet.map(sheetCells)]);
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+		link.download = `${m.sheet_file_name()}-${wallClock(event.startsAt).date}.csv`;
+		link.click();
+		URL.revokeObjectURL(link.href);
+	}
 
 	type LogRow = PageServerData['log']['rows'][number];
 
@@ -392,6 +455,68 @@
 			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
 		{/if}
 	</section>
+
+	{#if sheet.length > 0}
+		<section class="flex flex-col gap-3">
+			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
+			<p class="text-sm text-muted-foreground">{m.sheet_hint()}</p>
+			{#if codeLate}
+				<p class="text-sm">{m.sheet_grace_hint({ time: time(firstScan!) })}</p>
+			{/if}
+			<div class="flex flex-wrap items-end gap-4">
+				<Field.Field class="w-auto">
+					<Field.Label for="sheet-day">{m.sheet_col_date()}</Field.Label>
+					<Input id="sheet-day" class="w-24" bind:value={sheetDay} />
+				</Field.Field>
+				{#if codeLate}
+					<Field.Field class="w-auto">
+						<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
+						<Input
+							id="sheet-grace"
+							type="number"
+							min="0"
+							max="60"
+							class="w-24"
+							bind:value={graceMinutes}
+						/>
+					</Field.Field>
+				{/if}
+				<Button onclick={copySheet}>
+					{copied ? m.sheet_copied() : m.sheet_copy()}
+				</Button>
+				<Button variant="outline" onclick={downloadSheet}>{m.sheet_download()}</Button>
+			</div>
+			{#if copied === false}
+				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>
+			{/if}
+			<div class="overflow-x-auto">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>{m.sheet_col_date()}</Table.Head>
+							<Table.Head>{m.sheet_col_first_name()}</Table.Head>
+							<Table.Head>{m.sheet_col_last_name()}</Table.Head>
+							<Table.Head>{m.sheet_col_code()}</Table.Head>
+							<Table.Head>{m.sheet_col_note()}</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each sheet as row (`${row.firstName}\n${row.lastName}`)}
+							<Table.Row>
+								<Table.Cell>{row.date}</Table.Cell>
+								<Table.Cell>{row.firstName}</Table.Cell>
+								<Table.Cell>{row.lastName}</Table.Cell>
+								<Table.Cell class="font-mono">{row.code}</Table.Cell>
+								<Table.Cell class="text-xs whitespace-normal text-muted-foreground"
+									>{row.note}</Table.Cell
+								>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+		</section>
+	{/if}
 
 	{#if data.log.rows.length > 0}
 		<section class="flex flex-col gap-3">

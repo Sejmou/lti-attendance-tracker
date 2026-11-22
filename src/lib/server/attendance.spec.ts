@@ -1,8 +1,8 @@
 import { beforeAll, expect, test } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { like } from 'drizzle-orm';
+import { inArray, like } from 'drizzle-orm';
 import { env } from '$env/dynamic/private';
-import { attendance, direction, myAttendance } from './attendance';
+import { attendance, attendanceByName, direction, myAttendance } from './attendance';
 import { listEvents } from './events';
 import { link } from './manual-entry';
 import { db } from './db';
@@ -21,6 +21,12 @@ beforeAll(() => {
 		.where(like(user.ltiSubject, `["${PLATFORM}"%`))
 		.run();
 	db.delete(user).where(like(user.email, '%@typed.attendance.test')).run();
+	// A deleted attendee's scans don't cascade with anyone.
+	const events = db
+		.select({ id: event.id })
+		.from(event)
+		.where(like(event.title, 'attendance.spec %'));
+	db.delete(scan).where(inArray(scan.eventId, events)).run();
 	db.delete(event).where(like(event.title, 'attendance.spec %')).run();
 });
 
@@ -189,5 +195,55 @@ test("an attendee's own attendance: newest event first, each with its scans in o
 				{ scannedAt: at('19:55'), method: 'device', linked: false }
 			]
 		})
+	]);
+});
+
+test('by name, one row for a name scanned under two accounts; deleted attendees are left out', () => {
+	const talk = someEvent('by name');
+	const ada = someone('Ada');
+	// The same name typed in, never linked to Ada's account.
+	const email = `ada.${crypto.randomUUID()}@typed.attendance.test`;
+	const typed = db
+		.insert(user)
+		.values({
+			id: crypto.randomUUID(),
+			email,
+			firstName: 'Ada',
+			lastName: 'Test',
+			ltiSubject: JSON.stringify(['manual', email])
+		})
+		.returning()
+		.get();
+	db.insert(scan)
+		.values({
+			userId: typed.id,
+			reportedAs: typed.id,
+			eventId: talk.id,
+			method: 'manual',
+			codeScanId: crypto.randomUUID(),
+			scannedAt: at('16:05')
+		})
+		.run();
+	scanAt(ada.id, talk.id, '19:50');
+	db.insert(scan)
+		.values({
+			anonymousId: crypto.randomUUID(),
+			eventId: talk.id,
+			method: 'device',
+			codeScanId: crypto.randomUUID(),
+			scannedAt: at('16:00')
+		})
+		.run();
+
+	expect(attendanceByName(talk.id)).toEqual([
+		{
+			firstName: 'Ada',
+			lastName: 'Test',
+			scannedIn: at('16:05'),
+			scannedOut: at('19:50'),
+			scans: 2,
+			manualIn: true,
+			manualOut: false
+		}
 	]);
 });
