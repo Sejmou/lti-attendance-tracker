@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import CircleQuestionMarkIcon from '@lucide/svelte/icons/circle-question-mark';
+	import InfoIcon from '@lucide/svelte/icons/info';
 	import QrCodeIcon from '@lucide/svelte/icons/qr-code';
 	import type { ColumnDef } from '@tanstack/table-core';
 	import DataTable from '$lib/components/data-table.svelte';
@@ -13,8 +15,9 @@
 	import * as Field from '$lib/components/ui/field';
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { deviceName } from '$lib/device-name';
-	import { attendanceCode, sheetDate, sheetNote, toCsv } from '$lib/attendance-code';
+	import { attendanceCode, sheetDate, sheetHeader, sheetValues, toCsv } from '$lib/attendance-code';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -142,7 +145,7 @@
 				firstName: row.firstName,
 				lastName: row.lastName,
 				code,
-				note: sheetNote(row.scannedIn, row.scannedOut, share, {
+				values: sheetValues(event, row.scannedIn, row.scannedOut, share, {
 					late,
 					manualIn: row.manualIn,
 					manualOut: row.manualOut
@@ -156,7 +159,7 @@
 		row.firstName,
 		row.lastName,
 		row.code,
-		row.note
+		...row.values
 	];
 
 	let copied = $state<boolean | null>(null);
@@ -170,17 +173,10 @@
 	}
 
 	function downloadSheet() {
-		const header = [
-			m.sheet_col_date(),
-			m.sheet_col_first_name(),
-			m.sheet_col_last_name(),
-			m.sheet_col_code(),
-			m.sheet_col_note()
-		];
-		const csv = toCsv([header, ...sheet.map(sheetCells)]);
+		const csv = toCsv([sheetHeader, ...sheet.map(sheetCells)]);
 		const link = document.createElement('a');
 		link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-		link.download = `${m.sheet_file_name()}-${wallClock(event.startsAt).date}.csv`;
+		link.download = `anwesenheit-${wallClock(event.startsAt).date}.csv`;
 		link.click();
 		URL.revokeObjectURL(link.href);
 	}
@@ -425,8 +421,98 @@
 		</Button>
 	</header>
 
+	{#if sheet.length > 0}
+		<section class="flex flex-col gap-3">
+			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
+			<p class="text-sm text-muted-foreground">{m.sheet_hint()}</p>
+			{#if codeLate}
+				<p class="text-sm">{m.sheet_grace_hint({ time: time(firstScan!) })}</p>
+			{/if}
+			<div class="flex flex-wrap items-end gap-4">
+				<Field.Field class="w-auto">
+					<div class="flex items-center gap-1">
+						<Field.Label for="sheet-day">{sheetHeader[0]}</Field.Label>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} variant="ghost" size="icon-xs" aria-label={m.sheet_day_hint()}>
+										<InfoIcon />
+									</Button>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content class="max-w-xs">{m.sheet_day_hint()}</Tooltip.Content>
+						</Tooltip.Root>
+					</div>
+					<Input id="sheet-day" class="w-24" bind:value={sheetDay} />
+				</Field.Field>
+				{#if codeLate}
+					<Field.Field class="w-auto">
+						<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
+						<Input
+							id="sheet-grace"
+							type="number"
+							min="0"
+							max="60"
+							class="w-24"
+							bind:value={graceMinutes}
+						/>
+					</Field.Field>
+				{/if}
+				<Button onclick={copySheet}>
+					{copied ? m.sheet_copied() : m.sheet_copy()}
+				</Button>
+				<Button variant="outline" onclick={downloadSheet}>{m.sheet_download()}</Button>
+			</div>
+			{#if copied === false}
+				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>
+			{/if}
+			<div class="overflow-x-auto">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							{#each sheetHeader as name (name)}
+								<Table.Head>{name}</Table.Head>
+							{/each}
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each sheet as row (`${row.firstName}\n${row.lastName}`)}
+							<Table.Row>
+								<Table.Cell>{row.date}</Table.Cell>
+								<Table.Cell>{row.firstName}</Table.Cell>
+								<Table.Cell>{row.lastName}</Table.Cell>
+								<Table.Cell class="font-mono">{row.code}</Table.Cell>
+								{#each row.values as value, i (i)}
+									<Table.Cell class="tabular-nums">{value}</Table.Cell>
+								{/each}
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+		</section>
+	{/if}
+
 	<section class="flex flex-col gap-3">
-		<h2 class="text-lg font-semibold">{m.attendance_title()}</h2>
+		<h2 class="flex items-center gap-2 text-lg font-semibold">
+			{m.attendance_title()}
+			<Badge variant="outline">{m.attendance_wip()}</Badge>
+			<Dialog.Root>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} variant="ghost" size="icon-xs" aria-label={m.attendance_wip_more()}>
+							<CircleQuestionMarkIcon />
+						</Button>
+					{/snippet}
+				</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Header>
+						<Dialog.Title>{m.attendance_wip()}</Dialog.Title>
+						<Dialog.Description>{m.attendance_wip_hint()}</Dialog.Description>
+					</Dialog.Header>
+				</Dialog.Content>
+			</Dialog.Root>
+		</h2>
 		<p class="text-sm text-muted-foreground">
 			{m.attendance_present({ count: present })} ·
 			{#if present < data.attendance.length}
@@ -455,68 +541,6 @@
 			<p class="text-sm text-muted-foreground">{m.attendance_share_footnote()}</p>
 		{/if}
 	</section>
-
-	{#if sheet.length > 0}
-		<section class="flex flex-col gap-3">
-			<h2 class="text-lg font-semibold">{m.sheet_title()}</h2>
-			<p class="text-sm text-muted-foreground">{m.sheet_hint()}</p>
-			{#if codeLate}
-				<p class="text-sm">{m.sheet_grace_hint({ time: time(firstScan!) })}</p>
-			{/if}
-			<div class="flex flex-wrap items-end gap-4">
-				<Field.Field class="w-auto">
-					<Field.Label for="sheet-day">{m.sheet_col_date()}</Field.Label>
-					<Input id="sheet-day" class="w-24" bind:value={sheetDay} />
-				</Field.Field>
-				{#if codeLate}
-					<Field.Field class="w-auto">
-						<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
-						<Input
-							id="sheet-grace"
-							type="number"
-							min="0"
-							max="60"
-							class="w-24"
-							bind:value={graceMinutes}
-						/>
-					</Field.Field>
-				{/if}
-				<Button onclick={copySheet}>
-					{copied ? m.sheet_copied() : m.sheet_copy()}
-				</Button>
-				<Button variant="outline" onclick={downloadSheet}>{m.sheet_download()}</Button>
-			</div>
-			{#if copied === false}
-				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>
-			{/if}
-			<div class="overflow-x-auto">
-				<Table.Root>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head>{m.sheet_col_date()}</Table.Head>
-							<Table.Head>{m.sheet_col_first_name()}</Table.Head>
-							<Table.Head>{m.sheet_col_last_name()}</Table.Head>
-							<Table.Head>{m.sheet_col_code()}</Table.Head>
-							<Table.Head>{m.sheet_col_note()}</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each sheet as row (`${row.firstName}\n${row.lastName}`)}
-							<Table.Row>
-								<Table.Cell>{row.date}</Table.Cell>
-								<Table.Cell>{row.firstName}</Table.Cell>
-								<Table.Cell>{row.lastName}</Table.Cell>
-								<Table.Cell class="font-mono">{row.code}</Table.Cell>
-								<Table.Cell class="text-xs whitespace-normal text-muted-foreground"
-									>{row.note}</Table.Cell
-								>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
-		</section>
-	{/if}
 
 	{#if data.log.rows.length > 0}
 		<section class="flex flex-col gap-3">
