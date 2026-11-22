@@ -22,13 +22,13 @@ const PRESENCE_MS = 10 * 60_000;
  */
 export const ENROLLMENT_MS = 15 * 60_000;
 
-function hmac(message: string) {
+function hmac(message: string, encoding: 'base64url' | 'hex' = 'base64url') {
 	// Checked at startup, so this only fires in `vite build`'s analysis pass —
 	// signing a QR token with nothing is not a fallback.
 	const secret = env.SIGNING_SECRET;
 	if (!secret) throw new Error('SIGNING_SECRET is not set');
 
-	return createHmac('sha256', secret).update(message).digest('base64url');
+	return createHmac('sha256', secret).update(message).digest(encoding);
 }
 
 function equals(a: string, b: string) {
@@ -58,10 +58,15 @@ function screenOf(value: string | null): CodeScreen | null {
  *
  * Names the admin showing it (`hostId`), so the first attendee through files a
  * scan for them too — see `hostScan`.
+ *
+ * All uppercase, so the QR code can use its alphanumeric mode (5.5 bits a
+ * character instead of 8) and come out a few sizes smaller. The signature is cut
+ * to 128 bits: plenty for a code that lives a minute.
  */
 export function bucketToken(screen: CodeScreen, at = Date.now()) {
 	const id = subject(screen);
-	return `${id}.${hmac(`code:${id}:${Math.floor(at / BUCKET_MS)}`)}`;
+	const signature = hmac(`code:${id}:${Math.floor(at / BUCKET_MS)}`, 'hex').slice(0, 32);
+	return `${id}.${signature}`.toUpperCase();
 }
 
 /** Milliseconds until the on-screen code changes. */
@@ -73,8 +78,11 @@ export function msUntilNextBucket(at = Date.now()) {
  * The screen the code was on, or null if it isn't ours. Accepts the current
  * bucket and the previous one, so a scan mid-rotation survives.
  */
-export function verifyBucketToken(token: string, at = Date.now()) {
-	const screen = screenOf(token.split('.')[0]);
+export function verifyBucketToken(value: string, at = Date.now()) {
+	// Any case: a scanner app that changes it shouldn't cost the scan, and hex
+	// UUIDs and signature mean the same either way. IDs are stored lowercase.
+	const token = value.toUpperCase();
+	const screen = screenOf(token.split('.')[0].toLowerCase());
 	if (!screen) return null;
 	return equals(token, bucketToken(screen, at)) ||
 		equals(token, bucketToken(screen, at - BUCKET_MS))

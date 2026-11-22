@@ -27,6 +27,15 @@ test('a code is accepted for its own window and the one before it, and names its
 	expect(verifyBucketToken(token, now + BUCKET_MS)).toEqual(OPS);
 });
 
+test('a code fits the QR alphanumeric charset and gives back the IDs as stored', () => {
+	const screen = { hostId: crypto.randomUUID(), eventId: crypto.randomUUID() };
+	const token = bucketToken(screen);
+
+	expect(token).toMatch(/^[0-9A-Z $%*+\-./:]+$/);
+	expect(verifyBucketToken(token)).toEqual(screen);
+	expect(verifyBucketToken(token.toLowerCase())).toEqual(screen);
+});
+
 test('a code is rejected two windows later', () => {
 	const now = Date.now();
 	expect(verifyBucketToken(bucketToken(OPS, now), now + 2 * BUCKET_MS)).toBeNull();
