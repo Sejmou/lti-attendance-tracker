@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { attendanceCode, sheetDate, sheetNote } from './attendance-code';
+import { attendanceCode, sheetDate, sheetNote, toCsv } from './attendance-code';
 
 // 18:00–20:00 in Vienna (UTC+2 in October).
 const at = (hhmm: string) => new Date(`2026-10-05T${hhmm}:00+02:00`);
@@ -57,4 +57,13 @@ test('the spreadsheet date and note', () => {
 	).toBe(
 		'Automatisch aus Scans erzeugt: ein 18:10 (manuell, Nachfrist, ab Beginn gezählt), aus 20:00 (manuell), 100 % anwesend'
 	);
+});
+
+test('CSV for Excel: semicolons, every field quoted, quotes doubled', () => {
+	expect(
+		toCsv([
+			['Termin', 'Notizen'],
+			['5.10.', 'ein 18:03, "aus" 19:58']
+		])
+	).toBe('\uFEFF"Termin";"Notizen"\r\n"5.10.";"ein 18:03, ""aus"" 19:58"\r\n');
 });

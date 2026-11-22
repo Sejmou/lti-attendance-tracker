@@ -14,7 +14,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Table from '$lib/components/ui/table';
 	import { deviceName } from '$lib/device-name';
-	import { attendanceCode, sheetDate, sheetNote } from '$lib/attendance-code';
+	import { attendanceCode, sheetDate, sheetNote, toCsv } from '$lib/attendance-code';
 	import { attendanceShare } from '$lib/attendance-share';
 	import { m } from '$lib/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
@@ -129,6 +129,8 @@
 	const firstScan = $derived(data.log.rows.at(-1)?.at);
 	const codeLate = $derived(firstScan !== undefined && firstScan > event.startsAt);
 	let graceMinutes = $state(5);
+	// Editable, for a spreadsheet column that names the day differently.
+	let sheetDay = $derived(sheetDate(event.startsAt));
 	const sheet = $derived(
 		data.byName.map((row) => {
 			const { code, share, late } = attendanceCode(event, row.scannedIn, row.scannedOut, {
@@ -136,7 +138,7 @@
 				graceMinutes
 			});
 			return {
-				date: sheetDate(event.startsAt),
+				date: sheetDay,
 				firstName: row.firstName,
 				lastName: row.lastName,
 				code,
@@ -149,16 +151,38 @@
 		})
 	);
 
+	const sheetCells = (row: (typeof sheet)[number]) => [
+		row.date,
+		row.firstName,
+		row.lastName,
+		row.code,
+		row.note
+	];
+
 	let copied = $state<boolean | null>(null);
 	async function copySheet() {
 		// Tab-separated, which Excel splits into cells on paste.
-		const text = sheet
-			.map((row) => [row.date, row.firstName, row.lastName, row.code, row.note].join('\t'))
-			.join('\n');
+		const text = sheet.map((row) => sheetCells(row).join('\t')).join('\n');
 		copied = await navigator.clipboard.writeText(text).then(
 			() => true,
 			() => false
 		);
+	}
+
+	function downloadSheet() {
+		const header = [
+			m.sheet_col_date(),
+			m.sheet_col_first_name(),
+			m.sheet_col_last_name(),
+			m.sheet_col_code(),
+			m.sheet_col_note()
+		];
+		const csv = toCsv([header, ...sheet.map(sheetCells)]);
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+		link.download = `${m.sheet_file_name()}-${wallClock(event.startsAt).date}.csv`;
+		link.click();
+		URL.revokeObjectURL(link.href);
 	}
 
 	type LogRow = PageServerData['log']['rows'][number];
@@ -440,6 +464,10 @@
 				<p class="text-sm">{m.sheet_grace_hint({ time: time(firstScan!) })}</p>
 			{/if}
 			<div class="flex flex-wrap items-end gap-4">
+				<Field.Field class="w-auto">
+					<Field.Label for="sheet-day">{m.sheet_col_date()}</Field.Label>
+					<Input id="sheet-day" class="w-24" bind:value={sheetDay} />
+				</Field.Field>
 				{#if codeLate}
 					<Field.Field class="w-auto">
 						<Field.Label for="sheet-grace">{m.sheet_grace()}</Field.Label>
@@ -456,6 +484,7 @@
 				<Button onclick={copySheet}>
 					{copied ? m.sheet_copied() : m.sheet_copy()}
 				</Button>
+				<Button variant="outline" onclick={downloadSheet}>{m.sheet_download()}</Button>
 			</div>
 			{#if copied === false}
 				<p class="text-sm text-red-600" role="alert">{m.sheet_copy_failed()}</p>

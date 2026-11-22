@@ -38,6 +38,15 @@ export function attendanceCode(
 	return { code, share, late };
 }
 
+/**
+ * Rows as CSV for Excel: semicolons, which German Excel expects, every field
+ * quoted, and a byte order mark, without which it reads UTF-8 as Latin-1.
+ */
+export function toCsv(rows: string[][]) {
+	const field = (value: string) => `"${value.replaceAll('"', '""')}"`;
+	return '\uFEFF' + rows.map((row) => row.map(field).join(';')).join('\r\n') + '\r\n';
+}
+
 /** The event's day as the spreadsheet writes it: `5.10.` */
 export function sheetDate(at: Date) {
 	const [, month, day] = wallClock(at).date.split('-').map(Number);
